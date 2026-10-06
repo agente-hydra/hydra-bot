@@ -1,0 +1,71 @@
+name: Validate and promote Hydra
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hydra-ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run verify
+      - run: python3 -m unittest discover -s deploy/tests -v
+
+  promote:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Promote only the currently validated main commit
+        shell: bash
+        env:
+          HYDRA_RELEASE_SIGNING_KEY: ${{ secrets.HYDRA_RELEASE_SIGNING_KEY }}
+        run: |
+          set -euo pipefail
+          latest="$(git ls-remote origin refs/heads/main | cut -f1)"
+          if [ "$latest" != "$GITHUB_SHA" ]; then
+            echo "A newer main commit exists; this release will not be promoted."
+            exit 0
+          fi
+          key="$RUNNER_TEMP/hydra-release-key"
+          printf '%s\n' "$HYDRA_RELEASE_SIGNING_KEY" > "$key"
+          chmod 600 "$key"
+          git config user.name "Hydra CI"
+          git config user.email "hydra-ci@users.noreply.github.com"
+          git config gpg.format ssh
+          git config user.signingkey "$key"
+          public="$(ssh-keygen -y -f "$key")"
+          printf 'hydra-ci %s\n' "$public" > "$RUNNER_TEMP/allowed_signers"
+          git config gpg.ssh.allowedSignersFile "$RUNNER_TEMP/allowed_signers"
+          tag="hydra-release/$GITHUB_SHA"
+          if git show-ref --verify --quiet "refs/tags/$tag"; then
+            git verify-tag "$tag"
+            test "$(git rev-parse "$tag^{commit}")" = "$GITHUB_SHA"
+          else
+            git tag -s -m "Validated Hydra release $GITHUB_SHA" "$tag" "$GITHUB_SHA"
+          fi
+          git push --atomic origin "refs/tags/$tag" "$GITHUB_SHA:refs/heads/production"
+          rm -f "$key"

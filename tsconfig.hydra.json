@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/hydra-sync/**/*.ts",
+    "src/hydra-sync/**/*.d.ts"
+  ]
+}
