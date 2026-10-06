@@ -1329,18 +1329,47 @@ function registrarTelemetriaIA(db, item) {
     console.warn("[DB] Falha ao registrar telemetria IA:", err?.message || err);
   }
 }
-function getPatioOverview(db) {
-  return db.prepare(`
-    SELECT 
-      loja_slug,
-      COUNT(*) AS total_abertas,
-      SUM(total_os) AS total_valor,
-      SUM(valor_restante) AS total_restante
+function getOpenOSCounts(db, lojaSlug) {
+  const query = `
+    SELECT
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending
     FROM ordens_servico
-    WHERE is_aberta = 1
+    ${lojaSlug ? 'WHERE LOWER(loja_slug) = LOWER(?)' : ''}
+  `;
+  const row = (lojaSlug ? db.prepare(query).get(lojaSlug.trim()) : db.prepare(query).get());
+  const result = {
+    confirmed_open: row.confirmed_open,
+    transition_pending: row.transition_pending,
+    total_open_like: row.confirmed_open + row.transition_pending
+  };
+  console.error(JSON.stringify({event: 'hydra_open_os_counts', loja: lojaSlug ? lojaSlug.trim() : 'REDE', ...result}));
+  return result;
+}
+
+function getPatioOverview(db) {
+  const rows = db.prepare(`
+    SELECT
+      loja_slug,
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS total_abertas,
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending,
+      COUNT(*) AS total_open_like,
+      SUM(CASE WHEN is_aberta = 1 THEN total_os END) AS total_valor,
+      SUM(CASE WHEN is_aberta = 1 THEN valor_restante END) AS total_restante
+    FROM ordens_servico
+    WHERE is_aberta = 1 OR UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE'
     GROUP BY loja_slug
     ORDER BY total_abertas DESC
   `).all();
+  for (const row of rows) {
+    console.error(JSON.stringify({
+      event: 'hydra_open_os_counts', loja: row.loja_slug,
+      confirmed_open: row.confirmed_open, transition_pending: row.transition_pending,
+      total_open_like: row.total_open_like
+    }));
+  }
+  return rows;
 }
 function getAgingCars(db, diasMinimos = 5) {
   return db.prepare(`
@@ -1549,7 +1578,7 @@ function getChecklistAudit(db, lojaSlug) {
   const rows = db.prepare(`
     SELECT os_id, loja_slug, veiculo, placa, dias_no_patio, raw_payload
     FROM ordens_servico
-    WHERE is_aberta = 1
+    WHERE is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE'
   `).all();
   let semEntrada = 0;
   let semMecanico = 0;
@@ -1601,9 +1630,13 @@ function getChecklistAudit(db, lojaSlug) {
 function getStoreDrilldown(db, lojaSlug) {
   const slug = lojaSlug.trim().toLowerCase();
   const patioRow = db.prepare(`
-    SELECT COUNT(*) as total_abertas, SUM(valor_restante) as total_restante
+    SELECT
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending,
+      COUNT(*) AS total_open_like,
+      SUM(CASE WHEN is_aberta = 1 THEN valor_restante END) AS total_restante
     FROM ordens_servico
-    WHERE is_aberta = 1 AND LOWER(loja_slug) = LOWER(?)
+    WHERE (is_aberta = 1 OR UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE') AND LOWER(loja_slug) = LOWER(?)
   `).get(slug);
   const travadosRow = db.prepare(`
     SELECT COUNT(*) as total
@@ -1624,9 +1657,17 @@ function getStoreDrilldown(db, lojaSlug) {
   `).get(slug);
   const checklistAudit = getChecklistAudit(db, slug);
   const frescor = verificarFrescorMetas(db, 26);
+  console.error(JSON.stringify({
+    event: 'hydra_open_os_counts', loja: lojaSlug,
+    confirmed_open: patioRow.confirmed_open, transition_pending: patioRow.transition_pending,
+    total_open_like: patioRow.total_open_like
+  }));
   return {
     loja_slug: lojaSlug,
-    total_veiculos_patio: patioRow?.total_abertas || 0,
+    total_veiculos_patio: patioRow.confirmed_open,
+    confirmed_open: patioRow.confirmed_open,
+    transition_pending: patioRow.transition_pending,
+    total_open_like: patioRow.total_open_like,
     saldo_total_receber: patioRow?.total_restante || 0,
     faturamento_mes: metasRow?.faturamento_mes || 0,
     volume_os_mes: metasRow?.volume_os || 0,
@@ -1843,8 +1884,8 @@ async function getHydraHealthSnapshot(db, redisClient) {
     coberturaPct: 100
   };
   try {
-    const osRow = db.prepare("SELECT COUNT(*) as c FROM ordens_servico WHERE is_aberta = 1").get();
-    indiceVetorial.totalOSsAbertas = osRow?.c || 0;
+    const openCounts = getOpenOSCounts(db);
+    indiceVetorial.totalOSsAbertas = openCounts.confirmed_open;
     let vecCount = 0;
     try {
       const vRow = db.prepare("SELECT COUNT(*) as c FROM vec_ordens_servico").get();
@@ -3277,6 +3318,7 @@ export {
   getMetasConsolidadas,
   getOSByItemCount,
   getOSDetailComplete,
+  getOpenOSCounts,
   getPatioOverview,
   getPesquisaMidia,
   getRecentInteractionContext,

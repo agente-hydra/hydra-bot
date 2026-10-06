@@ -221,6 +221,7 @@ async function run() {
                   formalizarTransicaoNominalOS(db, p.os_id, slug, 'ABERTA', 'VALIDACAO_NOMINAL_ABERTA', detalhe);
                   console.log(`[Deep Crawler] [${slug}] ✅ OS #${p.os_id} confirmada como ABERTA via checagem nominal.`);
                 } else {
+                  console.warn(JSON.stringify({event: 'hydra_os_detail_incomplete', loja: slug, stage: 'nominal', reason: 'DETAIL_INCOMPLETE'}));
                   console.log(`[Deep Crawler] [${slug}] ℹ️ OS #${p.os_id} mantida em TRANSICAO_PENDENTE (inconclusiva: ${detalhe.erro || 'sem detalhe'}).`);
                 }
               } catch (nomErr: any) {

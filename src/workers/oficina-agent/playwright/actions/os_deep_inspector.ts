@@ -364,7 +364,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
 
 // ─── Extração do Detalhe da OS (Abre Popup e Extrai) ──────────────────────────
 
-async function extrairDetalhe(page: Page, osId: string, baseUrl: string): Promise<Partial<DocumentoAberto>> {
+export async function extrairDetalhe(page: Page, osId: string, baseUrl: string): Promise<Partial<DocumentoAberto>> {
   try {
     const context = page.context();
     page.setDefaultTimeout(15000);

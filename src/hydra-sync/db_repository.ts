@@ -1584,18 +1584,47 @@ export function registrarTelemetriaIA(db: Database.Database, item: AITelemetryIt
 /**
  * Consulta agregada do pátio por loja
  */
-export function getPatioOverview(db: Database.Database): any[] {
-  return db.prepare(`
-    SELECT 
-      loja_slug,
-      COUNT(*) AS total_abertas,
-      SUM(total_os) AS total_valor,
-      SUM(valor_restante) AS total_restante
+export function getOpenOSCounts(db: Database.Database, lojaSlug?: string): OpenOSCounts {
+  const query = `
+    SELECT
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending
     FROM ordens_servico
-    WHERE is_aberta = 1
+    ${lojaSlug ? 'WHERE LOWER(loja_slug) = LOWER(?)' : ''}
+  `;
+  const row = (lojaSlug ? db.prepare(query).get(lojaSlug.trim()) : db.prepare(query).get()) as { confirmed_open: number; transition_pending: number };
+  const result = {
+    confirmed_open: row.confirmed_open,
+    transition_pending: row.transition_pending,
+    total_open_like: row.confirmed_open + row.transition_pending
+  };
+  console.error(JSON.stringify({event: 'hydra_open_os_counts', loja: lojaSlug ? lojaSlug.trim() : 'REDE', ...result}));
+  return result;
+}
+
+export function getPatioOverview(db: Database.Database): any[] {
+  const rows = db.prepare(`
+    SELECT
+      loja_slug,
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS total_abertas,
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending,
+      COUNT(*) AS total_open_like,
+      SUM(CASE WHEN is_aberta = 1 THEN total_os END) AS total_valor,
+      SUM(CASE WHEN is_aberta = 1 THEN valor_restante END) AS total_restante
+    FROM ordens_servico
+    WHERE is_aberta = 1 OR UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE'
     GROUP BY loja_slug
     ORDER BY total_abertas DESC
-  `).all();
+  `).all() as Array<OpenOSCounts & { loja_slug: string; total_abertas: number; total_valor: number | null; total_restante: number | null }>;
+  for (const row of rows) {
+    console.error(JSON.stringify({
+      event: 'hydra_open_os_counts', loja: row.loja_slug,
+      confirmed_open: row.confirmed_open, transition_pending: row.transition_pending,
+      total_open_like: row.total_open_like
+    }));
+  }
+  return rows;
 }
 
 /**
@@ -1869,7 +1898,13 @@ export interface ChecklistAuditResult {
   }>;
 }
 
-export interface StoreDrilldownResult {
+export interface OpenOSCounts {
+  confirmed_open: number;
+  transition_pending: number;
+  total_open_like: number;
+}
+
+export interface StoreDrilldownResult extends OpenOSCounts {
   loja_slug: string;
   total_veiculos_patio: number;
   saldo_total_receber: number;
@@ -1972,7 +2007,7 @@ export function getChecklistAudit(db: Database.Database, lojaSlug?: string): Che
   const rows = db.prepare(`
     SELECT os_id, loja_slug, veiculo, placa, dias_no_patio, raw_payload
     FROM ordens_servico
-    WHERE is_aberta = 1
+    WHERE is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE'
   `).all() as any[];
 
   let semEntrada = 0;
@@ -2041,9 +2076,13 @@ export function getStoreDrilldown(db: Database.Database, lojaSlug: string): Stor
   const slug = lojaSlug.trim().toLowerCase();
 
   const patioRow = db.prepare(`
-    SELECT COUNT(*) as total_abertas, SUM(valor_restante) as total_restante
+    SELECT
+      COUNT(CASE WHEN is_aberta = 1 AND UPPER(TRIM(COALESCE(estado_operacional, ''))) != 'TRANSICAO_PENDENTE' THEN 1 END) AS confirmed_open,
+      COUNT(CASE WHEN UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE' THEN 1 END) AS transition_pending,
+      COUNT(*) AS total_open_like,
+      SUM(CASE WHEN is_aberta = 1 THEN valor_restante END) AS total_restante
     FROM ordens_servico
-    WHERE is_aberta = 1 AND LOWER(loja_slug) = LOWER(?)
+    WHERE (is_aberta = 1 OR UPPER(TRIM(COALESCE(estado_operacional, ''))) = 'TRANSICAO_PENDENTE') AND LOWER(loja_slug) = LOWER(?)
   `).get(slug) as any;
 
   const travadosRow = db.prepare(`
@@ -2069,9 +2108,17 @@ export function getStoreDrilldown(db: Database.Database, lojaSlug: string): Stor
   const checklistAudit = getChecklistAudit(db, slug);
   const frescor = verificarFrescorMetas(db, 26);
 
+  console.error(JSON.stringify({
+    event: 'hydra_open_os_counts', loja: lojaSlug,
+    confirmed_open: patioRow.confirmed_open, transition_pending: patioRow.transition_pending,
+    total_open_like: patioRow.total_open_like
+  }));
   return {
     loja_slug: lojaSlug,
-    total_veiculos_patio: patioRow?.total_abertas || 0,
+    total_veiculos_patio: patioRow.confirmed_open,
+    confirmed_open: patioRow.confirmed_open,
+    transition_pending: patioRow.transition_pending,
+    total_open_like: patioRow.total_open_like,
     saldo_total_receber: patioRow?.total_restante || 0,
     faturamento_mes: metasRow?.faturamento_mes || 0,
     volume_os_mes: metasRow?.volume_os || 0,
@@ -2424,8 +2471,8 @@ export async function getHydraHealthSnapshot(
     coberturaPct: 100
   };
   try {
-    const osRow = db.prepare('SELECT COUNT(*) as c FROM ordens_servico WHERE is_aberta = 1').get() as { c: number } | undefined;
-    indiceVetorial.totalOSsAbertas = osRow?.c || 0;
+    const openCounts = getOpenOSCounts(db);
+    indiceVetorial.totalOSsAbertas = openCounts.confirmed_open;
 
     let vecCount = 0;
     try {
