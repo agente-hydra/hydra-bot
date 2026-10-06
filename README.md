@@ -56,9 +56,13 @@ python3 /home/operacional/hydra-deploy/sync.py --rollback
 rm /home/operacional/hydra-deploy/PAUSED
 ```
 
-Falha de health check restaura o código anterior. Isso não desfaz alterações de dados realizadas por uma aplicação; mudanças de schema exigem plano próprio de compatibilidade e backup.
+Após a ativação, a versão é observada por 10 minutos antes de ser certificada. Três falhas locais consecutivas provocam uma tentativa de retorno à última versão saudável, aguardando coletas e atendimentos em andamento. O commit rejeitado não é reinstalado; outro push pode trazer a correção. São guardadas as cinco versões saudáveis mais recentes. Se a recuperação também falhar, o incidente é registrado sem alternância contínua de versões.
 
-O controlador registra uma transação pendente antes de ativar código e recupera a versão anterior se o processo for interrompido. Uma preparação que falha é registrada pelo SHA e não reinstala indefinidamente. Para repetir esse SHA após resolver o problema, remova somente `failed` e `lastError` do `status.json` com a sincronização pausada.
+O monitor combina listener, PM2, SQLite somente leitura e um percurso funcional com perguntas sintéticas. Não chama Evolution ou IA e não identifica sozinho toda resposta incorreta. Veja [regras e campos de status](docs/deployment.md). `PAUSED` suspende tanto deploy quanto recuperação automática.
+
+Isso não desfaz alterações de dados realizadas por uma aplicação; mudanças de schema exigem plano próprio de compatibilidade e backup.
+
+O controlador registra uma transação pendente antes de ativar código e recupera a versão anterior se o processo for interrompido. Uma preparação que falha é registrada pelo SHA e não reinstala indefinidamente. Prefira publicar a correção em um commit novo. Para autorizar excepcionalmente outra tentativa do mesmo SHA, pause a sincronização e retire esse SHA de `rejected` e de `failed`, além de `lastError`, no `status.json`.
 
 ## Limites da verificação
 

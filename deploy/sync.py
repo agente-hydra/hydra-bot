@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -16,6 +17,85 @@ import urllib.request
 
 BASE = Path(os.environ.get('HYDRA_DEPLOY_ROOT', '/home/operacional/hydra-deploy'))
 IGNORED = {'.env', '.auth', 'state', 'downloads', 'node_modules', '__pycache__', '.git', '.migration', '.superpowers'}
+OBSERVE_SECONDS = 600
+STARTUP_GRACE_SECONDS = 90
+MAX_CHECK_GAP = 150
+FAILURE_LIMIT = 3
+HISTORY_LIMIT = 5
+CRAWLER_LOCK = '/tmp/hydra-data-refresh.lock'
+
+# Pure runtime path: no ERP, WhatsApp, AI calls or production database access.
+FUNCTIONAL_PROBE = """
+import assert from 'node:assert/strict';
+import {pathToFileURL} from 'node:url';
+const load=p=>import(pathToFileURL(process.cwd()+'/'+p).href);
+const intent=await load('src/hydra-sync/intent_rewriter.ts');
+const composer=await load('src/hydra-sync/balloon_composer.ts');
+assert.equal(intent.normalizarTexto('  SITUAÇÃO  '),'situacao');
+const range=intent.getCivilDateRange30Days(new Date('2026-10-06T12:00:00Z'));
+assert.equal(range.startDateIso,'2026-09-07 00:00:00');
+assert.equal(range.endDateIso,'2026-10-06 23:59:59');
+const query=intent.rewriteIntent('faturamento da rede');
+assert.equal(query.interpretation.scope,'network');
+assert.ok(query.canonicalQuestion.toLowerCase().includes('faturamento'));
+const text='Consulta sintética de disponibilidade interna.';
+const balloons=composer.composeSemanticBalloons({directAnswer:text});
+assert.deepEqual(balloons,[text]);
+console.log('FUNCTIONAL_OK');
+"""
+
+
+def epoch(value):
+    return datetime.fromisoformat(value).timestamp()
+
+
+def fallback_sha(state):
+    candidates = [state.get('lastHealthy')] + state.get('healthyHistory', [])
+    return next((sha for sha in candidates if sha and sha != state.get('current')
+                 and sha not in state.get('rejected', [])), None)
+
+
+def reject_release(state, sha, reason):
+    rejected = state.setdefault('rejected', [])
+    if sha not in rejected:
+        rejected.append(sha)
+    state.update(failed=sha, lastError=reason)
+
+
+def observe_health(state, report, now):
+    """Advance persistent policy using one local sample; never infer unseen uptime."""
+    previous_check = state.get('lastHealth', {}).get('at')
+    if previous_check is not None and (now < previous_check or now - previous_check > MAX_CHECK_GAP):
+        state.pop('healthySince', None)
+        state['healthFailures'] = 0
+    if report['ok'] and state.get('lastUptime', 0) > report.get('uptime', 0):
+        state.pop('healthySince', None)
+    if report.get('restarts', 0) > state.get('lastRestarts', report.get('restarts', 0)):
+        report = dict(report, ok=False, reason='process_restarted')
+    state['lastUptime'] = report.get('uptime', 0)
+    state['lastRestarts'] = report.get('restarts', state.get('lastRestarts', 0))
+    state['lastHealth'] = {'at': now, 'ok': report['ok'], 'reason': report['reason']}
+    if report['ok']:
+        state['healthFailures'] = 0
+        state.setdefault('healthySince', now)
+        if state.get('phase') == 'stable':
+            return 'stable'
+        if now - state['healthySince'] >= OBSERVE_SECONDS and report.get('uptime', 0) >= OBSERVE_SECONDS:
+            sha = state['current']
+            history = [sha] + [s for s in state.get('healthyHistory', []) if s != sha and s not in state.get('rejected', [])]
+            retired = list(dict.fromkeys(state.get('retiredHealthy', []) + history[HISTORY_LIMIT:]))
+            state.update(lastHealthy=sha, healthyHistory=history[:HISTORY_LIMIT],
+                         retiredHealthy=retired, phase='stable', stableAt=now)
+            return 'promote'
+        return 'observe'
+    state.pop('healthySince', None)
+    if now - epoch(state.get('deployedAt', datetime.now(timezone.utc).isoformat())) < STARTUP_GRACE_SECONDS:
+        state['healthFailures'] = 0
+        return 'observe'
+    state['healthFailures'] = state.get('healthFailures', 0) + 1
+    if state['healthFailures'] >= FAILURE_LIMIT:
+        return 'rollback' if fallback_sha(state) and not state.get('rollbackAttempted') else 'incident'
+    return 'observe'
 
 
 def validate_sha(value):
@@ -104,17 +184,184 @@ def database_ready():
         return False
 
 
+def functional_ready(root):
+    try:
+        return run(['node', '--import', 'tsx', '--input-type=module', '-e', FUNCTIONAL_PROBE], cwd=root, timeout=20).endswith('FUNCTIONAL_OK')
+    except Exception:
+        return False
+
+
+def probe_health():
+    report = {'ok': False, 'reason': 'listener_unavailable', 'uptime': 0}
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:3333/health', timeout=3) as response:
+            data = json.load(response)
+        if response.status != 200 or not listener_ready(data):
+            return report
+        report['uptime'] = float(data['listener'].get('uptime', 0))
+        # Read metadata internally; never write the PM2 environment into status/logs.
+        processes = json.loads(run(['/usr/bin/pm2', 'jlist'], timeout=10))
+        bot = next((p for p in processes if p.get('name') == 'hydra-bot'), None)
+        if not bot or bot.get('pm2_env', {}).get('status') != 'online':
+            return dict(report, reason='process_offline')
+        report['restarts'] = bot['pm2_env'].get('restart_time', 0)
+        if not database_ready():
+            return dict(report, reason='database_unavailable')
+        if not functional_ready(BASE / 'current'):
+            return dict(report, reason='functional_probe_failed')
+        return dict(report, ok=True, reason='ready')
+    except (OSError, ValueError, RuntimeError, TypeError, KeyError, subprocess.TimeoutExpired):
+        return report
+
+
 def health_check():
+    deadline = time.monotonic() + 45
     for _ in range(20):
-        try:
-            with urllib.request.urlopen('http://127.0.0.1:3333/health', timeout=3) as response:
-                data = json.load(response)
-            if response.status == 200 and listener_ready(data):
-                return database_ready()
-        except (OSError, ValueError):
-            pass
+        if probe_health()['ok']:
+            return True
+        if time.monotonic() >= deadline:
+            break
         time.sleep(1)
     return False
+
+
+def install_controller(root):
+    temporary = BASE / 'sync.next.py'
+    temporary.write_bytes((root / 'deploy' / 'sync.py').read_bytes())
+    os.replace(temporary, BASE / 'sync.py')
+
+
+def prune_retired(state):
+    """Only prune retired certified code directories, never data or arbitrary paths."""
+    protected = {state.get('current'), state.get('previous'), state.get('lastHealthy')} | set(state.get('healthyHistory', []))
+    remaining = []
+    for sha in state.get('retiredHealthy', []):
+        validate_sha(sha)
+        root = BASE / 'releases' / sha
+        manifest = BASE / 'manifests' / (sha + '.json')
+        if sha in protected or root.is_symlink() or root.resolve().parent != (BASE / 'releases').resolve():
+            remaining.append(sha)
+            continue
+        if root.is_dir():
+            if not manifest.exists() or find_drift(root, json.loads(manifest.read_text())):
+                remaining.append(sha)
+                continue
+            shutil.rmtree(root)
+        manifest.unlink(missing_ok=True)
+    state['retiredHealthy'] = remaining
+
+
+def finish_healthy_rollback(state, target, reason):
+    """Never hop back to rejected code when recovery itself fails."""
+    atomic_link(BASE / 'current', target)
+    try:
+        restart_bot()
+        recovered = health_check()
+    except Exception:
+        recovered = False
+    state.update(recoveryBlocked=not recovered, phase='observing' if recovered else 'incident',
+                 incident=None if recovered else 'Fallback also failed; automatic version hopping stopped',
+                 rollbackReason=reason, healthFailures=0)
+    write_json(BASE / 'status.json', state)
+    refresh_mcp_sessions()
+    (BASE / 'pending.json').unlink(missing_ok=True)
+    print('Rollback recovered: ' + state['current'] if recovered else state['incident'])
+    return state
+
+
+def bot_busy():
+    try:
+        with urllib.request.urlopen('http://127.0.0.1:3333/health', timeout=3) as response:
+            listener = json.load(response).get('listener', {})
+        if listener.get('queueSize', 1) or listener.get('activeChats', 1) or listener.get('isProcessing', True):
+            return True
+    except (OSError, ValueError):
+        pass  # A missing listener cannot drain a queue; still protect live dispatchers.
+    for pid in Path('/proc').iterdir():
+        if pid.name.isdigit():
+            try:
+                if any(arg.endswith(b'/agent_dispatcher_cli.ts') for arg in (pid / 'cmdline').read_bytes().split(b'\0')):
+                    return True
+            except OSError:
+                pass
+    return False
+
+
+def refresh_mcp_sessions():
+    for pid in Path('/proc').iterdir():
+        if pid.name.isdigit():
+            try:
+                if b'/opt/bots/src/hydra-sync/mcp_server.ts' in (pid / 'cmdline').read_bytes().split(b'\0'):
+                    os.kill(int(pid.name), 15)
+            except (OSError, ProcessLookupError):
+                pass
+
+
+def rollback_healthy(state, reason):
+    try:
+        with lock_file(CRAWLER_LOCK):
+            if bot_busy():
+                state['rollbackDeferred'] = 'Waiting for active bot turn'
+                write_json(BASE / 'status.json', state)
+                return state
+            state.pop('rollbackDeferred', None)
+            return rollback_healthy_locked(state, reason)
+    except BlockingIOError:
+        state['rollbackDeferred'] = 'Waiting for active crawler'
+        write_json(BASE / 'status.json', state)
+        return state
+
+
+def rollback_healthy_locked(state, reason):
+    sha = fallback_sha(state)
+    if not sha:
+        state.update(recoveryBlocked=True, phase='incident', incident='No certified healthy fallback available')
+        write_json(BASE / 'status.json', state)
+        return state
+    target = BASE / 'releases' / validate_sha(sha)
+    manifest = BASE / 'manifests' / (sha + '.json')
+    if not target.is_dir() or target.is_symlink() or not manifest.exists() or find_drift(target, json.loads(manifest.read_text())):
+        state.update(recoveryBlocked=True, phase='incident', incident='Healthy fallback missing or modified; intervention required')
+        write_json(BASE / 'status.json', state)
+        return state
+    bad = state['current']
+    reject_release(state, bad, reason)
+    # The selected fallback is preserved, but no longer called healthy without rechecking.
+    state.update(current=sha, previous=bad, lastHealthy=sha, rollbackAttempted=True,
+                 healthyHistory=[s for s in state.get('healthyHistory', []) if s != bad],
+                 deployedAt=datetime.now(timezone.utc).isoformat())
+    for key in ['healthySince', 'lastHealth', 'lastUptime', 'lastRestarts']:
+        state.pop(key, None)
+    write_json(BASE / 'pending.json', {'mode': 'healthy-rollback', 'target': sha, 'state': state, 'reason': reason})
+    return finish_healthy_rollback(state, target, reason)
+
+
+def monitor_active(state):
+    if not state.get('current') or state.get('recoveryBlocked'):
+        return state
+    current = BASE / 'current'
+    if not current.is_symlink() or current.resolve() != BASE / 'releases' / validate_sha(state['current']):
+        raise RuntimeError('Active release pointer changed manually')
+    action = observe_health(state, probe_health(), time.time())
+    if action != 'promote':
+        write_json(BASE / 'status.json', state)
+    if action == 'rollback':
+        return rollback_healthy(state, state['lastHealth']['reason'])
+    if action == 'incident':
+        state.update(recoveryBlocked=True, phase='incident', incident='Fallback failed after recovery; version hopping stopped' if state.get('rollbackAttempted') else 'No certified healthy fallback available')
+        write_json(BASE / 'status.json', state)
+    elif action == 'promote':
+        manifest = BASE / 'manifests' / (state['current'] + '.json')
+        if not manifest.exists() or find_drift(current.resolve(), json.loads(manifest.read_text())):
+            raise RuntimeError('Manual changes block certification of the release')
+        # Candidate controllers replace the stable controller only after observation.
+        candidate_controller = current / 'deploy' / 'sync.py'
+        if b'def monitor_active(' in candidate_controller.read_bytes():
+            install_controller(current)
+        prune_retired(state)
+        write_json(BASE / 'status.json', state)
+        print('Certified healthy: ' + state['current'])
+    return state
 
 
 def restart_bot():
@@ -142,6 +389,8 @@ def prepare_release(sha, git_env):
     run(['npm', 'ci', '--no-audit', '--no-fund'], cwd=release)
     run(['npm', 'run', 'verify'], cwd=release)
     run(['python3', '-m', 'unittest', 'discover', '-s', 'deploy/tests', '-v'], cwd=release)
+    if not functional_ready(release):
+        raise RuntimeError('Candidate functional probe failed')
     # Native DB drivers are checked in memory, without opening the production database.
     run(['node', '--input-type=module', '-e', "import {createRequire} from 'module';const r=createRequire(process.cwd()+'/package.json');const D=r('better-sqlite3');const db=new D(':memory:');r('sqlite-vec').load(db);db.close();"], cwd=release)
     (release / '.env').symlink_to(BASE / 'shared' / '.env')
@@ -162,25 +411,46 @@ def check_compatibility_links(config):
 
 
 def recover_pending():
+    if not (BASE / 'pending.json').exists():
+        return
+    with lock_file(CRAWLER_LOCK):
+        if bot_busy():
+            raise BlockingIOError('Recovery is waiting for active bot turn')
+        recover_pending_locked()
+
+
+def recover_pending_locked():
     journal = BASE / 'pending.json'
     if not journal.exists():
         return
     pending = json.loads(journal.read_text())
     target = BASE / 'releases' / validate_sha(pending['target'])
+    if pending.get('mode') == 'healthy-rollback':
+        finish_healthy_rollback(pending['state'], target, pending['reason'])
+        return
     status_file = BASE / 'status.json'
     status = json.loads(status_file.read_text()) if status_file.exists() else {}
     current = BASE / 'current'
     if status.get('current') == pending['target'] and current.resolve() == target:
+        refresh_mcp_sessions()
         journal.unlink()
         return
     previous = Path(pending['previousPath'])
     if previous.parent != BASE / 'releases' or not previous.is_dir():
         raise RuntimeError('Invalid recovery path')
     atomic_link(current, previous)
-    restart_bot()
-    if not health_check():
-        raise RuntimeError('Interrupted deployment recovery health check failed')
-    write_json(status_file, pending['before'])
+    recovered = False
+    try:
+        restart_bot()
+        recovered = health_check()
+    except Exception:
+        pass
+    state = pending['before']
+    if not recovered:
+        reject_release(state, pending['target'], 'Interrupted deployment recovery health check failed')
+        state.update(recoveryBlocked=True, rollbackAttempted=True, phase='incident', incident='Interrupted recovery failed; version hopping stopped')
+    write_json(status_file, state)
+    refresh_mcp_sessions()
     journal.unlink()
     print('Recovered the release preceding an interrupted deployment')
 
@@ -203,12 +473,16 @@ def deploy(rollback=False):
     if (BASE / 'PAUSED').exists() and not rollback:
         print('Sync paused; remove PAUSED to resume')
         return
+    if not rollback:
+        state = monitor_active(state)
     git_env = dict(os.environ, GIT_SSH_COMMAND='ssh -i ' + str(BASE / 'github-readonly') + ' -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=' + str(BASE / 'known_hosts'))
     if rollback:
-        sha = validate_sha(state.get('previous', ''))
+        sha = validate_sha(fallback_sha(state) or state.get('previous', ''))
+        if sha in state.get('rejected', []):
+            raise RuntimeError('Manual rollback target is a rejected commit')
         (BASE / 'PAUSED').touch()
     else:
-        run(['git', '--git-dir=' + str(BASE / 'repo.git'), 'fetch', '--prune', 'origin'], env=git_env)
+        run(['git', '--git-dir=' + str(BASE / 'repo.git'), 'fetch', '--prune', 'origin'], env=git_env, timeout=25)
         sha = validate_sha(run(['git', '--git-dir=' + str(BASE / 'repo.git'), 'rev-parse', 'refs/heads/production'], env=git_env))
         main = run(['git', '--git-dir=' + str(BASE / 'repo.git'), 'rev-parse', 'refs/heads/main'], env=git_env)
         if sha != main:
@@ -231,16 +505,30 @@ def deploy(rollback=False):
     if not rollback and state.get('failed') == sha:
         print('Release previously failed; inspect status.json before retry')
         return
+    if not rollback and sha in state.get('rejected', []):
+        print('Rejected commit; waiting for a new push')
+        return
+    if not rollback and not state.get('lastHealthy') and not state.get('recoveryBlocked'):
+        print('Observing the initial baseline before accepting another release')
+        return
+    if not rollback and state.get('phase') == 'observing' and not state.get('recoveryBlocked'):
+        print('Current release is still in its ten-minute observation period')
+        return
     try:
         target = prepare_release(sha, git_env)
     except Exception as error:
-        state.update(failed=sha, lastError='Preparation: ' + str(error))
+        reject_release(state, sha, 'Preparation: ' + str(error))
         write_json(state_path, state)
         raise
     try:
-        with lock_file('/tmp/hydra-data-refresh.lock'):
-            with urllib.request.urlopen('http://127.0.0.1:3333/health', timeout=3) as response:
-                listener = json.load(response).get('listener', {})
+        with lock_file(CRAWLER_LOCK):
+            try:
+                with urllib.request.urlopen('http://127.0.0.1:3333/health', timeout=3) as response:
+                    listener = json.load(response).get('listener', {})
+            except OSError:
+                if not state.get('recoveryBlocked'):
+                    raise
+                listener = {'queueSize': 0, 'activeChats': 0, 'isProcessing': False}
             if listener.get('queueSize', 1) or listener.get('activeChats', 1) or listener.get('isProcessing', True):
                 print('Bot is processing messages; deploy deferred')
                 return
@@ -256,48 +544,39 @@ def deploy(rollback=False):
                 except OSError:
                     pass
             previous = current.resolve()
-            old_mcp = []
-            for pid in Path('/proc').iterdir():
-                if pid.name.isdigit():
-                    try:
-                        if b'/opt/bots/src/hydra-sync/mcp_server.ts' in (pid / 'cmdline').read_bytes().split(b'\0'):
-                            old_mcp.append(int(pid.name))
-                    except OSError:
-                        pass
-            new_state = {'current': sha, 'previous': previous.name if re.fullmatch(r'[0-9a-f]{40}', previous.name) else None, 'deployedAt': datetime.now(timezone.utc).isoformat(), 'repository': config['repository']}
+            new_state = {**state, 'current': sha, 'previous': previous.name if re.fullmatch(r'[0-9a-f]{40}', previous.name) else None, 'deployedAt': datetime.now(timezone.utc).isoformat(), 'repository': config['repository'], 'phase': 'observing', 'healthFailures': 0, 'recoveryBlocked': False, 'rollbackAttempted': False, 'incident': None}
+            for key in ['healthySince', 'lastHealth', 'lastUptime', 'lastRestarts', 'rollbackDeferred']:
+                new_state.pop(key, None)
             write_json(BASE / 'pending.json', {'before': state, 'previousPath': str(previous), 'target': sha})
             activate(current, target, restart_bot, health_check, lambda: write_json(state_path, new_state))
-            (BASE / 'pending.json').unlink()
             # Existing idle AGY MCP sessions must reconnect using the active source tree.
-            for pid in old_mcp:
-                try:
-                    args = (Path('/proc') / str(pid) / 'cmdline').read_bytes().split(b'\0')
-                    if b'/opt/bots/src/hydra-sync/mcp_server.ts' in args:
-                        os.kill(pid, 15)
-                except (OSError, ProcessLookupError):
-                    pass
+            refresh_mcp_sessions()
+            (BASE / 'pending.json').unlink()
     except BlockingIOError:
         print('Crawler is running; deploy deferred')
         return
     except Exception as error:
-        state.update(failed=sha, lastError=str(error))
+        reject_release(state, sha, str(error))
         journal = BASE / 'pending.json'
         if journal.exists():
             pending = json.loads(journal.read_text())
             pending['before'] = state
             write_json(journal, pending)
-            if current.resolve() == Path(pending['previousPath']) and health_check():
+            if current.resolve() == Path(pending['previousPath']):
+                state['rollbackAttempted'] = True
+                for key in ['healthySince', 'lastHealth', 'lastUptime', 'lastRestarts']:
+                    state.pop(key, None)
+                if not health_check():
+                    state.update(recoveryBlocked=True, phase='incident', incident='Initial rollback also failed; automatic version hopping stopped')
                 journal.unlink()
         write_json(state_path, state)
         raise
-    # The next polling cycle uses the controller that shipped with this release.
-    temporary = BASE / 'sync.next.py'
-    temporary.write_bytes((target / 'deploy' / 'sync.py').read_bytes())
-    os.replace(temporary, BASE / 'sync.py')
-    print('Deployed: ' + sha)
+    print('Deployed for observation: ' + sha)
 
 
 if __name__ == '__main__':
+    if '--probe-functional' in sys.argv:
+        sys.exit(subprocess.run(['node', '--import', 'tsx', '--input-type=module', '-e', FUNCTIONAL_PROBE], timeout=25).returncode)
     BASE.mkdir(parents=True, exist_ok=True)
     try:
         with lock_file(BASE / 'deploy.lock'):

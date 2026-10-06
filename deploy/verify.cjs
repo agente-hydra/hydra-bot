@@ -18,5 +18,6 @@ while(pending.length){const file=pending.pop();if(checked.has(file))continue;che
 }}
 const py=cp.spawnSync('python3',['-c',"import ast,pathlib; [ast.parse(p.read_text(),filename=str(p)) for p in pathlib.Path('deploy').rglob('*.py')]"],{encoding:'utf8'});
 if(py.status!==0)failures.push('Deploy Python syntax: '+py.stderr);
+if(!failures.length){const probe=cp.spawnSync('python3',['deploy/sync.py','--probe-functional'],{encoding:'utf8',timeout:30000});if(probe.status!==0)failures.push('Controlled functional probe: '+(probe.stderr||probe.error?.message||'failed'));}
 if(failures.length){for(const failure of failures)console.error(failure);process.exit(1);}
 console.log(`Verified ${parsed} JS/TS files and ${checked.size} runtime modules; no live integrations executed.`);

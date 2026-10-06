@@ -16,6 +16,10 @@ class SyncTests(unittest.TestCase):
         spec = importlib.util.spec_from_file_location('hydra_sync', MODULE)
         self.sync = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.sync)
+        for name in ['bot_busy', 'refresh_mcp_sessions']:
+            guard = patch.object(self.sync, name, return_value=False, create=True)
+            guard.start()
+            self.addCleanup(guard.stop)
 
     def test_rejects_non_commit_identifiers(self):
         for value in ['main', '../other', 'a' * 39, 'g' * 40]:
