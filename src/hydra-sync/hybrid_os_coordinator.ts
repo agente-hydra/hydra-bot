@@ -356,6 +356,13 @@ export function formatVehicleSituation(
     `- *Valor Total:* *${saldoFmt(activeOrder.totalAmount)}*${saldoTxt}`
   ];
 
+  if (caseContext?.documentedDelayReason) {
+    blocks.push(`- *Situação Operacional:* ${caseContext.documentedDelayReason}`);
+  }
+  if (caseContext?.nextPromisedStep) {
+    blocks.push(`- *Próximo Passo:* ${caseContext.nextPromisedStep}`);
+  }
+
   return sanitizeWhatsAppMarkdown(blocks.join('\n'));
 }
 

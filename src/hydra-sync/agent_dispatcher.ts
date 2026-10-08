@@ -171,7 +171,7 @@ export interface DispatcherOutput {
 }
 
 function fmtMoeda(val: number): string {
-  return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
 }
 
 function extrairLojaSlug(norm: string): string | undefined {
@@ -879,23 +879,26 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
 
       const wantsPayments = /\b(pagamento|pagamentos|forma|formas|parcela|parcelas|financeiro|saldo|valor)\b/i.test(norm);
       const wantsServices = /\b(servico|servicos|serviço|serviços|mecanico|mecanicos|mecânico|execut|mao de obra)\b/i.test(norm);
+      const wantsParts = /\b(peca|pecas|peça|peças|material|materiais|componente|componentes|item|itens)\b/i.test(norm);
       const wantsDocs = /\b(documento|documentos|doc|docs|checklist|checklists|nota|notas|nf)\b/i.test(norm);
-      const wantsAll = norm.includes('tudo') || norm.includes('detalhe') || norm.includes('mais') || norm.includes('completo');
+      const wantsDeepDive = /\b(raio[\s-]*x|taio[\s-]*x|raiox|detalhe|detalhes|ficha|tudo|mais|completo|situacao|situação|o que t[aá] acontecendo|o que est[aá] acontecendo|caso completo)\b/i.test(norm);
+      const wantsAll = wantsDeepDive;
 
       const osDetail = getOSDetails(db, {
         os_id: resolution.activeOrder.osId,
         loja_slug: resolution.activeOrder.storeSlug
       });
 
-      if (osDetail && (wantsPayments || wantsServices || wantsDocs || wantsAll)) {
-        toolsCalled = ['resolve_vehicle_target', 'get_os_details'];
+      if (osDetail && (wantsPayments || wantsServices || wantsParts || wantsDocs || wantsAll)) {
+        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
         const blocks: string[] = [];
-        const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
 
         const saldoTxt = resolution.activeOrder.remainingBalance > 0
           ? ` (Saldo: *${moneyFmt(resolution.activeOrder.remainingBalance)}*)`
           : ' (Quitado)';
 
+        // 1. Cabeçalho Executivo
         blocks.push(
           `> *OS #${resolution.activeOrder.osId} — ${resolution.vehicle.model.toUpperCase()} (${resolution.vehicle.plate})*\n` +
           `- *Loja:* ${resolution.activeOrder.storeSlug}\n` +
@@ -905,6 +908,25 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
           `- *Valor Total:* *${moneyFmt(resolution.activeOrder.totalAmount)}*${saldoTxt}`
         );
 
+        // 2. Situação e Atendimento (Grafo / Histórico)
+        if (caseCtx && (wantsAll || wantsDeepDive || opType === 'DELAY_REASON')) {
+          const caseLines: string[] = [];
+          if (caseCtx.documentedDelayReason) {
+            caseLines.push(`- *Motivo Operacional:* ${caseCtx.documentedDelayReason}`);
+          }
+          if (caseCtx.nextPromisedStep) {
+            caseLines.push(`- *Próximo Passo Prometido:* ${caseCtx.nextPromisedStep}`);
+          }
+          if (caseCtx.lastObservationDate) {
+            caseLines.push(`- *Última Interação Registrada:* ${caseCtx.lastObservationDate}`);
+          }
+          if (caseLines.length === 0) {
+            caseLines.push(`- *Histórico:* Sem pendência de atraso ou peças documentada nas conversas desta OS.`);
+          }
+          blocks.push(`----------------------------------------\n> *Situação e Atendimento*\n${caseLines.join('\n')}`);
+        }
+
+        // 3. Serviços Discriminados
         if (wantsServices || wantsAll) {
           if (osDetail.servicos && osDetail.servicos.length > 0) {
             const servicosLines = osDetail.servicos.map(s => 
@@ -916,6 +938,25 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
           }
         }
 
+        // 4. Peças e Materiais Aplicados
+        if (wantsParts || wantsAll) {
+          if (osDetail.pecas && osDetail.pecas.length > 0) {
+            const pecasLines = osDetail.pecas.map(p => 
+              `- ${p.descricao}: ${p.qtd || 1}x *${moneyFmt(p.valorTotal)}*${p.codigo ? ` (${p.codigo})` : ''}`
+            ).join('\n');
+            blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n${pecasLines}`);
+          } else {
+            const totServ = osDetail.totalServicos ?? osDetail.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
+            const saldoPecas = (osDetail.valorTotal || resolution.activeOrder.totalAmount || 0) - totServ;
+            if (saldoPecas > 0) {
+              blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Componentes / Reparo de Bancada: *${moneyFmt(saldoPecas)}*`);
+            } else if (wantsParts) {
+              blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Nenhuma peça discriminada nesta OS (ordem 100% serviços).`);
+            }
+          }
+        }
+
+        // 5. Formas de Pagamento
         if (wantsPayments || wantsAll) {
           if (osDetail.pagamentos && osDetail.pagamentos.length > 0) {
             const pagLines = osDetail.pagamentos.map(p => 
@@ -924,11 +965,12 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
             blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n${pagLines}`);
           } else if (osDetail.valorTotal > 0 && osDetail.saldoDevedor <= 0) {
             blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Ordem 100% quitada no ERP.`);
-          } else if (wantsPayments) {
-            blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Total: *${moneyFmt(osDetail.valorTotal)}* (Pago: *${moneyFmt(osDetail.valorPago)}*, Saldo: *${moneyFmt(osDetail.saldoDevedor)}*)\n- Modalidade específica de parcelamento não cadastrada.`);
+          } else if (wantsPayments || wantsAll) {
+            blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Total: *${moneyFmt(osDetail.valorTotal)}* (Pago: *${moneyFmt(osDetail.valorPago)}*, Saldo: *${moneyFmt(osDetail.saldoDevedor)}*)\n- Modalidade específica de parcelamento não cadastrada; pendente de sinal/quitação.`);
           }
         }
 
+        // 6. Vistorias e Documentos
         if (wantsDocs || wantsAll) {
           const docLines: string[] = [];
           if (osDetail.extracaoCompleta === false || (osDetail as any).extracao_completa === false) {
@@ -959,7 +1001,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
           blocks.push(`----------------------------------------\n> *Vistorias e Documentos*\n${docLines.join('\n')}`);
         }
 
-        replyText = blocks.join('\n\n');
+        replyText = sanitizeWhatsAppMarkdown(blocks.join('\n\n'));
       } else {
         replyText = formatVehicleSituation(resolution, caseCtx, opType);
         toolsCalled = ['resolve_vehicle_target', opType === 'DELAY_REASON' ? 'get_case_context_delay' : 'get_case_context'];

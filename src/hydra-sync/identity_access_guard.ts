@@ -56,6 +56,14 @@ export function maskJid(jid?: string | null): string {
 }
 
 /**
+ * Checa deterministamente se o remoteJid pertence a um grupo WhatsApp (@g.us).
+ */
+export function isGroupJid(jid?: string | null): boolean {
+  if (!jid) return false;
+  return String(jid).trim().endsWith('@g.us');
+}
+
+/**
  * Autentica o webhook recebido validando o token/secret da Evolution API.
  * - Se process.env.EVOLUTION_WEBHOOK_SECRET estiver configurado, valida contra os headers.
  * - Se NÃO estiver configurado, aceita a requisição em modo compatível e registra log sanitizado.
@@ -190,6 +198,21 @@ export function resolveCanonicalIdentity(
     payload?.id;
 
   const messageId = String(rawMessageId || `${Date.now()}`);
+
+  // 0. TRAVA CRÍTICA DE GRUPOS (@g.us):
+  // O bot opera estritamente em chats individuais. Mensagens em grupos são descartadas
+  // imediatamente sem alocação de recursos, sem reação e sem resposta para evitar
+  // conversação pública ou poluição em canais coletivos (ex: Mecanica TI).
+  if (rawRemoteJid.endsWith('@g.us')) {
+    recordSecurityRejection(db, {
+      remoteJidMasked: maskJid(rawRemoteJid),
+      phoneMasked: participant ? maskPhone(participant) : undefined,
+      reason: 'group_message_prohibited',
+      endpoint: 'webhook_ingress',
+      timestamp: new Date().toISOString()
+    });
+    return null;
+  }
 
   let canonicalPhone: string | null = null;
   const isLid = rawRemoteJid.endsWith('@lid');

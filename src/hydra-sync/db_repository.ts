@@ -4322,6 +4322,10 @@ export interface OSDetailComplete {
   tem_nf: number | boolean;
   servicos: OSServiceItem[];
   pecas: OSPartItem[];
+  totalServicos?: number;
+  total_servicos?: number;
+  totalPecas?: number;
+  total_pecas?: number;
   pagamentos: OSPaymentInstallment[];
   parcelas: OSPaymentInstallment[];
   documentosAnexos: OSDocumentItem[];
@@ -4529,6 +4533,9 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     auditDetalhes = 'Checklist do Mecânico realizado; Checklist de Entrada pendente.';
   }
 
+  const totalServicos = servicos.reduce((acc, s) => acc + (s.valorTotal || 0), 0);
+  const totalPecas = pecas.reduce((acc, p) => acc + (p.valorTotal || 0), 0);
+
   return {
     osId: String(row.os_id),
     os_id: String(row.os_id),
@@ -4564,6 +4571,10 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     tem_nf: row.tem_nf != null ? Number(row.tem_nf) : 0,
     servicos,
     pecas,
+    totalServicos,
+    total_servicos: totalServicos,
+    totalPecas,
+    total_pecas: totalPecas,
     pagamentos,
     parcelas: pagamentos,
     documentosAnexos,
@@ -4742,7 +4753,8 @@ export function initHydraAccessAndMemorySchema(db: Database.Database): void {
       INSERT INTO hydra_authorized_users (phone, name, role, allowed_stores, is_active, can_simulate_persona)
       VALUES 
         ('5511996242812', 'Davi', 'socio', '["*"]', 1, 1),
-        ('5511970671717', 'Marcos', 'socio', '["*"]', 1, 1)
+        ('5511970671717', 'Marcos', 'socio', '["*"]', 1, 1),
+        ('5511947645967', 'Joacir Barros', 'socio', '["*"]', 1, 1)
       ON CONFLICT(phone) DO NOTHING
     `).run();
 
@@ -4750,7 +4762,8 @@ export function initHydraAccessAndMemorySchema(db: Database.Database): void {
       INSERT INTO hydra_phone_identities (remote_jid, phone_canonical, identity_type, push_name)
       VALUES
         ('5511996242812@s.whatsapp.net', '5511996242812', 'PN', 'Davi'),
-        ('5511970671717@s.whatsapp.net', '5511970671717', 'PN', 'Marcos')
+        ('5511970671717@s.whatsapp.net', '5511970671717', 'PN', 'Marcos'),
+        ('5511947645967@s.whatsapp.net', '5511947645967', 'PN', 'Joacir Barros')
       ON CONFLICT(remote_jid) DO NOTHING
     `).run();
 

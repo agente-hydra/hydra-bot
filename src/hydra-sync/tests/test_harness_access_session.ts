@@ -121,6 +121,50 @@ async function runAccessSessionHarness() {
   }
 
   // ─────────────────────────────────────────────────────────────────────────────
+  // 1.1. BLOQUEIO ESTRITO DE MENSAGENS EM GRUPO (@g.us) — EX: MECANICA TI
+  // ─────────────────────────────────────────────────────────────────────────────
+  console.log('\n--- 1.1. Bloqueio Estrito de Mensagens em Grupos (@g.us) ---');
+  {
+    const groupJid = '120363425738307789@g.us';
+    const groupPayload = {
+      event: 'messages.upsert',
+      data: {
+        key: {
+          remoteJid: groupJid,
+          participant: '5511996242812@s.whatsapp.net',
+          fromMe: false,
+          id: 'MSG_GROUP_001'
+        },
+        pushName: 'Davi',
+        message: {
+          conversation: 'Hydra, como tá a rede?'
+        }
+      }
+    };
+
+    // 1. resolveCanonicalIdentity DEVE retornar null imediatamente
+    const identityResult = resolveCanonicalIdentity(db, groupPayload);
+    assert(identityResult === null, 'Mensagem originada em grupo (@g.us) deve retornar null no resolveCanonicalIdentity');
+
+    // 2. handleIncomingPayload DEVE retornar HTTP 200 ignored_unauthorized sem chamar LLM
+    const response = await handleIncomingPayload(groupPayload, {}, db);
+    assert(response.statusCode === 200, 'Ingress retorna HTTP 200 para mensagens de grupo');
+    assert(response.body?.status === 'ignored_unauthorized', 'Resposta deve ser "ignored_unauthorized"');
+
+    // 3. Valida auditoria em hydra_security_rejections
+    const groupRejection = db.prepare(`
+      SELECT remote_jid_masked, rejection_reason
+      FROM hydra_security_rejections
+      WHERE rejection_reason = 'group_message_prohibited'
+      ORDER BY id DESC LIMIT 1
+    `).get() as any;
+
+    assert(groupRejection != null, 'Rejeição de grupo deve ser auditada');
+    assert(groupRejection?.rejection_reason === 'group_message_prohibited', 'Motivo deve ser group_message_prohibited');
+    assert(groupRejection?.remote_jid_masked?.includes('@g.us'), 'JID de grupo mascarado preservando domínio @g.us');
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────────
   // 2. WEBHOOK AUTENTICADO LEGÍTIMO (MODO COMPATÍVEL E COM SECRET)
   // ─────────────────────────────────────────────────────────────────────────────
   console.log('\n--- 2. Autenticação de Webhook (Modo Compatível & Secret) ---');

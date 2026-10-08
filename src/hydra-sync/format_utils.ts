@@ -14,7 +14,7 @@
 import type { TableToBlockResult } from './types/language_contract.js';
 
 export function fmtMoeda(val: number): string {
-  return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
 }
 
 export interface GoalAchievementCalculation {
@@ -451,6 +451,9 @@ export function sanitizeWhatsAppMarkdown(raw: string): string {
 
   // 12. Remove acúmulo excessivo de linhas em branco (> 2 quebras seguidas)
   text = text.replace(/\n{3,}/g, '\n\n');
+
+  // 13. Substitui espaços não-quebráveis (NBSP / Narrow NBSP) por espaço padrão
+  text = text.replace(/[\u00A0\u202F]/g, ' ');
 
   return text.trim();
 }

@@ -39,7 +39,7 @@ export interface AuthorizedContext {
 export interface SecurityRejectionLog {
   remoteJidMasked: string;
   phoneMasked?: string;
-  reason: 'unauthorized_user' | 'unresolved_identity' | 'revoked_user' | 'invalid_webhook_token';
+  reason: 'unauthorized_user' | 'unresolved_identity' | 'revoked_user' | 'invalid_webhook_token' | 'group_message_prohibited';
   endpoint: 'webhook_ingress' | 'queue_consumer' | 'tool_execution' | 'message_egress';
   timestamp: string;
 }

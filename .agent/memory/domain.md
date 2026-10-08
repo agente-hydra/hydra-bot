@@ -4,6 +4,19 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-08] — [Feature ID: hydra-os-360-full-details]
+**Contexto:** Diagnóstico e resolução da inconsistência financeira e informacional no detalhamento de OSs do Hydra Agent (caso real OS #1916 ReiDoModulo), onde serviços discriminados mostravam apenas R$ 130 de uma OS de R$ 1.600 omitindo R$ 1.470 de reparo de bancada/peças, além de ignorar o Grafo de Atendimento e não reconhecer typos informais no WhatsApp como "taio x".
+**Regra aprendida:**
+1. Conciliação Financeira Completa da OS (Serviços + Peças + Bancada): Quando `valorTotal > totalServicos`, o ERP pode não possuir itens físicos detalhados na tabela de peças (ex: reparos terceirizados de bancada, reprogramação de módulos). O agente deve obrigatoriamente renderizar a conciliação financeira (`Componentes / Reparo de Bancada: R$ X,XX`), garantindo que a soma discriminada bata deterministicamente com o valor total da OS e saldo a receber.
+2. Inclusão Mandatória do Grafo (`caseCtx`) no Detalhamento da OS: Quando o usuário solicita "raio-x", "detalhes" ou "ficha completa" de um veículo/OS, o bloco `> *Situação e Atendimento*` deve ser incluído na resposta, exibindo motivo operacional documentado, próximo passo prometido e data da última interação.
+3. Tolerância Robusta a Typos no WhatsApp: Mensagens de gestores e sócios frequentemente trazem erros de digitação em teclados móveis (ex: `"nao, taio x da os 1916 por facor"`). A regex de intenção deve tolerar `taio x`, `raiox`, `raio-x`, `tudo`, `ficha`, `o que ta acontecendo` e pontuações informais.
+4. Sanitização Estrita de Caracteres Monetários (Anti-NBSP): O método nativo `toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })` no V8/Node.js injeta espaços não-quebráveis (`\u00A0` e `\u202F`) entre o símbolo monetário e o valor numérico. Toda rotina monetária e sanitizador de WhatsApp deve compulsoriamente substituir `[\u00A0\u202F]` por espaço padrão `\u0020` para evitar quebras de layout e falhas em gates de conformidade.
+**Risco identificado:** Omissão de dados de bancada gerava desconfiança dos sócios sobre o saldo financeiro real em pátio. Sanado via `OSDetailComplete` contendo `totalServicos` e `totalPecas` calculados no repositório.
+**Não fazer:**
+- Nunca omitir o saldo financeiro remanescente de uma OS mesmo se o cadastro de peças individuais vier vazio do ERP.
+- Nunca emitir respostas secas de 6 linhas quando houver histórico e projeção de atendimento disponíveis no Grafo.
+- Nunca enviar caracteres não-separáveis `\u00A0` ou asteriscos duplos `**` em mensagens WhatsApp.
+
 ## [2026-10-08] — [Feature ID: hydra-graph-agent-integration]
 **Contexto:** Integração das buscas do Hydra Agent ao Grafo de Atendimentos (CaseMemoryReader / Fast-Path e MCP Tool get_os_case_history) e gerenciador de presença contínua WhatsApp (PresenceHeartbeatKeeper).
 **Regra aprendida:**
