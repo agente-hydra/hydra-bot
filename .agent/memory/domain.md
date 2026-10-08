@@ -247,3 +247,16 @@
 - NUNCA inferir data de pagamento a partir do timestamp de modificação geral da OS (`historico_atualizado_em`).
 - NUNCA trazer parcelas futuras de cartão para a conciliação diária de recebimentos de ontem.
 
+## [2026-10-08] — [Feature ID: hydra-admin-group-and-settlement]
+**Contexto:** Cadastro do novo administrador Joacir Barros (+55 11 94764-5967), integração do grupo WhatsApp Mecânica TI (120363425738307789@g.us) como canal de broadcast exclusivo para resumos diários e alertas de conversas dos gerentes (Watchdog), com trava de segurança de grupo (zero conversação interativa), cálculo de previsão de liquidação matinal D+1 e supressão total de planilhas Excel (.xlsx) nos envios para grupos.
+**Regra aprendida:**
+1. **Trava de Conversação em Grupos (Zero Interação):** Mensagens recebidas pelo webhook com JID terminado em `@g.us` devem ser rejeitadas no handshake com HTTP 200 `{"status": "ignored_group"}`, sem reação, sem status de digitação e sem despacho para LLM ou fila, garantindo que o bot nunca dialogue em grupos.
+2. **Supressão de Planilhas em Grupos:** Grupos de WhatsApp corporativos devem receber estritamente o texto executivo e alertas de supervisão. Arquivos binários/documentos (.xlsx) são restritos aos números privados dos administradores/diretoria para não poluir o grupo nem expor anexos volumosos.
+3. **Cálculo de Previsão de Liquidação Matinal D+1:** Débitos passados em D-1 liquidam em D+1 pela manhã. Somados ao Pix e Dinheiro já disponíveis, compõem a "Disponibilidade Imediata em Caixa (Manhã)", separando claramente o que cai hoje do faturamento a prazo (crédito).
+**Risco identificado:** Enviar mensagens em grupos com o texto dizendo "Planilha detalhada em anexo" quando a planilha foi suprimida gera confusão. O gerador do resumo deve receber a flag `isGroup` e omitir menções a arquivos anexos.
+**Não fazer:**
+- NUNCA permitir que o bot processe comandos ou converse dentro de grupos de WhatsApp.
+- NUNCA enviar arquivos de planilha Excel (.xlsx) para canais de grupo.
+- NUNCA usar instâncias de gerentes como remetentes de notificações ou broadcasts.
+
+

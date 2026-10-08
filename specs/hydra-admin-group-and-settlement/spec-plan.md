@@ -1,7 +1,8 @@
 # Plano de Execução: Admin Joacir, Broadcast Blindado Grupo Mecânica TI & Liquidação D+1
 
 **Spec ID:** `hydra-admin-group-and-settlement`  
-**Status:** AGUARDANDO APROVAÇÃO (`/vibe-apply hydra-admin-group-and-settlement`)  
+**Status:** CONCLUÍDO (Pronto para `/vibe-archive hydra-admin-group-and-settlement`)  
+**Nota:** Supressão total de arquivos .xlsx para grupos WhatsApp (@g.us) implementada e validada em `whatsapp_patio_dispatcher.js` e `index.js`.
 
 ---
 
