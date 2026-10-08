@@ -1,0 +1,1261 @@
+{
+  "capturedAt": "2026-10-06T12:01:04.648886+00:00",
+  "source": "VPS production",
+  "files": [
+    {
+      "path": "docs/app-map/empresas.json",
+      "source": "/opt/bots/docs/app-map/empresas.json",
+      "sha256": "7b502cc2afa050b2cfbda840421cb7458afc68ca997c4736f2dd1da1045cb3c0",
+      "size": 1011,
+      "publishedSha256": "7b502cc2afa050b2cfbda840421cb7458afc68ca997c4736f2dd1da1045cb3c0"
+    },
+    {
+      "path": "package-lock.json",
+      "source": "/opt/bots/package-lock.json",
+      "sha256": "814b07a8ece2d5fd184f0897bd6a378e92ecfc093d0ca2613d15599a9a4330d1",
+      "size": 532255,
+      "publishedSha256": "b9e7a1f9ca0a31db23fc1fb4f7e60a3d7153e3ee75cd130f0e15007512bcd3d0"
+    },
+    {
+      "path": "package.json",
+      "source": "/opt/bots/package.json",
+      "sha256": "66b138f67c7e5faff57ee7eaea8e72172f62e3de74b34856021b31e27a43445a",
+      "size": 3965,
+      "publishedSha256": "6cbe62ba144466c2da764cd38744948daa68538cb89c7c0ff084c75e414b8ebe"
+    },
+    {
+      "path": "scripts/hydra_health_check.ts",
+      "source": "/opt/bots/scripts/hydra_health_check.ts",
+      "sha256": "6f19c89bb6da795f202b912f4ba2e6e8ffa9fa138070933b2cdc728438fa545e",
+      "size": 4982,
+      "publishedSha256": "6f19c89bb6da795f202b912f4ba2e6e8ffa9fa138070933b2cdc728438fa545e"
+    },
+    {
+      "path": "scripts/oauth_sec_daemon.py",
+      "source": "/opt/bots/scripts/oauth_sec_daemon.py",
+      "sha256": "47045b7503f9e76d3c3f59b8a842addd9e8ae5d0081d7d26402f4a41843e4c7d",
+      "size": 3829,
+      "publishedSha256": "47045b7503f9e76d3c3f59b8a842addd9e8ae5d0081d7d26402f4a41843e4c7d"
+    },
+    {
+      "path": "scripts/run-agy-sec.sh",
+      "source": "/opt/bots/scripts/run-agy-sec.sh",
+      "sha256": "3a1d2bdd793691a1e4c91df0567cd4bd7cb1f25ea2602928bb0405c9b346c92d",
+      "size": 120,
+      "publishedSha256": "3a1d2bdd793691a1e4c91df0567cd4bd7cb1f25ea2602928bb0405c9b346c92d"
+    },
+    {
+      "path": "scripts/run-hydra-auditor.sh",
+      "source": "/opt/bots/scripts/run-hydra-auditor.sh",
+      "sha256": "476da02dde51dff8e36cac606b8a18fa911e0907c2b1615b5c8be29d3b62dcef",
+      "size": 2192,
+      "publishedSha256": "476da02dde51dff8e36cac606b8a18fa911e0907c2b1615b5c8be29d3b62dcef"
+    },
+    {
+      "path": "scripts/run-hydra-daily-full.sh",
+      "source": "/opt/bots/scripts/run-hydra-daily-full.sh",
+      "sha256": "0c53d0e12c6d04018162b0d52fef1d3a296b783e5468df3b8d53d2ad0619e52a",
+      "size": 686,
+      "publishedSha256": "c65506bb1f1c0cd7242ddd4da5e49f70a799ef4a1b0e8eb5b1c55115c723c231"
+    },
+    {
+      "path": "scripts/run-hydra-hourly-finance.sh",
+      "source": "/opt/bots/scripts/run-hydra-hourly-finance.sh",
+      "sha256": "2b24fbe09a827cec355849d94c760f108b93c297230b1dc630a697e2861abd5d",
+      "size": 717,
+      "publishedSha256": "2d94c99f8d680fd10d2d646bd514860f80f7c3f1cc763bfab74324c97d35bde3"
+    },
+    {
+      "path": "src/hydra-sync/agent_dispatcher.ts",
+      "source": "/opt/bots/src/hydra-sync/agent_dispatcher.ts",
+      "sha256": "f2a97bf7134ff30e4c7c3d48c18cade41abdaec6616c79a2d69e4d35e5481db8",
+      "size": 65246,
+      "publishedSha256": "f2a97bf7134ff30e4c7c3d48c18cade41abdaec6616c79a2d69e4d35e5481db8"
+    },
+    {
+      "path": "src/hydra-sync/agent_dispatcher_cli.ts",
+      "source": "/opt/bots/src/hydra-sync/agent_dispatcher_cli.ts",
+      "sha256": "38bf92178cde3033dd24b94196b8542371cdcc0e63a31117daec572ad6a9d655",
+      "size": 883,
+      "publishedSha256": "38bf92178cde3033dd24b94196b8542371cdcc0e63a31117daec572ad6a9d655"
+    },
+    {
+      "path": "src/hydra-sync/ai_briefing.ts",
+      "source": "/opt/bots/src/hydra-sync/ai_briefing.ts",
+      "sha256": "c95d5224f89d27379b9803abe278266b51deeb4c36112cadaf109f707276b225",
+      "size": 22569,
+      "publishedSha256": "c95d5224f89d27379b9803abe278266b51deeb4c36112cadaf109f707276b225"
+    },
+    {
+      "path": "src/hydra-sync/balloon_composer.js",
+      "source": "/opt/bots/src/hydra-sync/balloon_composer.js",
+      "sha256": "722c8ecddba7b1101a2393dc02d07f1850c1a827caabd7169b1dc6e2c74e50af",
+      "size": 11405,
+      "publishedSha256": "722c8ecddba7b1101a2393dc02d07f1850c1a827caabd7169b1dc6e2c74e50af"
+    },
+    {
+      "path": "src/hydra-sync/balloon_composer.ts",
+      "source": "/opt/bots/src/hydra-sync/balloon_composer.ts",
+      "sha256": "9e9cdab53d42d7cb0058964d4bc946cf3964a4a23c40e1cb8fb68320ccd00425",
+      "size": 22960,
+      "publishedSha256": "9e9cdab53d42d7cb0058964d4bc946cf3964a4a23c40e1cb8fb68320ccd00425"
+    },
+    {
+      "path": "src/hydra-sync/case_memory_reader.ts",
+      "source": "/opt/bots/src/hydra-sync/case_memory_reader.ts",
+      "sha256": "6aae70bbede46528893fd5d007b1a36417a835c8af2112bb2b9305dfbf29e4ef",
+      "size": 7116,
+      "publishedSha256": "6aae70bbede46528893fd5d007b1a36417a835c8af2112bb2b9305dfbf29e4ef"
+    },
+    {
+      "path": "src/hydra-sync/chatwoot_whatsapp.ts",
+      "source": "/opt/bots/src/hydra-sync/chatwoot_whatsapp.ts",
+      "sha256": "716abca96002ffdcd6785907fcab3bc5b503c5c3296ed48d4502b7fb4d998cfc",
+      "size": 4019,
+      "publishedSha256": "aed2b0a954aa59fd966d930c00fcdcee930c752e1f82315889d1a35c946d3113"
+    },
+    {
+      "path": "src/hydra-sync/command_interceptor.js",
+      "source": "/opt/bots/src/hydra-sync/command_interceptor.js",
+      "sha256": "6fa323b5539c8fea51fdf65f07347f00223e5dff53bb72ebbc29c610ea9c83f1",
+      "size": 34982,
+      "publishedSha256": "6fa323b5539c8fea51fdf65f07347f00223e5dff53bb72ebbc29c610ea9c83f1"
+    },
+    {
+      "path": "src/hydra-sync/command_interceptor.ts",
+      "source": "/opt/bots/src/hydra-sync/command_interceptor.ts",
+      "sha256": "8c87230849325b90408dd0e4f36a61a3e9f5e74f25f7e78644280a483d045fae",
+      "size": 24918,
+      "publishedSha256": "8c87230849325b90408dd0e4f36a61a3e9f5e74f25f7e78644280a483d045fae"
+    },
+    {
+      "path": "src/hydra-sync/conversation_history_service.ts",
+      "source": "/opt/bots/src/hydra-sync/conversation_history_service.ts",
+      "sha256": "e656ffb806cda027bf96ffe73bf5af6d07770a171e8d4277148b56f11a4683a6",
+      "size": 12620,
+      "publishedSha256": "e656ffb806cda027bf96ffe73bf5af6d07770a171e8d4277148b56f11a4683a6"
+    },
+    {
+      "path": "src/hydra-sync/conversation_queue.ts",
+      "source": "/opt/bots/src/hydra-sync/conversation_queue.ts",
+      "sha256": "363e289d20959d20d81dbafcb96fb3282ea2d4c9b42db4183c016516392a5b84",
+      "size": 6433,
+      "publishedSha256": "363e289d20959d20d81dbafcb96fb3282ea2d4c9b42db4183c016516392a5b84"
+    },
+    {
+      "path": "src/hydra-sync/conversation_semantic_resolver.ts",
+      "source": "/opt/bots/src/hydra-sync/conversation_semantic_resolver.ts",
+      "sha256": "d3b685b3ac817a8503d1027d25a3ecfa5074d2cf3b6ccf1b45fd39f67cdfa09f",
+      "size": 7725,
+      "publishedSha256": "d3b685b3ac817a8503d1027d25a3ecfa5074d2cf3b6ccf1b45fd39f67cdfa09f"
+    },
+    {
+      "path": "src/hydra-sync/crawler.ts",
+      "source": "/opt/bots/src/hydra-sync/crawler.ts",
+      "sha256": "fd705f731b158d8a98335cc4a916876e4dd71ed4ebbe0607a3b19c4362bab7ec",
+      "size": 3694,
+      "publishedSha256": "fd705f731b158d8a98335cc4a916876e4dd71ed4ebbe0607a3b19c4362bab7ec"
+    },
+    {
+      "path": "src/hydra-sync/data_worker_log.ts",
+      "source": "/opt/bots/src/hydra-sync/data_worker_log.ts",
+      "sha256": "b09b25a3f389ba78fd382d4bbfdba4c2713804a6a3e4d45a9c750d59085a57f2",
+      "size": 5152,
+      "publishedSha256": "b09b25a3f389ba78fd382d4bbfdba4c2713804a6a3e4d45a9c750d59085a57f2"
+    },
+    {
+      "path": "src/hydra-sync/db_repository.js",
+      "source": "/opt/bots/src/hydra-sync/db_repository.js",
+      "sha256": "ac7593eb9963dc20f5e096fe61b122f42f5a93651fb627797b759cd13c1078f5",
+      "size": 128549,
+      "publishedSha256": "ac7593eb9963dc20f5e096fe61b122f42f5a93651fb627797b759cd13c1078f5"
+    },
+    {
+      "path": "src/hydra-sync/db_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/db_repository.ts",
+      "sha256": "525dad86dde8ef6cc9640be00623af18398d145dc5b6ece0823b0466639c20fd",
+      "size": 142614,
+      "publishedSha256": "525dad86dde8ef6cc9640be00623af18398d145dc5b6ece0823b0466639c20fd"
+    },
+    {
+      "path": "src/hydra-sync/decision_engine.ts",
+      "source": "/opt/bots/src/hydra-sync/decision_engine.ts",
+      "sha256": "6e9249b421ef144244208938252d92f9ed83b7e59ff673b960e1bd2e56fb2435",
+      "size": 5434,
+      "publishedSha256": "6e9249b421ef144244208938252d92f9ed83b7e59ff673b960e1bd2e56fb2435"
+    },
+    {
+      "path": "src/hydra-sync/deep-crawler.ts",
+      "source": "/opt/bots/src/hydra-sync/deep-crawler.ts",
+      "sha256": "afd28e5f0202ae8781f31e53321240c02ba10396129b0a883f0c67cf272d6420",
+      "size": 16751,
+      "publishedSha256": "afd28e5f0202ae8781f31e53321240c02ba10396129b0a883f0c67cf272d6420"
+    },
+    {
+      "path": "src/hydra-sync/delta_storage.ts",
+      "source": "/opt/bots/src/hydra-sync/delta_storage.ts",
+      "sha256": "70134e6ee3f0187a590a6c79b3d681504b9bb521f52be62529eb2f9171b77abc",
+      "size": 9909,
+      "publishedSha256": "70134e6ee3f0187a590a6c79b3d681504b9bb521f52be62529eb2f9171b77abc"
+    },
+    {
+      "path": "src/hydra-sync/dual_worker_router.ts",
+      "source": "/opt/bots/src/hydra-sync/dual_worker_router.ts",
+      "sha256": "b6cbdb9fb1faddaeed9b90f51a7439df3f6fef7afed457deae028e93f8ede8a8",
+      "size": 27829,
+      "publishedSha256": "b6cbdb9fb1faddaeed9b90f51a7439df3f6fef7afed457deae028e93f8ede8a8"
+    },
+    {
+      "path": "src/hydra-sync/embeddings.ts",
+      "source": "/opt/bots/src/hydra-sync/embeddings.ts",
+      "sha256": "40f9e2f53ff5a42c3577bc30f8a7c8b601cd46a2687929e2334bbe9b65734c70",
+      "size": 2362,
+      "publishedSha256": "40f9e2f53ff5a42c3577bc30f8a7c8b601cd46a2687929e2334bbe9b65734c70"
+    },
+    {
+      "path": "src/hydra-sync/finance_snapshot_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/finance_snapshot_repository.ts",
+      "sha256": "99c76dc738e4e171ad3ae175226ec8cb6215a3561b9523fec6f7bde9e2313e2a",
+      "size": 20696,
+      "publishedSha256": "99c76dc738e4e171ad3ae175226ec8cb6215a3561b9523fec6f7bde9e2313e2a"
+    },
+    {
+      "path": "src/hydra-sync/financial_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/financial_contract.ts",
+      "sha256": "e5bacfc701ea4c38092ef4df368ccf3f741692e64b8c4a7c8cb9ab1e7d8dbc8d",
+      "size": 7228,
+      "publishedSha256": "e5bacfc701ea4c38092ef4df368ccf3f741692e64b8c4a7c8cb9ab1e7d8dbc8d"
+    },
+    {
+      "path": "src/hydra-sync/format_utils.js",
+      "source": "/opt/bots/src/hydra-sync/format_utils.js",
+      "sha256": "0b5b730572ff9433b90b2c62a2d82f3e87541794eb811df99225f2e2d4b59789",
+      "size": 6625,
+      "publishedSha256": "0b5b730572ff9433b90b2c62a2d82f3e87541794eb811df99225f2e2d4b59789"
+    },
+    {
+      "path": "src/hydra-sync/format_utils.ts",
+      "source": "/opt/bots/src/hydra-sync/format_utils.ts",
+      "sha256": "e96f77d9dea042aeada65d6241eef0397ab6bb7051a0dd314ad1e30053d72e72",
+      "size": 20624,
+      "publishedSha256": "e96f77d9dea042aeada65d6241eef0397ab6bb7051a0dd314ad1e30053d72e72"
+    },
+    {
+      "path": "src/hydra-sync/hourly_finance_worker.ts",
+      "source": "/opt/bots/src/hydra-sync/hourly_finance_worker.ts",
+      "sha256": "1efcdfcb6620f93eb7f6a29ae904374cf6e4dfe798fe9b4fbf96b1f01ec9844a",
+      "size": 16763,
+      "publishedSha256": "1efcdfcb6620f93eb7f6a29ae904374cf6e4dfe798fe9b4fbf96b1f01ec9844a"
+    },
+    {
+      "path": "src/hydra-sync/hybrid_os_coordinator.ts",
+      "source": "/opt/bots/src/hydra-sync/hybrid_os_coordinator.ts",
+      "sha256": "f11e71c49e83bc5f6d0c448f964655247c058c186dcf0a3368cfed7a2f7c18f2",
+      "size": 15973,
+      "publishedSha256": "f11e71c49e83bc5f6d0c448f964655247c058c186dcf0a3368cfed7a2f7c18f2"
+    },
+    {
+      "path": "src/hydra-sync/hybrid_retrieval.ts",
+      "source": "/opt/bots/src/hydra-sync/hybrid_retrieval.ts",
+      "sha256": "840603a68a84ed9da5e0fa58fdbac2e99b2dddb4d3a66190805c5d65b3a22d0b",
+      "size": 19253,
+      "publishedSha256": "840603a68a84ed9da5e0fa58fdbac2e99b2dddb4d3a66190805c5d65b3a22d0b"
+    },
+    {
+      "path": "src/hydra-sync/hydra_audit_engine.ts",
+      "source": "/opt/bots/src/hydra-sync/hydra_audit_engine.ts",
+      "sha256": "41d80c3b8a627af7ecb142bfabb70b1517a8b75b74da9b453b653577363936fb",
+      "size": 24019,
+      "publishedSha256": "41d80c3b8a627af7ecb142bfabb70b1517a8b75b74da9b453b653577363936fb"
+    },
+    {
+      "path": "src/hydra-sync/hydra_auditor_service.ts",
+      "source": "/opt/bots/src/hydra-sync/hydra_auditor_service.ts",
+      "sha256": "238582afb4e8b8856be5e8019e991fdc8007937a6bc36824758f975399e43e89",
+      "size": 16665,
+      "publishedSha256": "238582afb4e8b8856be5e8019e991fdc8007937a6bc36824758f975399e43e89"
+    },
+    {
+      "path": "src/hydra-sync/idempotency_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/idempotency_repository.ts",
+      "sha256": "672e1e9cf338c406b3be0e04f578c7c5543be3e271415fddcad38ca5569b0bf7",
+      "size": 7309,
+      "publishedSha256": "672e1e9cf338c406b3be0e04f578c7c5543be3e271415fddcad38ca5569b0bf7"
+    },
+    {
+      "path": "src/hydra-sync/identity_access_guard.js",
+      "source": "/opt/bots/src/hydra-sync/identity_access_guard.js",
+      "sha256": "7d4df92753cdf960b6ad7e9cdb45dcc392577fc2c43ca2d9093a8add0138f95b",
+      "size": 17000,
+      "publishedSha256": "7d4df92753cdf960b6ad7e9cdb45dcc392577fc2c43ca2d9093a8add0138f95b"
+    },
+    {
+      "path": "src/hydra-sync/identity_access_guard.ts",
+      "source": "/opt/bots/src/hydra-sync/identity_access_guard.ts",
+      "sha256": "1af2f668bbd27d3bc18003f2548a376317e3acd4496c23de55a1302c6366a921",
+      "size": 14311,
+      "publishedSha256": "1af2f668bbd27d3bc18003f2548a376317e3acd4496c23de55a1302c6366a921"
+    },
+    {
+      "path": "src/hydra-sync/inbound_message_normalizer.ts",
+      "source": "/opt/bots/src/hydra-sync/inbound_message_normalizer.ts",
+      "sha256": "2dd76bd333633007ea732dee01b66a3a1129628d8e071c58f82c47b5454258f8",
+      "size": 9390,
+      "publishedSha256": "2dd76bd333633007ea732dee01b66a3a1129628d8e071c58f82c47b5454258f8"
+    },
+    {
+      "path": "src/hydra-sync/intent_rewriter.ts",
+      "source": "/opt/bots/src/hydra-sync/intent_rewriter.ts",
+      "sha256": "a8e4b72cc92389d538f7f11bdb7963ab6924dbc50e5571e9aa5959dff66cf13d",
+      "size": 154507,
+      "publishedSha256": "a8e4b72cc92389d538f7f11bdb7963ab6924dbc50e5571e9aa5959dff66cf13d"
+    },
+    {
+      "path": "src/hydra-sync/manager_store_access.ts",
+      "source": "/opt/bots/src/hydra-sync/manager_store_access.ts",
+      "sha256": "bc64ff0782f83ac94cf419139079717c538312300479ec15613e8345fa594df8",
+      "size": 23516,
+      "publishedSha256": "bc64ff0782f83ac94cf419139079717c538312300479ec15613e8345fa594df8"
+    },
+    {
+      "path": "src/hydra-sync/mcp_server.ts",
+      "source": "/opt/bots/src/hydra-sync/mcp_server.ts",
+      "sha256": "3458f81bbf5bd5db66ba1ca999e30e62944e881290f904d59b3ccc71e0e897e7",
+      "size": 17661,
+      "publishedSha256": "3458f81bbf5bd5db66ba1ca999e30e62944e881290f904d59b3ccc71e0e897e7"
+    },
+    {
+      "path": "src/hydra-sync/media_analyzer.ts",
+      "source": "/opt/bots/src/hydra-sync/media_analyzer.ts",
+      "sha256": "eba973d174d45cdbd79aa0d337d91ac4f9589be1f0e9d8faac57767eddab70c5",
+      "size": 27652,
+      "publishedSha256": "eba973d174d45cdbd79aa0d337d91ac4f9589be1f0e9d8faac57767eddab70c5"
+    },
+    {
+      "path": "src/hydra-sync/media_fetcher.ts",
+      "source": "/opt/bots/src/hydra-sync/media_fetcher.ts",
+      "sha256": "0c08e684fdd4e0af361fbb5dabe3fc94999793e9d9a87e561c8a9051157f5598",
+      "size": 14174,
+      "publishedSha256": "8e635464790e49a4bd3879acf5f992d0ccdc63616fe4e283a4dca54655639c13"
+    },
+    {
+      "path": "src/hydra-sync/memory_consolidator.ts",
+      "source": "/opt/bots/src/hydra-sync/memory_consolidator.ts",
+      "sha256": "e1d8dff5d10161b5e8126e66bbcdecc46da4e4cc69d3a2c0febee99c10775600",
+      "size": 17386,
+      "publishedSha256": "e1d8dff5d10161b5e8126e66bbcdecc46da4e4cc69d3a2c0febee99c10775600"
+    },
+    {
+      "path": "src/hydra-sync/memory_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/memory_repository.ts",
+      "sha256": "7cfc10dd6cef9b5460c6ce76ad93ddbf2d9fb76006a1559b88c6c73c220f305c",
+      "size": 23566,
+      "publishedSha256": "7cfc10dd6cef9b5460c6ce76ad93ddbf2d9fb76006a1559b88c6c73c220f305c"
+    },
+    {
+      "path": "src/hydra-sync/memory_retriever.ts",
+      "source": "/opt/bots/src/hydra-sync/memory_retriever.ts",
+      "sha256": "c83ec7167f001299bc6e26cdd7091186dfcc99e4565f0c341b3c887fb90b4023",
+      "size": 13279,
+      "publishedSha256": "c83ec7167f001299bc6e26cdd7091186dfcc99e4565f0c341b3c887fb90b4023"
+    },
+    {
+      "path": "src/hydra-sync/message_batcher.js",
+      "source": "/opt/bots/src/hydra-sync/message_batcher.js",
+      "sha256": "2517cc6b4cfd0e8dd34e8c4a62d60ae3586b0ebb73e9c5f1d88d1afa10b8f3e4",
+      "size": 11363,
+      "publishedSha256": "2517cc6b4cfd0e8dd34e8c4a62d60ae3586b0ebb73e9c5f1d88d1afa10b8f3e4"
+    },
+    {
+      "path": "src/hydra-sync/message_batcher.ts",
+      "source": "/opt/bots/src/hydra-sync/message_batcher.ts",
+      "sha256": "799dae582af587a3eb77e97a2bf4c43d1846c7af293b79ff9619f23c0c2897e8",
+      "size": 16772,
+      "publishedSha256": "799dae582af587a3eb77e97a2bf4c43d1846c7af293b79ff9619f23c0c2897e8"
+    },
+    {
+      "path": "src/hydra-sync/metas_crawler.ts",
+      "source": "/opt/bots/src/hydra-sync/metas_crawler.ts",
+      "sha256": "82715d4e37e40565fc0cd3291e850cdb62e0e11acfa5ef35b9f5ff70ca0dc907",
+      "size": 19315,
+      "publishedSha256": "82715d4e37e40565fc0cd3291e850cdb62e0e11acfa5ef35b9f5ff70ca0dc907"
+    },
+    {
+      "path": "src/hydra-sync/operational_adapter.ts",
+      "source": "/opt/bots/src/hydra-sync/operational_adapter.ts",
+      "sha256": "d92621602708ea52e7fea8a0159f0e04e02bc3fd7a318025e93ed448a95664e5",
+      "size": 124654,
+      "publishedSha256": "d92621602708ea52e7fea8a0159f0e04e02bc3fd7a318025e93ed448a95664e5"
+    },
+    {
+      "path": "src/hydra-sync/operational_data_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/operational_data_repository.ts",
+      "sha256": "df7ab159e12b5f3fe20e67fe8c54953b56e4cb1df29626a4486d8236e2c8c6e7",
+      "size": 11401,
+      "publishedSha256": "df7ab159e12b5f3fe20e67fe8c54953b56e4cb1df29626a4486d8236e2c8c6e7"
+    },
+    {
+      "path": "src/hydra-sync/public_response_guard.ts",
+      "source": "/opt/bots/src/hydra-sync/public_response_guard.ts",
+      "sha256": "89153729b1488775f7b2d84476cf2d0e222fa1e1b10d9f7c59aa7ddbf24a557d",
+      "size": 18362,
+      "publishedSha256": "89153729b1488775f7b2d84476cf2d0e222fa1e1b10d9f7c59aa7ddbf24a557d"
+    },
+    {
+      "path": "src/hydra-sync/queue_worker.ts",
+      "source": "/opt/bots/src/hydra-sync/queue_worker.ts",
+      "sha256": "9944189a95273c543f680322099b9bfb4b9b11ebcdbd618e83a07dbb9331bbb3",
+      "size": 5330,
+      "publishedSha256": "9944189a95273c543f680322099b9bfb4b9b11ebcdbd618e83a07dbb9331bbb3"
+    },
+    {
+      "path": "src/hydra-sync/real_analysis_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/real_analysis_repository.ts",
+      "sha256": "f062a528ba6fee4c6a45534ad9f6a36cc31195a03906856854a96d17ac6767ef",
+      "size": 14027,
+      "publishedSha256": "f062a528ba6fee4c6a45534ad9f6a36cc31195a03906856854a96d17ac6767ef"
+    },
+    {
+      "path": "src/hydra-sync/reconcile_all_stores_vps.ts",
+      "source": "/opt/bots/src/hydra-sync/reconcile_all_stores_vps.ts",
+      "sha256": "8607efbf324b25c1db55bd2eacb8c5b57a33c8040911449d74ebaa1928dcaeab",
+      "size": 8340,
+      "publishedSha256": "8607efbf324b25c1db55bd2eacb8c5b57a33c8040911449d74ebaa1928dcaeab"
+    },
+    {
+      "path": "src/hydra-sync/reconciliar_metas.ts",
+      "source": "/opt/bots/src/hydra-sync/reconciliar_metas.ts",
+      "sha256": "a85b81613ee995665537ba7c03ce6733d22382239abfad9b3f388523da0195ca",
+      "size": 6301,
+      "publishedSha256": "a85b81613ee995665537ba7c03ce6733d22382239abfad9b3f388523da0195ca"
+    },
+    {
+      "path": "src/hydra-sync/reindexar_vetores.ts",
+      "source": "/opt/bots/src/hydra-sync/reindexar_vetores.ts",
+      "sha256": "9da783bb2a51c32ad5e7721852ffdaaa4ae1dff2f7f5a5052223d9e513b0d90b",
+      "size": 5898,
+      "publishedSha256": "9da783bb2a51c32ad5e7721852ffdaaa4ae1dff2f7f5a5052223d9e513b0d90b"
+    },
+    {
+      "path": "src/hydra-sync/relatorio_operacao_crawler.ts",
+      "source": "/opt/bots/src/hydra-sync/relatorio_operacao_crawler.ts",
+      "sha256": "3af748836e244a7482539b591701115bbfa51443d0d26819675864bd6ecb528a",
+      "size": 13597,
+      "publishedSha256": "3af748836e244a7482539b591701115bbfa51443d0d26819675864bd6ecb528a"
+    },
+    {
+      "path": "src/hydra-sync/runtime_diagnostics.ts",
+      "source": "/opt/bots/src/hydra-sync/runtime_diagnostics.ts",
+      "sha256": "f5a2e69c5cfdc90b54718be97f3fd77ab1998b86f07e811dbbefa8fbca163531",
+      "size": 9121,
+      "publishedSha256": "f5a2e69c5cfdc90b54718be97f3fd77ab1998b86f07e811dbbefa8fbca163531"
+    },
+    {
+      "path": "src/hydra-sync/scripts/reconciliar_517_ops.ts",
+      "source": "/opt/bots/src/hydra-sync/scripts/reconciliar_517_ops.ts",
+      "sha256": "77099f13819bc2a3383097474640ea9a6e0fd88b61ae8a050fac2584f6e45bc1",
+      "size": 2252,
+      "publishedSha256": "77099f13819bc2a3383097474640ea9a6e0fd88b61ae8a050fac2584f6e45bc1"
+    },
+    {
+      "path": "src/hydra-sync/scripts/transcribe_audio.py",
+      "source": "/opt/bots/src/hydra-sync/scripts/transcribe_audio.py",
+      "sha256": "40d48e7f06f2a791d4249e23045ce47a103f8a76058c4d4919d3120c6d2d8ccd",
+      "size": 1863,
+      "publishedSha256": "40d48e7f06f2a791d4249e23045ce47a103f8a76058c4d4919d3120c6d2d8ccd"
+    },
+    {
+      "path": "src/hydra-sync/sec_worker_daemon.ts",
+      "source": "/opt/bots/src/hydra-sync/sec_worker_daemon.ts",
+      "sha256": "7ab2f6cecd02615d48c40b105e9a1cb7973267b5516322713f28270a1c74653f",
+      "size": 3875,
+      "publishedSha256": "7ab2f6cecd02615d48c40b105e9a1cb7973267b5516322713f28270a1c74653f"
+    },
+    {
+      "path": "src/hydra-sync/semantic_glossary.ts",
+      "source": "/opt/bots/src/hydra-sync/semantic_glossary.ts",
+      "sha256": "376858f992fa6025e06fc2ca32b3c9801792a85b643966215a396d862cf9efec",
+      "size": 15844,
+      "publishedSha256": "376858f992fa6025e06fc2ca32b3c9801792a85b643966215a396d862cf9efec"
+    },
+    {
+      "path": "src/hydra-sync/semantic_prompt.md",
+      "source": "/opt/bots/src/hydra-sync/semantic_prompt.md",
+      "sha256": "703da802e08c71a9bb2ea69a487126194bf5e2cd701341f8220dec0d57f5f16c",
+      "size": 9735,
+      "publishedSha256": "703da802e08c71a9bb2ea69a487126194bf5e2cd701341f8220dec0d57f5f16c"
+    },
+    {
+      "path": "src/hydra-sync/semantic_prompt.ts",
+      "source": "/opt/bots/src/hydra-sync/semantic_prompt.ts",
+      "sha256": "5c794fce16d9390f61147330c93fc9d36380da7f9c641e6564cad78ec6c204ca",
+      "size": 20044,
+      "publishedSha256": "5c794fce16d9390f61147330c93fc9d36380da7f9c641e6564cad78ec6c204ca"
+    },
+    {
+      "path": "src/hydra-sync/system_prompt.md",
+      "source": "/opt/bots/src/hydra-sync/system_prompt.md",
+      "sha256": "703da802e08c71a9bb2ea69a487126194bf5e2cd701341f8220dec0d57f5f16c",
+      "size": 9735,
+      "publishedSha256": "703da802e08c71a9bb2ea69a487126194bf5e2cd701341f8220dec0d57f5f16c"
+    },
+    {
+      "path": "src/hydra-sync/test_metas_crawler.ts",
+      "source": "/opt/bots/src/hydra-sync/test_metas_crawler.ts",
+      "sha256": "23a51f8f8867ac0dbcf38a8030271c964b1aff73399ecb2c993d1fdcdc79e280",
+      "size": 854,
+      "publishedSha256": "23a51f8f8867ac0dbcf38a8030271c964b1aff73399ecb2c993d1fdcdc79e280"
+    },
+    {
+      "path": "src/hydra-sync/test_send_whatsapp.ts",
+      "source": "/opt/bots/src/hydra-sync/test_send_whatsapp.ts",
+      "sha256": "ef7ca005a6c485a7b4025f4ee86376fc834626848f883de414323c925247ad28",
+      "size": 521,
+      "publishedSha256": "ef7ca005a6c485a7b4025f4ee86376fc834626848f883de414323c925247ad28"
+    },
+    {
+      "path": "src/hydra-sync/test_send_whatsapp_2.ts",
+      "source": "/opt/bots/src/hydra-sync/test_send_whatsapp_2.ts",
+      "sha256": "a843752c364d4a091afaa65abf537edf700fdd6b9448d8020c745f8305a2f4ef",
+      "size": 525,
+      "publishedSha256": "a843752c364d4a091afaa65abf537edf700fdd6b9448d8020c745f8305a2f4ef"
+    },
+    {
+      "path": "src/hydra-sync/tests/repro_linea_failure_harness.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/repro_linea_failure_harness.ts",
+      "sha256": "e2085f78bf61a58e899204864978419d30444b1213e775c11324a4b845be3b4c",
+      "size": 5031,
+      "publishedSha256": "e2085f78bf61a58e899204864978419d30444b1213e775c11324a4b845be3b4c"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_agent1_crawler_operacao.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_agent1_crawler_operacao.ts",
+      "sha256": "413cf28b40d89beb869897736e37926501b72461d840c3e02bc6f4b820495fee",
+      "size": 23993,
+      "publishedSha256": "413cf28b40d89beb869897736e37926501b72461d840c3e02bc6f4b820495fee"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_agent2_finance_worker.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_agent2_finance_worker.ts",
+      "sha256": "62e2088a4070fc34d0f3b0e50f33bb700dc722bef70b7b82f02e2f946670f3dc",
+      "size": 17482,
+      "publishedSha256": "62e2088a4070fc34d0f3b0e50f33bb700dc722bef70b7b82f02e2f946670f3dc"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_agent3_persistence_harness.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_agent3_persistence_harness.ts",
+      "sha256": "14b5f18243194b81d8f49ed13b45b50d31edb8c641d5a3fdde453683e6f1807f",
+      "size": 24083,
+      "publishedSha256": "14b5f18243194b81d8f49ed13b45b50d31edb8c641d5a3fdde453683e6f1807f"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_batcher_multimodal_cmv.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_batcher_multimodal_cmv.ts",
+      "sha256": "21ea98f89a726427b171e47a561b0543ce8230275875a3d6085f58b6922c79a2",
+      "size": 19100,
+      "publishedSha256": "21ea98f89a726427b171e47a561b0543ce8230275875a3d6085f58b6922c79a2"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_commands_composer.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_commands_composer.ts",
+      "sha256": "9b614120392f0131cf235b870d89eb6a035b41ed86af359524568cc85a654ecb",
+      "size": 23050,
+      "publishedSha256": "9b614120392f0131cf235b870d89eb6a035b41ed86af359524568cc85a654ecb"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_continuity_candidate_tools.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_continuity_candidate_tools.ts",
+      "sha256": "6d70212ade5af9add21d582678c0d2fee58438a40092fb98e9c74ab5d111f4dc",
+      "size": 25243,
+      "publishedSha256": "6d70212ade5af9add21d582678c0d2fee58438a40092fb98e9c74ab5d111f4dc"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor1_conversation_protection.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor1_conversation_protection.ts",
+      "sha256": "7e7d3df9b0a985bff51eff3140c78bdc9d7c7629a3f561ada93dfbb556b0145d",
+      "size": 8076,
+      "publishedSha256": "7e7d3df9b0a985bff51eff3140c78bdc9d7c7629a3f561ada93dfbb556b0145d"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor1_interpretation.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor1_interpretation.ts",
+      "sha256": "634e1078be806fea1418a17b27bc55358a5308d8ec80cbc5ea2dd8ec5d5128f0",
+      "size": 19931,
+      "publishedSha256": "634e1078be806fea1418a17b27bc55358a5308d8ec80cbc5ea2dd8ec5d5128f0"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor1_interpretation_repair.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor1_interpretation_repair.ts",
+      "sha256": "ed9e43dc4cf77f6dbf7d72bc650c6dfc178dd694a187fe847d9a5a8f1795f671",
+      "size": 16436,
+      "publishedSha256": "ed9e43dc4cf77f6dbf7d72bc650c6dfc178dd694a187fe847d9a5a8f1795f671"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor1_language_comprehension.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor1_language_comprehension.ts",
+      "sha256": "5f13314667f74cd9407bf1b4aad3227d0b897d416a25e2859b069098bd7692a4",
+      "size": 20009,
+      "publishedSha256": "5f13314667f74cd9407bf1b4aad3227d0b897d416a25e2859b069098bd7692a4"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor1_obsidian_diagnostics.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor1_obsidian_diagnostics.ts",
+      "sha256": "da6a25b06106cd723dedaf01f204e733d8dca4c24c2d85a84e9abf83b603f6d1",
+      "size": 13051,
+      "publishedSha256": "da6a25b06106cd723dedaf01f204e733d8dca4c24c2d85a84e9abf83b603f6d1"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor2_case_data.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor2_case_data.ts",
+      "sha256": "5b286fed52bdbac1618a82e884e7933bbc747448c9b7f995aa13a28fd4066cb8",
+      "size": 23583,
+      "publishedSha256": "5b286fed52bdbac1618a82e884e7933bbc747448c9b7f995aa13a28fd4066cb8"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor2_formatting.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor2_formatting.ts",
+      "sha256": "d733f96d358f3929931dc8aeb08eace489396c30637f9b27a3e669057db013b2",
+      "size": 18982,
+      "publishedSha256": "d733f96d358f3929931dc8aeb08eace489396c30637f9b27a3e669057db013b2"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor2_lifecycle_reconciliation.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor2_lifecycle_reconciliation.ts",
+      "sha256": "e2577b811021301b6d6d974d250113433c033993f692c480701f26fdd0d52c65",
+      "size": 27117,
+      "publishedSha256": "e2577b811021301b6d6d974d250113433c033993f692c480701f26fdd0d52c65"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor2_vault_memory.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor2_vault_memory.ts",
+      "sha256": "06cdc650672030eb0dd850ff394942d78529868e0f29e1ebd42bed768ded8232",
+      "size": 51177,
+      "publishedSha256": "06cdc650672030eb0dd850ff394942d78529868e0f29e1ebd42bed768ded8232"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_executor3_queries_metrics.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_executor3_queries_metrics.ts",
+      "sha256": "b90cb60431aff1b7ebb5d362a1d6219a211e5a3379e01da422ee2ed2f9fbba8e",
+      "size": 40062,
+      "publishedSha256": "b90cb60431aff1b7ebb5d362a1d6219a211e5a3379e01da422ee2ed2f9fbba8e"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_fallback_router.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_fallback_router.ts",
+      "sha256": "5078cbf64f1de63e66092ca61925c65bd3c534403bd7f1efbba88c034304b2b3",
+      "size": 4112,
+      "publishedSha256": "5078cbf64f1de63e66092ca61925c65bd3c534403bd7f1efbba88c034304b2b3"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_financial_engine.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_financial_engine.ts",
+      "sha256": "c13e58677bb3d385ab48a93c25813a34ec723fd36dbb3705cfe1e4a55b2a19ff",
+      "size": 16313,
+      "publishedSha256": "c13e58677bb3d385ab48a93c25813a34ec723fd36dbb3705cfe1e4a55b2a19ff"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_access_session.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_access_session.ts",
+      "sha256": "e9ad718410f9c543c78e35ae3bbe2e107d058755613f06906eec2d2525d75a20",
+      "size": 29113,
+      "publishedSha256": "e9ad718410f9c543c78e35ae3bbe2e107d058755613f06906eec2d2525d75a20"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_conversation_memory.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_conversation_memory.ts",
+      "sha256": "79add4f45c5fe8313fdeb9f9ecf97e0990f6c62a2f95c64c4b7bf35c7bc150b1",
+      "size": 18916,
+      "publishedSha256": "79add4f45c5fe8313fdeb9f9ecf97e0990f6c62a2f95c64c4b7bf35c7bc150b1"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_language_whatsapp.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_language_whatsapp.ts",
+      "sha256": "38f8da02fb3634d17303435e0f28855b96f29034917b9b21761cf15c8db3b809",
+      "size": 25635,
+      "publishedSha256": "38f8da02fb3634d17303435e0f28855b96f29034917b9b21761cf15c8db3b809"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_layer_a.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_layer_a.ts",
+      "sha256": "5aa29e8cde61f61703f3a9bb96c89e89b258788441c0f578f0ff043b0fe941d1",
+      "size": 17315,
+      "publishedSha256": "5aa29e8cde61f61703f3a9bb96c89e89b258788441c0f578f0ff043b0fe941d1"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_layer_b.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_layer_b.ts",
+      "sha256": "88db4aa2601bc20163c5ff3ba05713b46705585a1832615382218a6977cdb80a",
+      "size": 11889,
+      "publishedSha256": "88db4aa2601bc20163c5ff3ba05713b46705585a1832615382218a6977cdb80a"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_layer_c.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_layer_c.ts",
+      "sha256": "611445d497d1b8af54fc981d3cddd5c6f5aa5478bc474cf29fda7fb9761edb05",
+      "size": 16361,
+      "publishedSha256": "611445d497d1b8af54fc981d3cddd5c6f5aa5478bc474cf29fda7fb9761edb05"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_linea_repair.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_linea_repair.ts",
+      "sha256": "0de0d870f34ad1526c29caff2b29c99b37f45cd5d342e2b4b7dc3c5db1443e61",
+      "size": 16751,
+      "publishedSha256": "0de0d870f34ad1526c29caff2b29c99b37f45cd5d342e2b4b7dc3c5db1443e61"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_memory_consolidation.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_memory_consolidation.ts",
+      "sha256": "b0ab44d0732805e45019709c5e2cad969bdaf38f71729988a5e40ed8fcdaa5a3",
+      "size": 29934,
+      "publishedSha256": "b0ab44d0732805e45019709c5e2cad969bdaf38f71729988a5e40ed8fcdaa5a3"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_obsidian_memory.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_obsidian_memory.ts",
+      "sha256": "dfb515df37d85ef72e7ffae262ef7cd01700fb3967bf76f921274b2e0f7a2416",
+      "size": 45791,
+      "publishedSha256": "dfb515df37d85ef72e7ffae262ef7cd01700fb3967bf76f921274b2e0f7a2416"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_harness_unified.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_harness_unified.ts",
+      "sha256": "3ceacaab299325e5a293caf31f8999f3582735e41527e4b1e498363d9215dc9a",
+      "size": 39672,
+      "publishedSha256": "3ceacaab299325e5a293caf31f8999f3582735e41527e4b1e498363d9215dc9a"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_intent_rewriter.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_intent_rewriter.ts",
+      "sha256": "94139274ab943c00c334d72eaf3b88c8716136aaa06e2f6206057408b1427eed",
+      "size": 4903,
+      "publishedSha256": "94139274ab943c00c334d72eaf3b88c8716136aaa06e2f6206057408b1427eed"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_language_eval_60.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_language_eval_60.ts",
+      "sha256": "0be1014aa5594cf5ef6dad5e369001c181376311af7ee40a31e1219751e2ef26",
+      "size": 28591,
+      "publishedSha256": "0be1014aa5594cf5ef6dad5e369001c181376311af7ee40a31e1219751e2ef26"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_manager_ai_continuity.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_manager_ai_continuity.ts",
+      "sha256": "6200c3d9072a9edd18ddd1e1fb7c6e16e2e31b29a4d9816f66363f7eb7d6a55a",
+      "size": 50173,
+      "publishedSha256": "6200c3d9072a9edd18ddd1e1fb7c6e16e2e31b29a4d9816f66363f7eb7d6a55a"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_manager_reviewer_router.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_manager_reviewer_router.ts",
+      "sha256": "b2822f40fd01b26e37d088f2f5e5e11eaa9cc42b5f4c9fa8cd215718eab109db",
+      "size": 25646,
+      "publishedSha256": "b2822f40fd01b26e37d088f2f5e5e11eaa9cc42b5f4c9fa8cd215718eab109db"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_manager_store_access.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_manager_store_access.ts",
+      "sha256": "fccd8ff854fa656b58047df7bc65773a0317c68f4254a9ad81b0fa41ca28640a",
+      "size": 3324,
+      "publishedSha256": "fccd8ff854fa656b58047df7bc65773a0317c68f4254a9ad81b0fa41ca28640a"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_mission2_batcher_reasoning.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_mission2_batcher_reasoning.ts",
+      "sha256": "6cfbfcec2a2ff31f5c63910969699485be9ad269cfb00473e46ae3b503144969",
+      "size": 16930,
+      "publishedSha256": "6cfbfcec2a2ff31f5c63910969699485be9ad269cfb00473e46ae3b503144969"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_multimodal_evidence.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_multimodal_evidence.ts",
+      "sha256": "027cebd88aea93363fcbe6c32180c112f3a96bd14a65812ec71df29d5b51271f",
+      "size": 33845,
+      "publishedSha256": "027cebd88aea93363fcbe6c32180c112f3a96bd14a65812ec71df29d5b51271f"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_natural_conversation_flow.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_natural_conversation_flow.ts",
+      "sha256": "f8ee621d1a8a7364540940b79b2d8f77ea4641e0b3b6ce9ce463736b5e27790c",
+      "size": 15479,
+      "publishedSha256": "f8ee621d1a8a7364540940b79b2d8f77ea4641e0b3b6ce9ce463736b5e27790c"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_natural_conversation_mission2.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_natural_conversation_mission2.ts",
+      "sha256": "f3c7a0c00509fb58371bb247758e19486182ab9974d5d9d2f565dfbb269e2df1",
+      "size": 16259,
+      "publishedSha256": "f3c7a0c00509fb58371bb247758e19486182ab9974d5d9d2f565dfbb269e2df1"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_quota_fallback_harness.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_quota_fallback_harness.ts",
+      "sha256": "81983ca060def67107ff00ba61c65faf5640d17f642afd8f0404a31d5071b8a4",
+      "size": 15210,
+      "publishedSha256": "81983ca060def67107ff00ba61c65faf5640d17f642afd8f0404a31d5071b8a4"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_reasoning_retrieval.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_reasoning_retrieval.ts",
+      "sha256": "035fad96926adbe41b91a16ae4fc020a6f5699bacb89534b9031d48e81425e15",
+      "size": 13387,
+      "publishedSha256": "035fad96926adbe41b91a16ae4fc020a6f5699bacb89534b9031d48e81425e15"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_turn_isolation_replay.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_turn_isolation_replay.ts",
+      "sha256": "f6168c2172450395e359ec75d116bde7fac1375dd8067285e6710602f65502c6",
+      "size": 5630,
+      "publishedSha256": "f6168c2172450395e359ec75d116bde7fac1375dd8067285e6710602f65502c6"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_user_memory_briefing.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_user_memory_briefing.ts",
+      "sha256": "941afe698cd404230aff6016fffde6bcec7fe347ac714f54716cd257efdffa2f",
+      "size": 16897,
+      "publishedSha256": "941afe698cd404230aff6016fffde6bcec7fe347ac714f54716cd257efdffa2f"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_webhook_presence_reaction.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_webhook_presence_reaction.ts",
+      "sha256": "bf1c0ec5bcb4452e410e448bdbb5773d17415b226c3766504dc47ab010d8320e",
+      "size": 27942,
+      "publishedSha256": "bf1c0ec5bcb4452e410e448bdbb5773d17415b226c3766504dc47ab010d8320e"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_whatsapp_format.js",
+      "source": "/opt/bots/src/hydra-sync/tests/test_whatsapp_format.js",
+      "sha256": "d9a25bc11e3ccb637ccaf4e06022d30e07fa1355481d6925029966ab28c8fefe",
+      "size": 8665,
+      "publishedSha256": "d9a25bc11e3ccb637ccaf4e06022d30e07fa1355481d6925029966ab28c8fefe"
+    },
+    {
+      "path": "src/hydra-sync/tests/test_whatsapp_format.ts",
+      "source": "/opt/bots/src/hydra-sync/tests/test_whatsapp_format.ts",
+      "sha256": "801c75b5d527a4e27a6ca0b89af9f69bc977d435e306424bf674e44aef2f9b8d",
+      "size": 8701,
+      "publishedSha256": "801c75b5d527a4e27a6ca0b89af9f69bc977d435e306424bf674e44aef2f9b8d"
+    },
+    {
+      "path": "src/hydra-sync/tool_execution_tracker.ts",
+      "source": "/opt/bots/src/hydra-sync/tool_execution_tracker.ts",
+      "sha256": "7c9c712a843384937d3cb50b83eaeef80b07bcaa67960ff9ab046ac514d3775a",
+      "size": 7252,
+      "publishedSha256": "7c9c712a843384937d3cb50b83eaeef80b07bcaa67960ff9ab046ac514d3775a"
+    },
+    {
+      "path": "src/hydra-sync/turn_context_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/turn_context_repository.ts",
+      "sha256": "5488b872805b59871afe89e4eca781c90949982cf04241625470a579fc5fe40d",
+      "size": 29686,
+      "publishedSha256": "5488b872805b59871afe89e4eca781c90949982cf04241625470a579fc5fe40d"
+    },
+    {
+      "path": "src/hydra-sync/types/access_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/access_contract.ts",
+      "sha256": "ac1bb9d8f75923850a5d5705e234f5f5a0a7c046b75908a6764caf7a606f2981",
+      "size": 1364,
+      "publishedSha256": "ac1bb9d8f75923850a5d5705e234f5f5a0a7c046b75908a6764caf7a606f2981"
+    },
+    {
+      "path": "src/hydra-sync/types/better-sqlite3.d.ts",
+      "source": "/opt/bots/src/hydra-sync/types/better-sqlite3.d.ts",
+      "sha256": "ffd50833dbcc535100e3a953ad6376489d66edb1b266edf2cf17e8e1409f398a",
+      "size": 260,
+      "publishedSha256": "ffd50833dbcc535100e3a953ad6376489d66edb1b266edf2cf17e8e1409f398a"
+    },
+    {
+      "path": "src/hydra-sync/types/conversation_context_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/conversation_context_contract.ts",
+      "sha256": "5bee86a8299e16e501b6df9be405f6690bf496d8a7cddbb7639f5c2a214d4f7e",
+      "size": 3802,
+      "publishedSha256": "5bee86a8299e16e501b6df9be405f6690bf496d8a7cddbb7639f5c2a214d4f7e"
+    },
+    {
+      "path": "src/hydra-sync/types/conversation_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/conversation_contract.ts",
+      "sha256": "6237d274f492b0b1300e8d41f3fdbe7802e0871c5eea4037de7d98296c45ace1",
+      "size": 9747,
+      "publishedSha256": "6237d274f492b0b1300e8d41f3fdbe7802e0871c5eea4037de7d98296c45ace1"
+    },
+    {
+      "path": "src/hydra-sync/types/language_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/language_contract.ts",
+      "sha256": "2bd10d0e4a9df3e14ab664c833b83da9bc1958f974926c1b72c08ae077cefbad",
+      "size": 2382,
+      "publishedSha256": "2bd10d0e4a9df3e14ab664c833b83da9bc1958f974926c1b72c08ae077cefbad"
+    },
+    {
+      "path": "src/hydra-sync/types/memory_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/memory_contract.ts",
+      "sha256": "9290539962263bf87b52903eea4ac53b2d8efddb90cc59eebe148294200b8d33",
+      "size": 2070,
+      "publishedSha256": "9290539962263bf87b52903eea4ac53b2d8efddb90cc59eebe148294200b8d33"
+    },
+    {
+      "path": "src/hydra-sync/types/multimodal_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/multimodal_contract.ts",
+      "sha256": "f1c356a59792e0cc0b0586ef767444d46bd7703a542e3c151f5604a74ef2ae3a",
+      "size": 4471,
+      "publishedSha256": "f1c356a59792e0cc0b0586ef767444d46bd7703a542e3c151f5604a74ef2ae3a"
+    },
+    {
+      "path": "src/hydra-sync/types/public_guard_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/public_guard_contract.ts",
+      "sha256": "fbd7633bf6e83a751a3b30c95f164128537c6106a7584fa4810bceefe6b80b02",
+      "size": 1511,
+      "publishedSha256": "fbd7633bf6e83a751a3b30c95f164128537c6106a7584fa4810bceefe6b80b02"
+    },
+    {
+      "path": "src/hydra-sync/types/query_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/query_contract.ts",
+      "sha256": "c95e84480fcbc24f9eb8fa92c3e6999b7e48d16a9d89ae244149090f20e031e6",
+      "size": 2657,
+      "publishedSha256": "c95e84480fcbc24f9eb8fa92c3e6999b7e48d16a9d89ae244149090f20e031e6"
+    },
+    {
+      "path": "src/hydra-sync/types/vault_contract.ts",
+      "source": "/opt/bots/src/hydra-sync/types/vault_contract.ts",
+      "sha256": "f9c4d8fc3d2efc8766a3eb7154fdf59c141344e09f80beeb5099400f35d61fe9",
+      "size": 2836,
+      "publishedSha256": "f9c4d8fc3d2efc8766a3eb7154fdf59c141344e09f80beeb5099400f35d61fe9"
+    },
+    {
+      "path": "src/hydra-sync/user_memory_repository.ts",
+      "source": "/opt/bots/src/hydra-sync/user_memory_repository.ts",
+      "sha256": "167afc35ddad193af5dab30052444d190b5882fbdfecf29f5f4f5e3b5f4853ed",
+      "size": 17078,
+      "publishedSha256": "167afc35ddad193af5dab30052444d190b5882fbdfecf29f5f4f5e3b5f4853ed"
+    },
+    {
+      "path": "src/hydra-sync/vault_manager.ts",
+      "source": "/opt/bots/src/hydra-sync/vault_manager.ts",
+      "sha256": "190331124e6939f35fb4e200e747568bf38ec107a0de3b539a29f5cf287ab700",
+      "size": 31060,
+      "publishedSha256": "190331124e6939f35fb4e200e747568bf38ec107a0de3b539a29f5cf287ab700"
+    },
+    {
+      "path": "src/hydra-sync/webhook_service.ts",
+      "source": "/opt/bots/src/hydra-sync/webhook_service.ts",
+      "sha256": "f01a5e568503739ce9981c1e2796773b5a3bbe7a18cb36a779d1c03dfd3f874d",
+      "size": 23226,
+      "publishedSha256": "d77bb9c7d3fd2e57f7f612a9a092c26d77d76c8353499f6609857ea88dceb44b"
+    },
+    {
+      "path": "src/hydra-sync/whatsapp_client.ts",
+      "source": "/opt/bots/src/hydra-sync/whatsapp_client.ts",
+      "sha256": "24bd22ac524414431db47fd322bb2e047980ba21f4780cd49fcee5f4037377d3",
+      "size": 8417,
+      "publishedSha256": "090a5e0fb622799afa0e02d8f6999212be0dc861eb1033b0a60f4dd5f297d08a"
+    },
+    {
+      "path": "src/hydra-sync/whatsapp_formatter.ts",
+      "source": "/opt/bots/src/hydra-sync/whatsapp_formatter.ts",
+      "sha256": "d74784a5545b39b97edf7ff4f379a9898537698e70c6814069aea8f5d671e2c9",
+      "size": 7686,
+      "publishedSha256": "d74784a5545b39b97edf7ff4f379a9898537698e70c6814069aea8f5d671e2c9"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/app-map-builder.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/app-map-builder.ts",
+      "sha256": "f756072a09cbc8e2ede4339989f6fa1c577ec5cabb9519736fb854c339e20699",
+      "size": 1980,
+      "publishedSha256": "f756072a09cbc8e2ede4339989f6fa1c577ec5cabb9519736fb854c339e20699"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/crawler.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/crawler.ts",
+      "sha256": "dbb771e2e7d3883a236579ef896604063ab352bcf0dc5fc205ffbb8861d9e448",
+      "size": 9694,
+      "publishedSha256": "dbb771e2e7d3883a236579ef896604063ab352bcf0dc5fc205ffbb8861d9e448"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/extractor.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/extractor.ts",
+      "sha256": "e372d0bd7351d5c9b995fbdfdbc018c2613a994e78ba1ac4ab15c8ec1efa99ec",
+      "size": 3107,
+      "publishedSha256": "e372d0bd7351d5c9b995fbdfdbc018c2613a994e78ba1ac4ab15c8ec1efa99ec"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/header-crawler.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/header-crawler.ts",
+      "sha256": "b79a6b84bea741e1cf898f61cf910cbab2ddca7740a11125c14b28b5ec3bb652",
+      "size": 7600,
+      "publishedSha256": "b79a6b84bea741e1cf898f61cf910cbab2ddca7740a11125c14b28b5ec3bb652"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/header-seeds.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/header-seeds.ts",
+      "sha256": "fb7b060aab6fbffaf70a1e8ca82546c8c97a48acd1f77eac63bc86417e2dab83",
+      "size": 1955,
+      "publishedSha256": "fb7b060aab6fbffaf70a1e8ca82546c8c97a48acd1f77eac63bc86417e2dab83"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/screen-mapper.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/screen-mapper.ts",
+      "sha256": "058a6c7946e076b8d2e6af52082c941062d2a633c3b86fe7fd33b6722a8aa152",
+      "size": 19832,
+      "publishedSha256": "058a6c7946e076b8d2e6af52082c941062d2a633c3b86fe7fd33b6722a8aa152"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/snapshot.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/snapshot.ts",
+      "sha256": "1da88e14fecf05fee3a13f5201939329f554190e6bcce43432f3c8bf31bfece6",
+      "size": 1553,
+      "publishedSha256": "1da88e14fecf05fee3a13f5201939329f554190e6bcce43432f3c8bf31bfece6"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/types.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/types.ts",
+      "sha256": "20b956e0d383b22ce183ed5908e78dfe5f10f19aa89eae9b23f87ab008744671",
+      "size": 1363,
+      "publishedSha256": "20b956e0d383b22ce183ed5908e78dfe5f10f19aa89eae9b23f87ab008744671"
+    },
+    {
+      "path": "src/workers/oficina-agent/mapper/workflow-generator.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/mapper/workflow-generator.ts",
+      "sha256": "34db64d6fbc5df0fc742065c2a1e5241ddaf21239c8a789bda81c56b5ab4e5a2",
+      "size": 5357,
+      "publishedSha256": "34db64d6fbc5df0fc742065c2a1e5241ddaf21239c8a789bda81c56b5ab4e5a2"
+    },
+    {
+      "path": "src/workers/oficina-agent/operators/financeiro.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/operators/financeiro.ts",
+      "sha256": "e5bf84ab79a30a7124eab6f085889791c7823d198b100f18047e4049aef1481f",
+      "size": 10305,
+      "publishedSha256": "e5bf84ab79a30a7124eab6f085889791c7823d198b100f18047e4049aef1481f"
+    },
+    {
+      "path": "src/workers/oficina-agent/operators/index.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/operators/index.ts",
+      "sha256": "79280c8d43fa8df64e30f8d5b862dc56162fd8531fef5e434a7fbb71624a57ed",
+      "size": 1121,
+      "publishedSha256": "79280c8d43fa8df64e30f8d5b862dc56162fd8531fef5e434a7fbb71624a57ed"
+    },
+    {
+      "path": "src/workers/oficina-agent/operators/os.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/operators/os.ts",
+      "sha256": "2537b0eaa92fe8723fb617a90fb66a5db738f2dc2f8363cd606ba07f4f3dc276",
+      "size": 10895,
+      "publishedSha256": "2537b0eaa92fe8723fb617a90fb66a5db738f2dc2f8363cd606ba07f4f3dc276"
+    },
+    {
+      "path": "src/workers/oficina-agent/operators/types.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/operators/types.ts",
+      "sha256": "c917faaf3ebdc8491db49dd6197e8ffe91c8fb221f0866ea505241ed219cf69a",
+      "size": 717,
+      "publishedSha256": "c917faaf3ebdc8491db49dd6197e8ffe91c8fb221f0866ea505241ed219cf69a"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/consulta_cmv_loja.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/consulta_cmv_loja.ts",
+      "sha256": "5c05bb71b32402a7ca36b77ba3c9449dbdcd72b9fa9356d4ac1a2f44a3b118c4",
+      "size": 5539,
+      "publishedSha256": "5c05bb71b32402a7ca36b77ba3c9449dbdcd72b9fa9356d4ac1a2f44a3b118c4"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/consulta_contas_pagar_exposicao.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/consulta_contas_pagar_exposicao.ts",
+      "sha256": "011584a160153c53d84e202d6fb8a5feda6bbd85acb92bbeed1a58c4f5dbdddc",
+      "size": 4386,
+      "publishedSha256": "011584a160153c53d84e202d6fb8a5feda6bbd85acb92bbeed1a58c4f5dbdddc"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/consulta_os_semana.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/consulta_os_semana.ts",
+      "sha256": "748380dd8187452fc25984b8198d9925b4d160cf6b13c33040f49619890b2227",
+      "size": 5205,
+      "publishedSha256": "748380dd8187452fc25984b8198d9925b4d160cf6b13c33040f49619890b2227"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/consulta_os_ultima_loja.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/consulta_os_ultima_loja.ts",
+      "sha256": "d1bc47c22b4d10445084812ce2680bb8e1c2a13e6ee029b7585dcef93c65856a",
+      "size": 6390,
+      "publishedSha256": "d1bc47c22b4d10445084812ce2680bb8e1c2a13e6ee029b7585dcef93c65856a"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/consultas_os.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/consultas_os.ts",
+      "sha256": "bb15f49843561e99327542eeafae2f5fa152f39c00cc0636f2ac623d188e0419",
+      "size": 7310,
+      "publishedSha256": "bb15f49843561e99327542eeafae2f5fa152f39c00cc0636f2ac623d188e0419"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/core.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/core.ts",
+      "sha256": "f8698eafa254751684396a36c66f5b0a5e8956e2c69c3805f01e7ab06097932d",
+      "size": 4215,
+      "publishedSha256": "f8698eafa254751684396a36c66f5b0a5e8956e2c69c3805f01e7ab06097932d"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/faturamento.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/faturamento.ts",
+      "sha256": "f968226d3d9ae69af54e3673055968f95fa456babe6dbe0098f3a641dbe83d5c",
+      "size": 2111,
+      "publishedSha256": "f968226d3d9ae69af54e3673055968f95fa456babe6dbe0098f3a641dbe83d5c"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/actions/os_deep_inspector.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/actions/os_deep_inspector.ts",
+      "sha256": "69c7e797b506eee745cf840370283d04e8c2d23b515937e8145ae6a4694e08fd",
+      "size": 26927,
+      "publishedSha256": "69c7e797b506eee745cf840370283d04e8c2d23b515937e8145ae6a4694e08fd"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/session.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/session.ts",
+      "sha256": "d601b489e711eb606eacbbe3af8d00f2791527af9fdc054e90d8fa395a235231",
+      "size": 10297,
+      "publishedSha256": "d601b489e711eb606eacbbe3af8d00f2791527af9fdc054e90d8fa395a235231"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/utils/parsing.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/utils/parsing.ts",
+      "sha256": "f2092886d5541a8e010606bae22beee40d2a58e71502f9298d75fab66cec1cc9",
+      "size": 1460,
+      "publishedSha256": "f2092886d5541a8e010606bae22beee40d2a58e71502f9298d75fab66cec1cc9"
+    },
+    {
+      "path": "src/workers/oficina-agent/playwright/utils/ux.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/playwright/utils/ux.ts",
+      "sha256": "7d7d7ea24adbde516fb0e2c76755ac3a596572a8627d32a0b26847984d6c9b0b",
+      "size": 2029,
+      "publishedSha256": "7d7d7ea24adbde516fb0e2c76755ac3a596572a8627d32a0b26847984d6c9b0b"
+    },
+    {
+      "path": "src/workers/oficina-agent/queue/job-queue.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/queue/job-queue.ts",
+      "sha256": "1ab43ff928266d89a593c66173560a69db631d7680b79e93adc6333895453278",
+      "size": 3454,
+      "publishedSha256": "1ab43ff928266d89a593c66173560a69db631d7680b79e93adc6333895453278"
+    },
+    {
+      "path": "src/workers/oficina-agent/server/app.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/server/app.ts",
+      "sha256": "7cb8bf8cf1dfab6834b535739db772b7e038a41a00d7477682d192478a2dc39d",
+      "size": 724,
+      "publishedSha256": "7cb8bf8cf1dfab6834b535739db772b7e038a41a00d7477682d192478a2dc39d"
+    },
+    {
+      "path": "src/workers/oficina-agent/server/auth.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/server/auth.ts",
+      "sha256": "70ecec86a09919585e18bf6ee2c0debf6e7ac07f85fadb40da4ff7bdbd276dc8",
+      "size": 535,
+      "publishedSha256": "70ecec86a09919585e18bf6ee2c0debf6e7ac07f85fadb40da4ff7bdbd276dc8"
+    },
+    {
+      "path": "src/workers/oficina-agent/server/routes.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/server/routes.ts",
+      "sha256": "254e848904f25d61a7b7f508dd4251975b52678f37970e146c1dd33f98cc8e18",
+      "size": 2679,
+      "publishedSha256": "254e848904f25d61a7b7f508dd4251975b52678f37970e146c1dd33f98cc8e18"
+    },
+    {
+      "path": "src/workers/oficina-agent/services/webhook-notifier.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/services/webhook-notifier.ts",
+      "sha256": "d1894bcdf1ea78a7ed358ddfc444647df48ee10dc28bfa5606b93d999585e84d",
+      "size": 1929,
+      "publishedSha256": "d1894bcdf1ea78a7ed358ddfc444647df48ee10dc28bfa5606b93d999585e84d"
+    },
+    {
+      "path": "src/workers/oficina-agent/tests/run_tdd.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/tests/run_tdd.ts",
+      "sha256": "e9c051016fe855aeb21a60abc41bbf76722975ec8ea3855d622d67c42e944769",
+      "size": 6703,
+      "publishedSha256": "e9c051016fe855aeb21a60abc41bbf76722975ec8ea3855d622d67c42e944769"
+    },
+    {
+      "path": "src/workers/oficina-agent/tests/test_export.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/tests/test_export.ts",
+      "sha256": "17213c9d868131c1bd489f4f16ea29e09583893a428bd73d3cd581794a6630fc",
+      "size": 1881,
+      "publishedSha256": "17213c9d868131c1bd489f4f16ea29e09583893a428bd73d3cd581794a6630fc"
+    },
+    {
+      "path": "src/workers/oficina-agent/types/index.ts",
+      "source": "/opt/bots/src/workers/oficina-agent/types/index.ts",
+      "sha256": "5c2c3812ec0e6b0c34bd51b584c8081909e5b301da8a0fa6b6b88ee8fad2df8c",
+      "size": 1611,
+      "publishedSha256": "5c2c3812ec0e6b0c34bd51b584c8081909e5b301da8a0fa6b6b88ee8fad2df8c"
+    },
+    {
+      "path": "tsconfig.hydra.json",
+      "source": "/opt/bots/tsconfig.hydra.json",
+      "sha256": "9001e2c4c72de1cc1151c1d57aa58f185787ea584b9b0d35b2e3b0ea12c9a2b3",
+      "size": 189,
+      "publishedSha256": "9001e2c4c72de1cc1151c1d57aa58f185787ea584b9b0d35b2e3b0ea12c9a2b3"
+    },
+    {
+      "path": "tsconfig.json",
+      "source": "/opt/bots/tsconfig.json",
+      "sha256": "8f085c1d4841928370f6922fc9b8cabe3dfe84d266fc734a08d3e0dc3f92490d",
+      "size": 672,
+      "publishedSha256": "9112095d798888d15687f66050930f536930878efcd51bff53057a394a40193c"
+    },
+    {
+      "path": "webhook-listener.js",
+      "source": "/home/operacional/hydra/webhook-listener.js",
+      "sha256": "4ea1b661a705c0a27cbc423601bbba03dc62e9b8957ae506c2ca18d29c0f8e80",
+      "size": 62373,
+      "publishedSha256": "e9d70be75850e9acb01575707923d3eed0547a4dc56d9ba4305726e680e4508a"
+    }
+  ],
+  "exclusions": [
+    "secrets",
+    "sessions",
+    "runtime data",
+    "backups",
+    "unrelated integrations"
+  ],
+  "adjustments": [
+    {
+      "path": "src/hydra-sync/chatwoot_whatsapp.ts",
+      "kind": "literal credential moved to private environment",
+      "env": "CHATWOOT_TOKEN"
+    },
+    {
+      "path": "src/hydra-sync/media_fetcher.ts",
+      "kind": "literal credential moved to private environment",
+      "env": "EVOLUTION_KEY"
+    },
+    {
+      "path": "src/hydra-sync/webhook_service.ts",
+      "kind": "literal credential moved to private environment",
+      "env": "EVOLUTION_KEY"
+    },
+    {
+      "path": "src/hydra-sync/whatsapp_client.ts",
+      "kind": "literal credential moved to private environment",
+      "env": "EVOLUTION_API_KEY"
+    },
+    {
+      "path": "webhook-listener.js",
+      "kind": "literal credential moved to private environment",
+      "env": "EVOLUTION_KEY"
+    },
+    {
+      "path": "webhook-listener.js",
+      "kind": "load private env and resolve release-local dependencies/dispatcher"
+    },
+    {
+      "path": "package.json",
+      "kind": "isolate Hydra dependencies, pin versions from production lock, add operational commands"
+    },
+    {
+      "path": "package-lock.json",
+      "kind": "retain production dependency closure and integrity hashes"
+    },
+    {
+      "path": "tsconfig.json",
+      "kind": "remove unrelated frontend/Vite configuration"
+    },
+    {
+      "path": "scripts/run-hydra-hourly-finance.sh",
+      "kind": "resolve release root through compatibility symlink and use its local tsx dependency"
+    },
+    {
+      "path": "scripts/run-hydra-daily-full.sh",
+      "kind": "resolve release root through compatibility symlink and use its local tsx dependency"
+    }
+  ]
+}
