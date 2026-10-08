@@ -45,3 +45,7 @@ supabase/.temp/
 *.png
 *.jpg
 *.jpeg
+
+# Subprojects
+projects/watchdog/
+projects/mec-nica-financeiro/

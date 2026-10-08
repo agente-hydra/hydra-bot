@@ -9,6 +9,13 @@ import { getDatabaseConnection, salvarLoteOSs, upsertOSEmbedding, formalizarTran
 import { getEmbedder } from './embeddings.js';
 import { EMPRESAS_RELATORIO, coletarRelatorioOperacaoLoja } from './relatorio_operacao_crawler.js';
 import { recordDataWorkerRun } from './data_worker_log.js';
+import {
+  capturarSnapshotMapaMetas,
+  compararSnapshotsMetas,
+  gerarPdfMapaMetas,
+  gerarNomesArquivosOficiais
+} from './crawler_meta_reconciliation.js';
+import type { MapaMetasReconciliationSnapshot } from './types/meta_reconciliation_contract.js';
 
 dotenvConfig({ path: '/opt/bots/.env' });
 dotenvConfig();
@@ -129,6 +136,18 @@ async function run() {
     const page = await context.newPage();
 
     await login(page);
+
+    // ETAPA 0: Snapshot Inicial do Mapa de Metas (Pré-Crawl)
+    console.log('\n[Deep Crawler] ======================================================');
+    console.log('[Deep Crawler] ETAPA 0: Capturando Snapshot Inicial do Mapa de Metas...');
+    console.log('[Deep Crawler] ======================================================');
+    let initialSnapshot: MapaMetasReconciliationSnapshot | null = null;
+    try {
+      initialSnapshot = await capturarSnapshotMapaMetas(page, BASE);
+    } catch (errSnapshotInit: unknown) {
+      const msg = errSnapshotInit instanceof Error ? errSnapshotInit.message : String(errSnapshotInit);
+      console.warn(`[Deep Crawler] ⚠️ Falha ao capturar snapshot inicial do Mapa de Metas: ${msg}`);
+    }
 
     for (const slug of slugs) {
       const nomeAmigavel = empresasConfig[slug]?.nome_amigavel || EMPRESAS_RELATORIO[slug] || slug;
@@ -318,6 +337,56 @@ async function run() {
           motivo: [motivoFalhaOS ? `OS: ${motivoFalhaOS}` : '', motivoFalhaCMV ? `CMV: ${motivoFalhaCMV}` : ''].filter(Boolean).join(' | ')
         });
         console.warn(`[Deep Crawler] ⚠️ Loja ${slug} concluída com pendências (OS: ${osSucesso ? 'OK' : 'FALHA'}, CMV: ${cmvSucesso ? 'OK' : 'FALHA'}). Prosseguindo para próxima loja...`);
+      }
+    }
+
+    // ETAPA FINAL: Double-Check de Faturamento & Reconciliação Cirúrgica
+    if (initialSnapshot) {
+      console.log('\n[Deep Crawler] ======================================================');
+      console.log('[Deep Crawler] ETAPA FINAL: Double-Check Pós-Crawl do Mapa de Metas...');
+      console.log('[Deep Crawler] ======================================================');
+      try {
+        const finalSnapshot = await capturarSnapshotMapaMetas(page, BASE);
+        const delta = compararSnapshotsMetas(initialSnapshot, finalSnapshot);
+
+        if (delta.hasChanged) {
+          console.warn(`[Deep Crawler] ⚠️ Faturamento mudou durante o crawl!`);
+          console.warn(`  ↳ Inicial: R$ ${delta.initialTotal.toFixed(2)} | Final: R$ ${delta.finalTotal.toFixed(2)} | Delta: R$ ${delta.deltaAmount.toFixed(2)}`);
+          console.warn(`  ↳ Lojas com divergência detectada (${delta.divergentStores.length}): ${delta.divergentStores.join(', ')}`);
+
+          for (const slugDivergente of delta.divergentStores) {
+            console.log(`[Deep Crawler] 🔄 Re-executando extração cirúrgica de OSs em aberto para ${slugDivergente}...`);
+            try {
+              await page.goto(`${BASE}/wfOrdemDeServicoBusca.aspx`, { waitUntil: 'load', timeout: 30000 });
+              await ensureCompany(page, slugDivergente);
+              const resReconDivergente: any = await handleOSDeepInspector(page, { loja: slugDivergente });
+              const docsDivergentes = Array.isArray(resReconDivergente) ? resReconDivergente : (resReconDivergente?.documentos || []);
+              if (docsDivergentes.length > 0) {
+                salvarLoteOSs(db, slugDivergente, docsDivergentes, {
+                  extracaoCompleta: true,
+                  paginacaoCompleta: true,
+                  provaPaginacaoNativa: true,
+                  totalEsperadoGrid: docsDivergentes.length,
+                  totalPaginas: 1
+                });
+                console.log(`[Deep Crawler] ✅ Loja ${slugDivergente} reconciliada e atualizada com sucesso no SQLite!`);
+              }
+            } catch (errReconLoja: unknown) {
+              const msg = errReconLoja instanceof Error ? errReconLoja.message : String(errReconLoja);
+              console.warn(`[Deep Crawler] ⚠️ Falha na reconciliação cirúrgica de ${slugDivergente}: ${msg}`);
+            }
+          }
+        } else {
+          console.log(`[Deep Crawler] ✅ Faturamento da rede 100% estável (R$ ${delta.initialTotal.toFixed(2)}). Nenhuma loja divergente.`);
+        }
+
+        // Geração do PDF Oficial do Mapa de Metas (com Todas gerado)
+        const nomesArquivos = gerarNomesArquivosOficiais();
+        const caminhoPdf = path.join(OUT_DIR, nomesArquivos.mapaMetas);
+        await gerarPdfMapaMetas(page, caminhoPdf);
+      } catch (errDoubleCheck: unknown) {
+        const msg = errDoubleCheck instanceof Error ? errDoubleCheck.message : String(errDoubleCheck);
+        console.warn(`[Deep Crawler] ⚠️ Falha no double-check final ou geração do PDF: ${msg}`);
       }
     }
 
