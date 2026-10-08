@@ -84,7 +84,7 @@ export class HydraWebhookService {
     this.config = {
       port: config?.port ?? 3333,
       evolutionUrl: config?.evolutionUrl ?? (process.env.EVOLUTION_URL || 'https://evo.tork.services'),
-      evolutionKey: config?.evolutionKey ?? (process.env.EVOLUTION_KEY || 'TorkEvoApiKey2026Secure!'),
+      evolutionKey: config?.evolutionKey ?? (process.env.EVOLUTION_KEY || ''),
       evolutionInstance: config?.evolutionInstance ?? (process.env.EVOLUTION_INSTANCE || 'hydra'),
       whitelist: config?.whitelist ?? new Set(['5511996242812', '5511970671717']),
       maxConcurrentConversations: config?.maxConcurrentConversations ?? 5,

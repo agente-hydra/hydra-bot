@@ -7,7 +7,7 @@ export interface SendWhatsAppResult {
 }
 
 const CHATWOOT_URL = process.env.CHATWOOT_URL || 'https://chat.tork.services';
-const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN || 'bpT7G2enT4fnR7ksQjjQVhZ9'; // Agente Hydra (User 5)
+const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN || '';
 const ACCOUNT_ID = '1';
 const INBOX_ID = 15; // Inbox hydra
 const AGENT_ID = 5; // Hydra

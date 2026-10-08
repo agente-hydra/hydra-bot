@@ -1,0 +1,6 @@
+[submodule "projects/hydra-rede"]
+	path = projects/hydra-rede
+	url = https://github.com/agente-hydra/hydra-rede.git
+[submodule "projects/infinyx"]
+	path = projects/infinyx
+	url = https://github.com/mktfun/infinyx.git

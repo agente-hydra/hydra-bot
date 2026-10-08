@@ -39,7 +39,7 @@ export class WhatsAppClient {
       try { (process as any).loadEnvFile('/home/operacional/hydra/.env'); } catch {}
     }
     this.baseUrl = config?.baseUrl || process.env.EVOLUTION_URL || 'https://evo.tork.services';
-    this.apiKey = config?.apiKey || process.env.EVOLUTION_KEY || process.env.EVOLUTION_API_KEY || 'TorkEvoApiKey2026Secure!';
+    this.apiKey = config?.apiKey || process.env.EVOLUTION_KEY || process.env.EVOLUTION_API_KEY || '';
     const rawInstance = config?.instance || process.env.EVOLUTION_INSTANCE || 'hydra';
     this.instance = (!config?.instance && rawInstance.toLowerCase() === 'atendimento') ? 'hydra' : rawInstance;
     this.db = config?.db;

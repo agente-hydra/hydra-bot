@@ -32,7 +32,7 @@ export interface FetcherConfig {
 
 const DEFAULT_CONFIG: Required<FetcherConfig> = {
   evolutionUrl: process.env.EVOLUTION_INTERNAL_URL || 'http://172.18.0.4:8080',
-  evolutionKey: process.env.EVOLUTION_KEY || 'TorkEvoApiKey2026Secure!',
+  evolutionKey: process.env.EVOLUTION_KEY || '',
   instanceName: process.env.EVOLUTION_INSTANCE || 'hydra',
   tempDir: process.env.HYDRA_MEDIA_TEMP_DIR || '/tmp/hydra-media',
   maxAudioSizeBytes: 15 * 1024 * 1024,      // 15 MB

@@ -63,7 +63,7 @@ try {
 }
 
 const EVOLUTION_URL = process.env.EVOLUTION_URL || "https://evo.tork.services";
-const EVOLUTION_KEY = process.env.EVOLUTION_KEY || "TorkEvoApiKey2026Secure!";
+const EVOLUTION_KEY = process.env.EVOLUTION_KEY || "";
 const INSTANCE = process.env.EVOLUTION_INSTANCE || "hydra";
 
 // 1. Whitelist estrita: somente Davi e Marcos
