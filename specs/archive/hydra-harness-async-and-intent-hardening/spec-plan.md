@@ -18,7 +18,7 @@ Este plano define a execução modular do projeto com delegação para subagente
 
 ## Tarefas de Implementação
 
-### - [/] [ASYNC-ROUTER] Tarefa 1: Refatoração Assíncrona de `dual_worker_router.ts`
+### - [x] [ASYNC-ROUTER] Tarefa 1: Refatoração Assíncrona de `dual_worker_router.ts`
 - **Executor:** Subagente 1 (*Async Router Specialist*)
 - **Arquivos:**
   - `src/hydra-sync/dual_worker_router.ts`
@@ -35,7 +35,7 @@ Este plano define a execução modular do projeto com delegação para subagente
 
 ---
 
-### - [ ] [SEMANTIC-PARSER] Tarefa 2: Endurecimento do Parser de Veículo/OS e Resolução de Anáfora
+### - [x] [SEMANTIC-PARSER] Tarefa 2: Endurecimento do Parser de Veículo/OS e Resolução de Anáfora
 - **Executor:** Subagente 2 (*Semantic & Anaphora Specialist*)
 - **Arquivos:**
   - `src/hydra-sync/agent_dispatcher.ts`
@@ -52,7 +52,7 @@ Este plano define a execução modular do projeto com delegação para subagente
 
 ---
 
-### - [ ] [FAST-SQL] Tarefa 3: Rotas Rápidas Determinísticas em SQL (Checklist & Pátio)
+### - [x] [FAST-SQL] Tarefa 3: Rotas Rápidas Determinísticas em SQL (Checklist & Pátio)
 - **Executor:** Subagente 3 (*Fast SQL Specialist*)
 - **Arquivos:**
   - `src/hydra-sync/agent_dispatcher.ts`
@@ -69,7 +69,7 @@ Este plano define a execução modular do projeto com delegação para subagente
 
 ---
 
-### - [ ] [WEBHOOK-INGRESS] Tarefa 4: Higienização de Ingress HTTP no Webhook Listener
+### - [x] [WEBHOOK-INGRESS] Tarefa 4: Higienização de Ingress HTTP no Webhook Listener
 - **Executor:** Subagente 4 (*Webhook Ingress Specialist*)
 - **Arquivos:**
   - `webhook-listener.js`
@@ -82,7 +82,7 @@ Este plano define a execução modular do projeto com delegação para subagente
 
 ---
 
-### - [ ] [ORCHESTRATOR-DEPLOY] Tarefa 5: Orquestração Central, Build Gate e Deploy em Produção
+### - [x] [ORCHESTRATOR-DEPLOY] Tarefa 5: Orquestração Central, Build Gate e Deploy em Produção
 - **Executor:** Agente Orquestrador (*Antigravity*)
 - **Ações:**
   1. Inspecionar `git diff` de todos os arquivos modificados na staging da VPS.

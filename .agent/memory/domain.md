@@ -4,6 +4,31 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-08] — [Feature ID: hydra-harness-async-and-intent-hardening]
+**Contexto:** Endurecimento crítico do harness e dispatcher do Hydra Agent (`dual_worker_router.ts`, `agent_dispatcher.ts`, `db_repository.ts`, `webhook-listener.js`) na VPS Linux, eliminando congelamento do event loop, vazamento de contexto de veículos/OS em mensagens subsequentes, timeouts de 90s em consultas de auditoria e loops de retry da Evolution API.
+**Regra aprendida:**
+1. Desacoplamento Assíncrono com `spawn` em CLI Workers: A chamada à CLI de IA (`agy`) NUNCA deve usar `spawnSync`. A execução síncrona congela 100% da thread do Node.js por 15s a 45s, bloqueando webhooks, reações 👀 e healthchecks. A função `spawnCliAsync` com Promise, streams acumulados e timer escalonado (`SIGTERM` -> `SIGKILL` após 1500ms) garante zero bloqueio no event loop.
+2. Parser Pareado de Veículos e Precedência Estrita de Turno: Ao extrair entidades em mensagens informais (ex: `"detalhes do ka 465"`), o parser deve associar modelos conhecidos (`ka`, `c3`, `spin`, `etios`, etc.) a números isolados de 2 a 6 dígitos. Se o turno atual contém uma entidade explícita (modelo, OS ou placa), é ESTRITAMENTE PROIBIDO herdar `prevOsId`, `prevVehicleModel` ou `prevPlaca` do turno anterior. A anáfora só é permitida em perguntas puras sem entidades novas (ex: `"e o valor dele?"`).
+3. Rotas Rápidas Determinísticas em SQL (Checklists e Pátio): Perguntas operacionais consolidadas como `"quais estao sem checklist de entrada? liste por loja"` e `"carros em patio [loja]"` não devem ser despachadas ao LLM. Consultas no SQLite WAL (`getChecklistAudit` e `getStoreDrilldown`) respondem deterministicamente em menos de 50ms, reduzindo a latência de 90.600ms (timeout `H-IA-02`) para 2ms-41ms.
+4. Higienização de Ingress HTTP no Webhook: O parsing inicial de body com `JSON.parse` deve capturar `SyntaxError` e retornar imediatamente `HTTP 400 Bad Request` com `{ status: "bad_request", error: "Malformed JSON payload" }`. Retornar HTTP 500 faz com que a Evolution API interprete queda de serviço e realize retries infinitos com o mesmo payload quebrado.
+**Risco identificado:** Vazamento de contexto entre conversas consecutivas onde o usuário mencionava um novo carro e o robô respondia dados do veículo anterior. Sanado com checagem booleana de `hasExplicitEntity`.
+**Não fazer:**
+- Nunca usar `spawnSync` em microsserviços Node.js que processem I/O de rede ou webhooks.
+- Nunca permitir fallback cego para `prevOsId` quando a mensagem atual contiver qualquer identificador de veículo ou ordem de serviço.
+- Nunca retornar HTTP 500 para requisições malformadas de webhook.
+
+## [2026-10-08] — [Feature ID: watchdog-parser-and-safety-hardening]
+**Contexto:** Endurecimento da extração de JSON e tratamento de restrições de moderação de IA no Watchdog (`/home/operacional/watchdog/worker.js`) na VPS Linux, eliminando quebras por streams interrompidos da CLI `agy` e bloqueios da Google Generative AI Prohibited Use policy.
+**Regra aprendida:**
+1. Extração Resiliente de JSON Multinível (`findLastValidAuditJson`): A resposta da CLI `agy` pode sofrer interrupções de stream ou emitir múltiplos blocos de markdown (ex: ````json ... ```` seguido por outro bloco de código autocorrigido sem fechamento). O método legado `.split('```json')[1]` quebrava nessas situações. A busca reversa varrendo delimitadores `{ ... }` e validando o schema de auditoria garante extração 100% confiável mesmo em payloads truncados.
+2. Sanitização Prévia de Linguagem Sensível: Clientes e gerentes frequentemente trocam expressões ríspidas e palavras de baixo calão extremo em oficinas mecânicas. Ao interpolar o transcript bruto no prompt, o Google Gemini aciona o filtro de segurança `Generative AI Prohibited Use policy` e aborta a requisição. O módulo `lib/safety_sanitizer.js` substitui palavras extremas por marcadores neutros (`[linguagem_inapropriada]`, `[descontentamento_enfático]`), mantendo o sentido comercial da conversa sem acionar filtros da IA.
+3. Descarte Gracioso de Bloqueios de Política (Anti-Retry Loop): Quando um prompt é recusado por política de IA, retentá-lo 3 vezes com intervalos de 60s/120s com o mesmo texto rejeitado é inútil. Ao detectar recusa de moderação, o worker tenta uma reanálise imediata com sanitização agressiva; se persistir recusado, o ciclo é finalizado graciosamente registrando a métrica e liberando a fila sem retransmissões desnecessárias.
+**Risco identificado:** Retries cegos em conversas bloqueadas por política sobrecarregavam filas e mascaravam falhas na telemetria. Sanado pela detecção via `isSafetyPolicyError`.
+**Não fazer:**
+- Nunca extrair JSON de modelos de linguagem usando `split` estático de strings markdown.
+- Nunca injetar transcrições brutas de WhatsApp com linguagem chula em prompts de IA sem camada prévia de higienização.
+- Nunca re-enfileirar retries repetidos com exatamente o mesmo prompt rejeitado por política de segurança.
+
 ## [2026-10-08] — [Feature ID: hydra-os-360-full-details]
 **Contexto:** Diagnóstico e resolução da inconsistência financeira e informacional no detalhamento de OSs do Hydra Agent (caso real OS #1916 ReiDoModulo), onde serviços discriminados mostravam apenas R$ 130 de uma OS de R$ 1.600 omitindo R$ 1.470 de reparo de bancada/peças, além de ignorar o Grafo de Atendimento e não reconhecer typos informais no WhatsApp como "taio x".
 **Regra aprendida:**
