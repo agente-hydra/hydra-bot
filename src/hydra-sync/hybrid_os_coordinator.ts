@@ -414,7 +414,7 @@ export function isDelayReasonQuery(text: string): boolean {
  */
 export function isIndividualVehicleQuery(text: string): boolean {
   const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  const hasVehicleModel = /\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks)\b/i.test(norm);
+  const hasVehicleModel = /\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks|voyage|fox|c3|c4|sandero|clio|duster|logan|uno|siena|mobi|strada|saveiro|ka|ecosport|spin|prisma|cruze|fit|city|hr-v|etios|yaris|peugeot|208|308|408|celta|corsa|meriva|zafira|tucson|ix35|up|bravo|punto|amarok|hilux|ranger|s10|toro)\b/i.test(norm);
   const hasPlate = /\b[a-z]{3}-?\d[a-z0-9]\d{2}\b/i.test(norm);
   const hasOsNumber = /\b(?:os|ordem)\s*#?\s*\d+\b/i.test(norm);
   const hasCasePrefix = /\b(?:caso do|caso da|sobre o|sobre a|situacao do|situacao da|quero saber do|quero saber da)\b/i.test(norm);

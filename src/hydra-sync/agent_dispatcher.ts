@@ -28,6 +28,13 @@ import {
   splitIntoWhatsAppBlocks
 } from './format_utils.js';
 import { composeSemanticBalloons } from './balloon_composer.js';
+import {
+  composeFullOS360Card,
+  composeOSConversationCard,
+  isOSConversationQuery
+} from './os_situation_composer.js';
+
+export { isOSConversationQuery };
 
 import {
   getLatestTurnState,
@@ -777,7 +784,23 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   // 2.5. RESOLUÇÃO E COORDENAÇÃO DE VEÍCULO INDIVIDUAL ([E3-02], [E3-03], R01, R06, R08, R09, R10, R11, R12)
   const plateMatch = textoLimpo.match(/\b([A-Z]{3}-?\d[A-Z0-9]\d{2})\b/i);
   const osMatch = textoLimpo.match(/\b(?:os|ordem)\s*#?\s*(\d{1,6})\b/i);
-  const modelMatch = textoLimpo.match(/\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks)\b/i);
+  let modelMatch = textoLimpo.match(/\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks|voyage|fox|c3|c4|sandero|clio|duster|logan|uno|siena|mobi|strada|saveiro|ka|ecosport|spin|prisma|cruze|fit|city|hr-v|etios|yaris|peugeot|208|308|408|celta|corsa|meriva|zafira|tucson|ix35|up|fusca|bravo|punto|stilo|idea|doblo|amarok|hilux|ranger|s10|l200|frontier|toro|oroch)\b/i);
+
+  if (!modelMatch && !plateMatch && !osMatch && !isExplicitFinancialQuery(textoLimpo) && norm.length >= 3) {
+    try {
+      const cleanWord = textoLimpo.replace(/[^a-zA-Z0-9]/g, ' ').trim().split(/\s+/)[0];
+      if (cleanWord && cleanWord.length >= 3) {
+        const dbModelRow = db.prepare(`
+          SELECT veiculo FROM ordens_servico 
+          WHERE UPPER(veiculo) LIKE UPPER(?) 
+          LIMIT 1
+        `).get(`%${cleanWord}%`) as { veiculo?: string } | undefined;
+        if (dbModelRow?.veiculo) {
+          modelMatch = [cleanWord, cleanWord] as any;
+        }
+      }
+    } catch {}
+  }
 
   // Precedência estrita: consultas financeiras ou de métricas NUNCA são capturadas como veículo
   const isFinancialQuery = isExplicitFinancialQuery(textoLimpo);
@@ -813,8 +836,75 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     ? userProfile.lojaSlug
     : (currentStoreSlug || (modelMatch ? undefined : prevLojaSlug));
 
+  const isOSConv = isOSConversationQuery(norm);
+
+  if (isOSConv && !currentModel && !currentPlate && !currentOsId) {
+    const replyText = 'Sim, tenho acesso ao Grafo de Atendimento com o histórico de conversas, áudios e alinhamentos de clientes vinculados às ordens de serviço. Por favor, informe o número da OS ou a placa do veículo que deseja consultar.';
+    const messages = splitIntoWhatsAppBlocks(replyText);
+    const totalMs = Date.now() - startTime;
+
+    saveConversationMessage(db, phone, 'user', textoLimpo);
+    saveConversationMessage(db, phone, 'assistant', replyText, 'get_os_case_history', null);
+
+    saveTurnState(db, {
+      phone,
+      lastTurnId: previousState?.lastTurnId || ('turn_' + Date.now()),
+      lastIntent: 'os_conversation',
+      lojaSlug: prevLojaSlug,
+      placa: prevPlaca,
+      osId: prevOsId,
+      filters: {
+        ...(previousState?.filters || {}),
+        vehicleModel: prevVehicleModel,
+        pendingRequest: prevPending
+      },
+      lastMessageId: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+      lastResponseText: replyText,
+      updatedAt: new Date().toISOString()
+    });
+
+    if (rawMessageId) {
+      markMessageCompleted(db, rawMessageId, {
+        messages,
+        replyText,
+        toolsCalled: ['get_os_case_history'],
+        motorUsed: 'FALLBACK_API',
+        latenciaMs: totalMs
+      });
+    }
+
+    insertAgentInteractionLog(db, {
+      phone,
+      conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+      message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+      pergunta: textoLimpo,
+      tools_chamadas: ['get_os_case_history'],
+      resposta_gerada: replyText,
+      latencia_ms: totalMs,
+      motor_utilizado: 'FALLBACK_API'
+    });
+
+    return {
+      messages,
+      replyText,
+      toolsCalled: ['get_os_case_history'],
+      motor: 'FALLBACK_API',
+      latenciaMs: totalMs,
+      telemetry: {
+        queueWaitMs,
+        intentRewriteMs: 0,
+        executionDbMs: 0,
+        llmMs: 0,
+        formatMs: 0,
+        totalMs
+      },
+      isFeedback: false
+    };
+  }
+
   const isAnaphoraOSRequest = Boolean(
-    (currentOsId) && (
+    (currentOsId || currentPlate || currentModel) && (
+      isOSConv ||
       norm.includes('detalhe') ||
       norm.includes('detalhes') ||
       norm.includes('fale mais') ||
@@ -877,135 +967,68 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     } else if (resolution.status === 'RESOLVED') {
       const caseCtx = getCaseContext(db, resolution.activeOrder);
 
-      const wantsPayments = /\b(pagamento|pagamentos|forma|formas|parcela|parcelas|financeiro|saldo|valor)\b/i.test(norm);
-      const wantsServices = /\b(servico|servicos|serviço|serviços|mecanico|mecanicos|mecânico|execut|mao de obra)\b/i.test(norm);
-      const wantsParts = /\b(peca|pecas|peça|peças|material|materiais|componente|componentes|item|itens)\b/i.test(norm);
-      const wantsDocs = /\b(documento|documentos|doc|docs|checklist|checklists|nota|notas|nf)\b/i.test(norm);
-      const wantsDeepDive = /\b(raio[\s-]*x|taio[\s-]*x|raiox|detalhe|detalhes|ficha|tudo|mais|completo|situacao|situação|o que t[aá] acontecendo|o que est[aá] acontecendo|caso completo)\b/i.test(norm);
-      const wantsAll = wantsDeepDive;
-
-      const osDetail = getOSDetails(db, {
-        os_id: resolution.activeOrder.osId,
-        loja_slug: resolution.activeOrder.storeSlug
-      });
-
-      if (osDetail && (wantsPayments || wantsServices || wantsParts || wantsDocs || wantsAll)) {
-        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
-        const blocks: string[] = [];
-        const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
-
-        const saldoTxt = resolution.activeOrder.remainingBalance > 0
-          ? ` (Saldo: *${moneyFmt(resolution.activeOrder.remainingBalance)}*)`
-          : ' (Quitado)';
-
-        // 1. Cabeçalho Executivo
-        blocks.push(
-          `> *OS #${resolution.activeOrder.osId} — ${resolution.vehicle.model.toUpperCase()} (${resolution.vehicle.plate})*\n` +
-          `- *Loja:* ${resolution.activeOrder.storeSlug}\n` +
-          `- *Status:* *${resolution.activeOrder.statusGrid}* (${resolution.activeOrder.isOpen ? 'Em Aberto' : 'Finalizada'})\n` +
-          `- *Permanência:* ${resolution.activeOrder.daysInYard} dia(s) no pátio\n` +
-          `- *Cliente:* ${resolution.activeOrder.clientName || 'Não informado'}\n` +
-          `- *Valor Total:* *${moneyFmt(resolution.activeOrder.totalAmount)}*${saldoTxt}`
-        );
-
-        // 2. Situação e Atendimento (Grafo / Histórico)
-        if (caseCtx && (wantsAll || wantsDeepDive || opType === 'DELAY_REASON')) {
-          const caseLines: string[] = [];
-          if (caseCtx.documentedDelayReason) {
-            caseLines.push(`- *Motivo Operacional:* ${caseCtx.documentedDelayReason}`);
-          }
-          if (caseCtx.nextPromisedStep) {
-            caseLines.push(`- *Próximo Passo Prometido:* ${caseCtx.nextPromisedStep}`);
-          }
-          if (caseCtx.lastObservationDate) {
-            caseLines.push(`- *Última Interação Registrada:* ${caseCtx.lastObservationDate}`);
-          }
-          if (caseLines.length === 0) {
-            caseLines.push(`- *Histórico:* Sem pendência de atraso ou peças documentada nas conversas desta OS.`);
-          }
-          blocks.push(`----------------------------------------\n> *Situação e Atendimento*\n${caseLines.join('\n')}`);
-        }
-
-        // 3. Serviços Discriminados
-        if (wantsServices || wantsAll) {
-          if (osDetail.servicos && osDetail.servicos.length > 0) {
-            const servicosLines = osDetail.servicos.map(s => 
-              `- ${s.descricao}: *${moneyFmt(s.valorTotal)}*${s.executor ? ` (${s.executor})` : ''}`
-            ).join('\n');
-            blocks.push(`----------------------------------------\n> *Serviços Discriminados*\n${servicosLines}`);
-          } else if (wantsServices) {
-            blocks.push(`----------------------------------------\n> *Serviços Discriminados*\n- Nenhum serviço discriminado nesta OS.`);
-          }
-        }
-
-        // 4. Peças e Materiais Aplicados
-        if (wantsParts || wantsAll) {
-          if (osDetail.pecas && osDetail.pecas.length > 0) {
-            const pecasLines = osDetail.pecas.map(p => 
-              `- ${p.descricao}: ${p.qtd || 1}x *${moneyFmt(p.valorTotal)}*${p.codigo ? ` (${p.codigo})` : ''}`
-            ).join('\n');
-            blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n${pecasLines}`);
-          } else {
-            const totServ = osDetail.totalServicos ?? osDetail.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
-            const saldoPecas = (osDetail.valorTotal || resolution.activeOrder.totalAmount || 0) - totServ;
-            if (saldoPecas > 0) {
-              blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Componentes / Reparo de Bancada: *${moneyFmt(saldoPecas)}*`);
-            } else if (wantsParts) {
-              blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Nenhuma peça discriminada nesta OS (ordem 100% serviços).`);
-            }
-          }
-        }
-
-        // 5. Formas de Pagamento
-        if (wantsPayments || wantsAll) {
-          if (osDetail.pagamentos && osDetail.pagamentos.length > 0) {
-            const pagLines = osDetail.pagamentos.map(p => 
-              `- Parcela ${p.parcela}: *${moneyFmt(p.valor)}* (${p.modalidade}${p.vencimento ? `, Venc: ${p.vencimento}` : ''})`
-            ).join('\n');
-            blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n${pagLines}`);
-          } else if (osDetail.valorTotal > 0 && osDetail.saldoDevedor <= 0) {
-            blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Ordem 100% quitada no ERP.`);
-          } else if (wantsPayments || wantsAll) {
-            blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Total: *${moneyFmt(osDetail.valorTotal)}* (Pago: *${moneyFmt(osDetail.valorPago)}*, Saldo: *${moneyFmt(osDetail.saldoDevedor)}*)\n- Modalidade específica de parcelamento não cadastrada; pendente de sinal/quitação.`);
-          }
-        }
-
-        // 6. Vistorias e Documentos
-        if (wantsDocs || wantsAll) {
-          const docLines: string[] = [];
-          if (osDetail.extracaoCompleta === false || (osDetail as any).extracao_completa === false) {
-            docLines.push(`- *Checklists:* Sincronização detalhada do ERP em andamento.`);
-          } else {
-            const temEntrada = osDetail.checklistAudit?.temChecklistEntrada;
-            const temMec = osDetail.checklistAudit?.temChecklistMecanico;
-            docLines.push(`- *Checklist de Entrada:* ${temEntrada ? '✅ Realizado' : '⚠️ Pendente'}`);
-            docLines.push(`- *Checklist do Mecânico:* ${temMec ? '✅ Realizado' : '⚠️ Pendente'}`);
-
-            if (osDetail.checklists && osDetail.checklists.length > 0) {
-              for (const cl of osDetail.checklists) {
-                docLines.push(`  └ *${cl.tipo}:* ${cl.status} (${cl.realizado_por || 'Técnico'}, ${cl.data})`);
-              }
-            } else if (osDetail.checklistAudit?.detalhes) {
-              docLines.push(`- *Status:* ${osDetail.checklistAudit.detalhes}`);
-            }
-          }
-
-          if (osDetail.temNf) {
-            docLines.push(`- *Nota Fiscal:* Emitida/vinculada à OS.`);
-          } else {
-            docLines.push(`- *Nota Fiscal:* Não emitida para esta OS.`);
-          }
-          if (osDetail.documentosAnexos && osDetail.documentosAnexos.length > 0) {
-            docLines.push(`- *Anexos:* ${osDetail.documentosAnexos.length} documento(s) arquivado(s).`);
-          }
-          blocks.push(`----------------------------------------\n> *Vistorias e Documentos*\n${docLines.join('\n')}`);
-        }
-
-        replyText = sanitizeWhatsAppMarkdown(blocks.join('\n\n'));
+      if (isOSConv) {
+        toolsCalled = ['resolve_vehicle_target', 'get_os_case_history'];
+        replyText = composeOSConversationCard({
+          osId: resolution.activeOrder.osId,
+          lojaSlug: resolution.activeOrder.storeSlug,
+          vehicleModel: resolution.vehicle.model,
+          vehiclePlate: resolution.vehicle.plate,
+          clientName: resolution.activeOrder.clientName,
+          statusGrid: resolution.activeOrder.statusGrid,
+          isOpen: resolution.activeOrder.isOpen,
+          daysInYard: resolution.activeOrder.daysInYard,
+          totalAmount: resolution.activeOrder.totalAmount,
+          remainingBalance: resolution.activeOrder.remainingBalance,
+          caseContext: caseCtx ? {
+            documentedDelayReason: caseCtx.documentedDelayReason,
+            nextPromisedStep: caseCtx.nextPromisedStep,
+            lastObservationDate: caseCtx.lastObservationDate,
+            conversationSummary: caseCtx.conversationSummary,
+            partsBalanceSummary: caseCtx.partsBalanceSummary,
+            budgetStatus: caseCtx.budgetStatus,
+            coverage: caseCtx.coverage,
+            evidenceOrigin: caseCtx.evidenceOrigin
+          } : undefined
+        });
       } else {
-        replyText = formatVehicleSituation(resolution, caseCtx, opType);
-        toolsCalled = ['resolve_vehicle_target', opType === 'DELAY_REASON' ? 'get_case_context_delay' : 'get_case_context'];
+        const osDetail = getOSDetails(db, {
+          os_id: resolution.activeOrder.osId,
+          loja_slug: resolution.activeOrder.storeSlug
+        });
+
+        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
+        replyText = composeFullOS360Card({
+          osId: osDetail?.osId ?? resolution.activeOrder.osId,
+          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
+          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
+          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
+          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
+          responsavel: osDetail?.responsavel,
+          statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
+          isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
+          daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
+          totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
+          remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
+          servicos: osDetail?.servicos,
+          pecas: osDetail?.pecas,
+          pagamentos: osDetail?.pagamentos,
+          checklists: osDetail?.checklists,
+          checklistAudit: osDetail?.checklistAudit,
+          temNf: osDetail?.temNf,
+          documentosAnexosCount: osDetail?.documentosAnexos?.length,
+          extracaoCompleta: osDetail?.extracaoCompleta,
+          caseContext: caseCtx ? {
+            documentedDelayReason: caseCtx.documentedDelayReason,
+            nextPromisedStep: caseCtx.nextPromisedStep,
+            lastObservationDate: caseCtx.lastObservationDate,
+            conversationSummary: caseCtx.conversationSummary,
+            partsBalanceSummary: caseCtx.partsBalanceSummary,
+            budgetStatus: caseCtx.budgetStatus
+          } : undefined
+        });
       }
+
       pendingReq = {
         originalUserPrompt: textoLimpo,
         operation: opType,

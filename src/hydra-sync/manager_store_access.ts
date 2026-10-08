@@ -1,6 +1,9 @@
 import type Database from 'better-sqlite3';
 import type { CanonicalIntent } from './intent_rewriter.js';
 import { getOSDetails } from './db_repository.js';
+import { composeFullOS360Card } from './os_situation_composer.js';
+import { getCaseContext } from './hybrid_os_coordinator.js';
+import type { CandidateOrder } from './types/conversation_context_contract.js';
 
 export interface ConsultedData {
   fonte: string;
@@ -211,29 +214,55 @@ export function executeManagerStoreQuery(
         dadosConsultados.push({ fonte: 'ordens_servico', dados: null });
         continue;
       }
-      const blocks: string[] = [
-        `> *Ficha Completa: OS #${osDetail.osId} — ${name}*`,
-        `- *Veículo:* ${osDetail.veiculo} (${osDetail.placa})`,
-        `- *Cliente:* ${osDetail.clienteNome}`,
-        `- *Responsável:* ${osDetail.responsavel || 'Não informado'}`,
-        `- *Status:* ${osDetail.situacao}`,
-        `- *Valor Total:* ${money(osDetail.valorTotal)} (Pago: ${money(osDetail.valorPago)}, Restante: ${money(osDetail.saldoDevedor)})`,
-        `- *Tempo no pátio:* ${osDetail.diasNoPatio} dias`
-      ];
+      const activeOrder: CandidateOrder = {
+        osId: String(osDetail.osId),
+        storeSlug: osDetail.lojaSlug,
+        plate: osDetail.placa || 'Sem Placa',
+        vehicleModel: osDetail.veiculo || 'Veículo',
+        clientName: osDetail.clienteNome || undefined,
+        statusGrid: osDetail.status_grid || 'EM ANDAMENTO',
+        isOpen: Boolean(osDetail.isAberta),
+        daysInYard: Number(osDetail.diasNoPatio) || 0,
+        totalAmount: Number(osDetail.valorTotal) || 0,
+        remainingBalance: Number(osDetail.saldoDevedor) || 0
+      };
 
-      if (osDetail.servicos && osDetail.servicos.length > 0) {
-        blocks.push(`> *Serviços Discriminados:*\n${osDetail.servicos.map(s => `- ${s.descricao}: ${money(s.valorTotal)}${s.executor ? ` (Executor: ${s.executor})` : ''}`).join('\n')}`);
-      }
+      let caseCtx: any = null;
+      try {
+        caseCtx = getCaseContext(db, activeOrder);
+      } catch {}
 
-      if (osDetail.pagamentos && osDetail.pagamentos.length > 0) {
-        blocks.push(`> *Formas de Pagamento e Parcelas:*\n${osDetail.pagamentos.map(p => `- Parcela ${p.parcela}: ${money(p.valor)} (${p.modalidade}${p.vencimento ? `, Venc: ${p.vencimento}` : ''})`).join('\n')}`);
-      }
+      const card = composeFullOS360Card({
+        osId: osDetail.osId,
+        lojaSlug: osDetail.lojaSlug,
+        vehicleModel: osDetail.veiculo,
+        vehiclePlate: osDetail.placa,
+        clientName: osDetail.clienteNome,
+        responsavel: osDetail.responsavel,
+        statusGrid: osDetail.status_grid,
+        isOpen: osDetail.isAberta,
+        daysInYard: osDetail.diasNoPatio,
+        totalAmount: osDetail.valorTotal,
+        remainingBalance: osDetail.saldoDevedor,
+        servicos: osDetail.servicos,
+        pecas: osDetail.pecas,
+        pagamentos: osDetail.pagamentos,
+        checklists: osDetail.checklists,
+        checklistAudit: osDetail.checklistAudit,
+        temNf: osDetail.temNf,
+        documentosAnexosCount: osDetail.documentosAnexos?.length,
+        extracaoCompleta: osDetail.extracaoCompleta,
+        caseContext: caseCtx ? {
+          documentedDelayReason: caseCtx.documentedDelayReason,
+          nextPromisedStep: caseCtx.nextPromisedStep,
+          lastObservationDate: caseCtx.lastObservationDate,
+          conversationSummary: caseCtx.conversationSummary,
+          partsBalanceSummary: caseCtx.partsBalanceSummary,
+          budgetStatus: caseCtx.budgetStatus
+        } : undefined
+      });
 
-      if (osDetail.checklistAudit?.detalhes) {
-        blocks.push(`> *Documentos e Checklists:*\n- Checklists: ${osDetail.checklistAudit.detalhes}\n- Nota Fiscal: ${osDetail.temNf ? 'Emitida' : 'Não emitida'}`);
-      }
-
-      parts.push(blocks.join('\n\n'));
+      parts.push(card);
       tools.push('get_os_details');
       dadosConsultados.push({ fonte: 'get_os_details', dados: osDetail });
       continue;
@@ -298,52 +327,53 @@ export function executeManagerTool(
       };
     }
 
-    const saldoTxt = osDetail.saldoDevedor > 0
-      ? ` (Saldo: *${money(osDetail.saldoDevedor)}*)`
-      : ' (Quitado)';
+    const activeOrder: CandidateOrder = {
+      osId: String(osDetail.osId),
+      storeSlug: osDetail.lojaSlug,
+      plate: osDetail.placa || 'Sem Placa',
+      vehicleModel: osDetail.veiculo || 'Veículo',
+      clientName: osDetail.clienteNome || undefined,
+      statusGrid: osDetail.status_grid || 'EM ANDAMENTO',
+      isOpen: Boolean(osDetail.isAberta),
+      daysInYard: Number(osDetail.diasNoPatio) || 0,
+      totalAmount: Number(osDetail.valorTotal) || 0,
+      remainingBalance: Number(osDetail.saldoDevedor) || 0
+    };
 
-    const blocks: string[] = [
-      `> *OS #${osDetail.osId} — ${(osDetail.veiculo || 'VEÍCULO').toUpperCase()} (${osDetail.placa || 'Sem placa'})*\n` +
-      `- *Loja:* ${name}\n` +
-      `- *Status:* *${osDetail.situacao || (osDetail.isAberta ? 'Aberta' : 'Fechada')}*\n` +
-      `- *Permanência:* ${osDetail.diasNoPatio || 0} dia(s) no pátio\n` +
-      `- *Cliente:* ${osDetail.clienteNome || 'Não informado'}\n` +
-      `- *Responsável:* ${osDetail.responsavel || 'Não informado'}\n` +
-      `- *Valor Total:* *${money(osDetail.valorTotal)}*${saldoTxt}`
-    ];
+    let caseCtx: any = null;
+    try {
+      caseCtx = getCaseContext(db, activeOrder);
+    } catch {}
 
-    if (osDetail.servicos && osDetail.servicos.length > 0) {
-      const servicosLines = osDetail.servicos.map(s => 
-        `- ${s.descricao}: *${money(s.valorTotal)}*${s.executor ? ` (${s.executor})` : ''}`
-      ).join('\n');
-      blocks.push(`----------------------------------------\n> *Serviços Discriminados*\n${servicosLines}`);
-    }
-
-    if (osDetail.pagamentos && osDetail.pagamentos.length > 0) {
-      const pagLines = osDetail.pagamentos.map(p => 
-        `- Parcela ${p.parcela}: *${money(p.valor)}* (${p.modalidade}${p.vencimento ? `, Venc: ${p.vencimento}` : ''})`
-      ).join('\n');
-      blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n${pagLines}`);
-    }
-
-    const docLines: string[] = [];
-    if (osDetail.extracaoCompleta === false || (osDetail as any).extracao_completa === false) {
-      docLines.push(`- *Checklists:* Sincronização detalhada do ERP em andamento.`);
-    } else {
-      const temEntrada = osDetail.checklistAudit?.temChecklistEntrada;
-      const temMec = osDetail.checklistAudit?.temChecklistMecanico;
-      docLines.push(`- *Checklist de Entrada:* ${temEntrada ? '✅ Realizado' : '⚠️ Pendente'}`);
-      docLines.push(`- *Checklist do Mecânico:* ${temMec ? '✅ Realizado' : '⚠️ Pendente'}`);
-      if (osDetail.checklists && osDetail.checklists.length > 0) {
-        for (const cl of osDetail.checklists) {
-          docLines.push(`  └ *${cl.tipo}:* ${cl.status} (${cl.realizado_por || 'Técnico'}, ${cl.data})`);
-        }
-      }
-    }
-    docLines.push(`- *Nota Fiscal:* ${osDetail.temNf ? 'Emitida/vinculada' : 'Não emitida'}`);
-    blocks.push(`----------------------------------------\n> *Vistorias e Documentos*\n${docLines.join('\n')}`);
-
-    const replyText = blocks.join('\n\n');
+    const replyText = composeFullOS360Card({
+      osId: osDetail.osId,
+      lojaSlug: osDetail.lojaSlug,
+      vehicleModel: osDetail.veiculo,
+      vehiclePlate: osDetail.placa,
+      clientName: osDetail.clienteNome,
+      responsavel: osDetail.responsavel,
+      statusGrid: osDetail.status_grid,
+      isOpen: osDetail.isAberta,
+      daysInYard: osDetail.diasNoPatio,
+      totalAmount: osDetail.valorTotal,
+      remainingBalance: osDetail.saldoDevedor,
+      servicos: osDetail.servicos,
+      pecas: osDetail.pecas,
+      pagamentos: osDetail.pagamentos,
+      checklists: osDetail.checklists,
+      checklistAudit: osDetail.checklistAudit,
+      temNf: osDetail.temNf,
+      documentosAnexosCount: osDetail.documentosAnexos?.length,
+      extracaoCompleta: osDetail.extracaoCompleta,
+      caseContext: caseCtx ? {
+        documentedDelayReason: caseCtx.documentedDelayReason,
+        nextPromisedStep: caseCtx.nextPromisedStep,
+        lastObservationDate: caseCtx.lastObservationDate,
+        conversationSummary: caseCtx.conversationSummary,
+        partsBalanceSummary: caseCtx.partsBalanceSummary,
+        budgetStatus: caseCtx.budgetStatus
+      } : undefined
+    });
 
     return {
       replyText,
