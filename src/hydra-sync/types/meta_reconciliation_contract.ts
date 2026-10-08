@@ -7,6 +7,32 @@
  * Stack: TypeScript Strict (zero `any`, zero `@ts-ignore`)
  */
 
+export const EMPRESAS_MAP: Record<string, string> = {
+  'MPdompedro1': 'Dom Pedro',
+  'MPJabaquara': 'Jabaquara',
+  'MPJorgeBeretta': 'Jorge Beretta',
+  'MPkennedy': 'Kennedy',
+  'MPpiraporinha': 'Piraporinha',
+  'MPplanalto': 'Planalto',
+  'MPrudge': 'Rudge',
+  'MPSantoAndre': 'Santo Andre',
+  'ReiDoModulo': 'Rei Do Modulo',
+  'ReiDoOleoMaua': 'Rei Do Oleo Maua'
+};
+
+export const LOJAS_OPERACIONAIS_SLUGS = [
+  'MPdompedro1',
+  'MPJabaquara',
+  'MPJorgeBeretta',
+  'MPkennedy',
+  'MPpiraporinha',
+  'MPplanalto',
+  'MPrudge',
+  'MPSantoAndre',
+  'ReiDoModulo',
+  'ReiDoOleoMaua'
+] as const;
+
 export interface StoreRevenueSnapshot {
   slug: string;
   nome: string;
@@ -21,6 +47,8 @@ export interface MapaMetasReconciliationSnapshot {
   faturamentoTotalRede: number;
   totalOSsRede: number;
   stores: Record<string, StoreRevenueSnapshot>;
+  sourceXPath?: string;
+  masterExcluded?: boolean;
 }
 
 export interface ReconcileDeltaResult {

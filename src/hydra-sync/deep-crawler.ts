@@ -137,16 +137,18 @@ async function run() {
 
     await login(page);
 
-    // ETAPA 0: Snapshot Inicial do Mapa de Metas (Pré-Crawl)
-    console.log('\n[Deep Crawler] ======================================================');
-    console.log('[Deep Crawler] ETAPA 0: Capturando Snapshot Inicial do Mapa de Metas...');
-    console.log('[Deep Crawler] ======================================================');
+    // ETAPA 0: Snapshot Inicial do Mapa de Metas (Pré-Crawl do Ciclo Completo Matinal)
     let initialSnapshot: MapaMetasReconciliationSnapshot | null = null;
-    try {
-      initialSnapshot = await capturarSnapshotMapaMetas(page, BASE);
-    } catch (errSnapshotInit: unknown) {
-      const msg = errSnapshotInit instanceof Error ? errSnapshotInit.message : String(errSnapshotInit);
-      console.warn(`[Deep Crawler] ⚠️ Falha ao capturar snapshot inicial do Mapa de Metas: ${msg}`);
+    if (!targetSlug) {
+      console.log('\n[Deep Crawler] ======================================================');
+      console.log('[Deep Crawler] ETAPA 0: Capturando Snapshot Inicial do Mapa de Metas (Ciclo Matinal)...');
+      console.log('[Deep Crawler] ======================================================');
+      try {
+        initialSnapshot = await capturarSnapshotMapaMetas(page, BASE);
+      } catch (errSnapshotInit: unknown) {
+        const msg = errSnapshotInit instanceof Error ? errSnapshotInit.message : String(errSnapshotInit);
+        console.warn(`[Deep Crawler] ⚠️ Falha ao capturar snapshot inicial do Mapa de Metas: ${msg}`);
+      }
     }
 
     for (const slug of slugs) {

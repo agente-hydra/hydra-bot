@@ -9,15 +9,12 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Page } from 'playwright';
 import {
   EMPRESAS_MAP,
-  LOJAS_OPERACIONAIS_SLUGS
-} from './metas_crawler.js';
-import type {
-  StoreRevenueSnapshot,
-  MapaMetasReconciliationSnapshot,
-  ReconcileDeltaResult
+  LOJAS_OPERACIONAIS_SLUGS,
+  type StoreRevenueSnapshot,
+  type MapaMetasReconciliationSnapshot,
+  type ReconcileDeltaResult
 } from './types/meta_reconciliation_contract.js';
 
 /**
@@ -246,7 +243,9 @@ export async function capturarSnapshotMapaMetas(
     capturedAt: new Date().toISOString(),
     faturamentoTotalRede,
     totalOSsRede: totalOsRede,
-    stores: storesSnapshot
+    stores: storesSnapshot,
+    sourceXPath: '//*[@id="ctl00_cph_ucMapaDeMeta_grd_ctl13_lblTotalFaturamento"]',
+    masterExcluded: true
   };
 
   console.log(`[Reconciliação Metas] ✓ Snapshot capturado: Total R$ ${faturamentoTotalRede.toFixed(2)} | ${Object.keys(storesSnapshot).length} lojas.`);

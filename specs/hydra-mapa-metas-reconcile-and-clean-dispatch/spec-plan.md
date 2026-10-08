@@ -32,7 +32,7 @@
   - Atualizar `projects/hydra-rede/src/excel_patio_builder.js` para salvar como `Carros em Patio - DD-MM-AAAA.xlsx`.
   - Atualizar `projects/hydra-rede/src/index.js` para salvar como `Juros Rede - DD-MM-AAAA.xlsx`.
 
-- [/] [DISPATCHER] **Despachador Limpo Unificado via WhatsApp**
+- [x] [DISPATCHER] **Despachador Limpo Unificado via WhatsApp**
   - Criar `projects/hydra-rede/src/whatsapp_unified_dispatcher.js`:
     - Envio sequencial dos 3 documentos oficiais (`Juros Rede`, `Carros em Patio`, `Mapa de Metas`).
     - Modo silencioso: zero texto solto no chat da diretoria e sem caption longo.
@@ -40,7 +40,7 @@
     - Preservação estrita dos alertas de erro/contingência para o desenvolvedor (`DEV_NUMBER`).
   - Atualizar `projects/hydra-rede/src/run_patio_daily.js` para suportar o despacho limpo unificado.
 
-- [ ] [TESTS] **Suíte Integrada de Testes de Reconciliação e Despacho**
+- [x] [TESTS] **Suíte Integrada de Testes de Reconciliação e Despacho**
   - Criar `src/hydra-sync/tests/test_meta_reconciliation_dispatch.ts`:
     - Gate 1: Captura e parsing do Snapshot do Mapa de Metas com seletor de faturamento total.
     - Gate 2: Algoritmo de conciliação de delta (identificação cirúrgica de lojas com alteração).
