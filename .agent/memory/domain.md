@@ -210,3 +210,27 @@
 - NUNCA tentar adivinhar a intenção do operador com dezenas de regexes semânticas quando a persistência da LLM puder manter o contexto natural.
 - NUNCA injetar `inferredOsId` de turnos passados em consultas que especificam lojas ou temas gerais.
 - NUNCA esquecer de limpar o ID de conversa externa ao processar o comando `/reset`.
+
+## [2026-10-08] — [Feature ID: hydra-patio-engine-reconstruction]
+**Contexto:** Reestruturação completa do motor de conciliação diária de Carros em Pátio & OS (Modelo Canônico D-1), ingestão nativa direta a partir dos arquivos granulares do Hydra Bot na VPS (`/home/operacional/hydra-data/crawls`), calibração visual precisa (linha inteira âmbar para saídas de pátio vs. célula azul isolada com badge 🔵 para pagamentos novos de ontem) e automação em cron pós-crawler sem conflito de locks com os workers de financeiro.
+**Regra aprendida:**
+1. **Regra Canônica de Carros em Pátio:** Carro em pátio ativo é definido por `isAberta === 1` (continua na oficina física, inclusive com saldo zero ou de meses anteriores). A saída do pátio é unicamente identificada pela data de encerramento (`isAberta === 0` com finalização em D-1).
+2. **Anti-Duplo Desconto no Saldo:** O campo `restanteERP` informado pelo sistema já abate todos os pagamentos realizados. O bot nunca deve subtrair novamente os pagamentos do dia desse saldo.
+3. **Ordenação Unificada:** As OSs de cada loja devem ser ordenadas de ponta a ponta de forma contínua pelo número da OS (decrescente: `osNumber DESC`), sem divisão arbitrária por blocos de saldo devedor vs quitadas.
+4. **Isolamento de Destaque Visual:** Ordens abertas que receberam pagamento em D-1 devem ter destaque estritamente na célula da coluna E (`PAGAMENTOS:` - azul suave `#E0F2FE`), mantendo as demais células da linha no padrão normal para não confundir o leitor com uma finalização da OS.
+**Risco identificado:** A dependência de horários de wake/sleep de máquinas locais do usuário quebrava a entrega diária. A execução foi 100% migrada e encadeada no cron da VPS Linux (`15 3 * * * run-hydra-daily-full.sh && run-patio.sh`).
+**Não fazer:**
+- NUNCA configurar rotinas operacionais no Agendador de Tarefas do Windows local do usuário.
+- NUNCA descontar pagamentos do dia do saldo `restanteERP`.
+- NUNCA pintar a linha inteira de uma OS aberta quando ela apenas recebeu um pagamento parcial.
+
+## [2026-10-08] — [Feature ID: hydra-patio-strict-payments-and-grand-total]
+**Contexto:** Correção do critério temporal de detecção de pagamentos em D-1, eliminando falso positivo que importava parcelas futuras de cartão de crédito e pagamentos antigos de OSs que haviam sido editadas no ERP em D-1.
+**Regra aprendida:**
+1. **`historico_atualizado_em` Não é Data de Pagamento:** No Oficina Inteligente, o timestamp de atualização é auditado sempre que qualquer campo (status, checklist, anexo fotográfico) é modificado. Usá-lo para inferir que parcelas de crédito foram passadas ontem é um anti-pattern grave.
+2. **Vencimento Estrito D-1:** Um pagamento pertence a ontem se e somente se sua data de vencimento/liquidação for estritamente igual à data de referência D-1 (`vencimentoBR === refDateBR`).
+**Risco identificado:** Se o ERP alterar a nomenclatura do campo de vencimento ou omitir a data em vendas à vista, pagamentos poderiam ser descartados. A normalização com `normalizeToBRDate` garante consistência contra múltiplos formatos de data.
+**Não fazer:**
+- NUNCA inferir data de pagamento a partir do timestamp de modificação geral da OS (`historico_atualizado_em`).
+- NUNCA trazer parcelas futuras de cartão para a conciliação diária de recebimentos de ontem.
+

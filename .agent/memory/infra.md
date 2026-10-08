@@ -5,11 +5,18 @@
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
 ## [2026-10-06] — [Infra: Agendador de Tarefas Hydra Pátio & OS (Windows Task Scheduler)]
-**Contexto:** Configuração do agendamento matinal silencioso da conciliação de Pátio e OS no Windows.
+**Contexto:** Configuração inicial no Windows (DEPRECADO).
+**Status:** MIGRADO PARA VPS LINUX EM 2026-10-08.
+**Regra aprendida:** O Agendador de Tarefas do Windows depende da máquina do usuário estar ligada e conectada, o que quebra relatórios matinais caso a máquina esteja suspensa. Foi 100% substituído por cron nativo na VPS.
+
+## [2026-10-08] — [Infra: Automação Pátio & OS na VPS Linux (Crontab Encadeado)]
+**Contexto:** Migração completa da conciliação diária de Pátio & OS para a VPS Linux (`operacional@100.126.50.101`).
 **Regra aprendida:**
-1. Task Scheduler: Tarefa `\Hydra-Patio-OS-Diario` agendada diariamente às 07:30:00 AM executando `C:\Users\User\Desktop\agy\projects\hydra-rede\run_patio_reconciliation.bat`.
-2. Pipeline de Dois Estágios: Às 07:30 AM o crawler Playwright executa a coleta das 10 lojas do Oficina Inteligente e constrói a planilha Excel; o `Timer Guard` trava a thread até 08:00:00 AM, momento em que o envio para a diretoria (`+55 11 94066-7032`) é liberado.
-3. Roteamento de Falha: Exceções em qualquer etapa abortam o envio ao cliente e disparam diagnóstico com logs completos para o dev (`+55 11 99624-2812`).
+1. **Encadeamento Pós-Crawler no Cron:** Configurado `15 3 * * * /home/operacional/hydra/scripts/run-hydra-daily-full.sh && /home/operacional/hydra-rede/scripts/run-patio.sh`. O crawler diário unificado roda às 03:15 AM e, assim que finaliza com sucesso (~03:45 AM), dispara imediatamente a conciliação de pátio com os dados frescos de `/home/operacional/hydra-data/crawls/`.
+2. **Desacoplamento de Locks:** `run-hydra-daily-full.sh` libera o lock `/tmp/hydra-data-refresh.lock` ao terminar, permitindo que a rotina de pátio processe o ledger e a planilha Excel e aguarde pontualmente as 08:00 AM (`Timer Guard`) sem bloquear os workers de financeiro horários das 04:00, 05:00, 06:00 e 07:00.
+3. **Isolamento de Deploy:** O código reside em `/home/operacional/hydra-rede/` fora da árvore gerenciada pelo `sync.py` (`hydra-deploy`), prevenindo falhas de release drift.
+4. **Segurança WhatsApp:** Envio exclusivo via instância `hydra` com fallback de alerta para o Dev (+55 11 99624-2812).
+
 
 ## [2026-10-06] — [Infra: Agendador de Tarefas Hydra Rede (Windows Task Scheduler)]
 **Contexto:** Configuração do agendamento matinal silencioso do relatório de juros da Rede no Windows.
