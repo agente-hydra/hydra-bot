@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>HYDRA AGENT — Mapa Mental Interativo de Operação</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b0f17;
+      color: #e2e8f0;
+      line-height: 1.4;
+      padding: 30px;
+      min-height: 100vh;
+    }
+
+    .header-bar {
+      max-width: 1400px;
+      margin: 0 auto 30px auto;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .brand-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: #0284c7;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .hint-text {
+      font-size: 12px;
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 6px 14px;
+      border-radius: 20px;
+    }
+
+    .tree-container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    /* Interactive Tree Styling */
+    .tree ul {
+      padding-left: 28px;
+      position: relative;
+      list-style: none;
+    }
+
+    .tree > ul {
+      padding-left: 0;
+    }
+
+    .tree ul::before {
+      content: "";
+      position: absolute;
+      left: 12px;
+      top: 0;
+      bottom: 16px;
+      border-left: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tree > ul::before {
+      display: none;
+    }
+
+    .tree li {
+      position: relative;
+      margin: 12px 0;
+    }
+
+    .tree li::before {
+      content: "";
+      position: absolute;
+      left: -16px;
+      top: 18px;
+      width: 16px;
+      border-top: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .tree > ul > li::before {
+      display: none;
+    }
+
+    /* Node Card Styling */
+    .node {
+      display: inline-flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #131b26;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      max-width: 820px;
+    }
+
+    .node:hover {
+      border-color: #38bdf8;
+      background: #172233;
+      transform: translateX(2px);
+    }
+
+    .toggle-btn {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    .node-content {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .node-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .node-title {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .node-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .badge-root { background: #0284c7; color: #fff; }
+    .badge-cron { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-manager { background: rgba(168, 85, 247, 0.15); color: #c084fc; border: 1px solid rgba(168, 85, 247, 0.3); }
+    .badge-partner { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-drill { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .badge-roadmap { background: rgba(236, 72, 153, 0.15); color: #f472b6; border: 1px solid rgba(236, 72, 153, 0.3); }
+
+    .node-desc {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    .node-desc strong {
+      color: #cbd5e1;
+    }
+
+    .node-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #38bdf8;
+      margin-top: 2px;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    /* Level-specific styling */
+    .level-0 > .node {
+      background: linear-gradient(135deg, #0f2238 0%, #131b26 100%);
+      border: 2px solid #0284c7;
+      padding: 14px 20px;
+    }
+    .level-0 .node-title {
+      font-size: 17px;
+    }
+
+    .collapsed > ul {
+      display: none;
+    }
+
+    .collapsed > .node .toggle-btn {
+      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.05);
+    }
+    .collapsed > .node .toggle-btn::after {
+      content: "+";
+    }
+    :not(.collapsed) > .node .toggle-btn::after {
+      content: "−";
+    }
+    .leaf > .node .toggle-btn {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-bar">
+    <div class="brand-title">
+      <span class="brand-badge">HYDRA</span>
+      <span>Mapa Mental Operacional & Arquitetura da Rede</span>
+    </div>
+    <div class="hint-text">
+      💡 Clique nos nós com <strong>[−] / [+]</strong> para abrir ou fechar ramificações
+    </div>
+  </div>
+
+  <div class="tree-container">
+    <div class="tree">
+      <ul>
+        
+        <!-- NÍVEL 0: ROOT -->
+        <li class="level-0">
+          <div class="node" onclick="toggleNode(this)">
+            <span class="toggle-btn"></span>
+            <div class="node-content">
+              <div class="node-header">
+                <span class="node-title">HYDRA AGENT — Inteligência & Auditoria Operacional</span>
+                <span class="node-badge badge-root">CÉREBRO CENTRAL</span>
+              </div>
+              <div class="node-desc">
+                Conectado 24/7 ao banco SQLite WAL das <strong>10 oficinas da rede</strong> (Mecânica Popular, Tork, Rei do Óleo e Rei do Módulo). Fiscaliza ordens, peças, finanças e pátio físico.
+              </div>
+            </div>
+          </div>
+
+          <ul>
+
+            <!-- RAMO 1: ROTINAS AUTOMÁTICAS AGENDADAS -->
+            <li>
+              <div class="node" onclick="toggleNode(this)">
+                <span class="toggle-btn"></span>
+                <div class="node-content">
+                  <div class="node-header">
+                    <span class="node-title">1. Rotinas Diárias Automáticas (Disparos WhatsApp)</span>
+                    <span class="node-badge badge-cron">CRONS AGENDADOS</span>
+                  </div>
+                  <div class="node-desc">
+                    Automações que chegam sem ninguém precisar pedir, direto no WhatsApp de quem decide.
+                  </div>
+                </div>
+              </div>
+
+              <ul>
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">08h00 — Posição de Pátio & Exposição de Caixa (Financeiro)</span>
+                      </div>
+                      <div class="node-desc">
+                        Envia para o time financeiro a relação de carros no pátio, <strong>saldo total a receber em aberto (R$ 44k)</strong> e ordens com serviços executados sem sinal registrado.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">09h00 — Briefing Operacional da Manhã (Sócios & Diretoria)</span>
+                      </div>
+                      <div class="node-desc">
+                        Panorama da abertura: metas do dia por unidade, total de veículos físicos em atendimento (32 carros) e carros retidos há mais de 5 dias para priorizar liberação.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">17h30 — Fechamento Operacional da Tarde (Atingimento & Giro)</span>
+                      </div>
+                      <div class="node-desc">
+                        Consolidado de faturamento do dia, quantidade de OSs entregues no pátio e projeção do faturamento acumulado no mês vs. meta de outubro.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </li>
+
+            <!-- RAMO 2: GERENCIADOR DOS GERENTES DE LOJA -->
+            <li>
+              <div class="node" onclick="toggleNode(this)">
+                <span class="toggle-btn"></span>
+                <div class="node-content">
+                  <div class="node-header">
+                    <span class="node-title">2. Gestor em Tempo Real dos Gerentes de Loja</span>
+                    <span class="node-badge badge-manager">BALCÃO & PROCESSO</span>
+                  </div>
+                  <div class="node-desc">
+                    Atendimento no WhatsApp individual de cada gerente com isolamento total de loja e guarda de processos.
+                  </div>
+                </div>
+              </div>
+
+              <ul>
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Isolamento Estrito de Loja (Zero Vazamento Cross-Store)</span>
+                      </div>
+                      <div class="node-desc">
+                        O gerente de Jabaquara só enxerga os carros, faturamento e clientes de Jabaquara. Não tem acesso a dados de Mauá ou Santo André.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Auditoria do Processo Obrigatório de Recepção</span>
+                      </div>
+                      <div class="node-desc">
+                        Fiscaliza se o carro que deu entrada teve <strong>Checklist de Entrada</strong> com fotos e avarias preenchido antes de entrar no elevador (evita golpe de risco pré-existente).
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Cobrança de Sinal Antes de Peças Caras</span>
+                      </div>
+                      <div class="node-desc">
+                        Alerta o gerente antes de pedir peças caras no distribuidor caso o cliente não tenha deixado sinal mínimo de 30% a 50% na OS.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </li>
+
+            <!-- RAMO 3: AUDITOR DOS SÓCIOS (CONSULTAS AD-HOC) -->
+            <li>
+              <div class="node" onclick="toggleNode(this)">
+                <span class="toggle-btn"></span>
+                <div class="node-content">
+                  <div class="node-header">
+                    <span class="node-title">3. Auditor Executivo dos Sócios (Consultas Sob Demanda)</span>
+                    <span class="node-badge badge-partner">VISÃO DA REDE COMPLETA</span>
+                  </div>
+                  <div class="node-desc">
+                    O sócio pergunta qualquer coisa em linguagem natural e recebe respostas formatadas no layout Hermes em 5 segundos.
+                  </div>
+                </div>
+              </div>
+
+              <ul>
+                
+                <!-- Sub-ramo: Visão Geral -->
+                <li>
+                  <div class="node" onclick="toggleNode(this)">
+                    <span class="toggle-btn"></span>
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Nível 1: Visão Consolidada da Rede</span>
+                        <span class="node-badge badge-drill">COMANDOS GERAIS</span>
+                      </div>
+                      <div class="node-desc">
+                        Métricas globais de caixa, faturamento e custo de peças das 10 unidades.
+                      </div>
+                    </div>
+                  </div>
+
+                  <ul>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Gargalos Operacionais & Retenção de Pátio</span></div>
+                          <div class="node-desc">Lista carros travados há mais de 5 dias e saldo exposto sem sinal na rede inteira.</div>
+                          <span class="node-code">gargalos da rede</span>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Auditoria de CMV & Margem de Peças</span></div>
+                          <div class="node-desc">Ranking de custo de peças x faturamento (quem opera a 8% e quem estoura a 19.8%).</div>
+                          <span class="node-code">cmv das lojas</span>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Faturamento Acumulado & Atingimento de Metas</span></div>
+                          <div class="node-desc">Volume financeiro de outubro, total de OSs fechadas, ticket médio e percentual da meta.</div>
+                          <span class="node-code">faturamento das lojas</span>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- Sub-ramo: Pátio da Loja -->
+                <li>
+                  <div class="node" onclick="toggleNode(this)">
+                    <span class="toggle-btn"></span>
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Nível 2: Pátio Físico por Unidade Específica</span>
+                        <span class="node-badge badge-drill">DRILLDOWN DE LOJA</span>
+                      </div>
+                      <div class="node-desc">
+                        Fiscalização do pátio real de qualquer oficina sem precisar ir até lá.
+                      </div>
+                    </div>
+                  </div>
+
+                  <ul>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Relação Carro a Carro da Loja (Cards Hermes)</span></div>
+                          <div class="node-desc">
+                            Lista cada veículo físico presente na unidade com modelo, placa, dias no box, cliente, status e saldo restante.
+                          </div>
+                          <span class="node-code">quais os tem na jorge beretta</span>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+
+                <!-- Sub-ramo: Detalhamento Profundo da OS -->
+                <li>
+                  <div class="node" onclick="toggleNode(this)">
+                    <span class="toggle-btn"></span>
+                    <div class="node-content">
+                      <div class="node-header">
+                        <span class="node-title">Nível 3: Detalhamento Profundo de uma OS (Raio-X Máximo)</span>
+                        <span class="node-badge badge-drill">DRILLDOWN DA OS</span>
+                      </div>
+                      <div class="node-desc">
+                        Desce no nível de parafuso de uma ordem específica enviando o número ou placa.
+                      </div>
+                      <span class="node-code">os 439  ou  placa CYG2B02</span>
+                    </div>
+                  </div>
+
+                  <ul>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Serviços Discriminados & Mecânico Executor</span></div>
+                          <div class="node-desc">Cada mão de obra executada com valor individual e nome do técnico responsável.</div>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Peças & Produtos Aplicados</span></div>
+                          <div class="node-desc">Discriminação de todas as peças instaladas com quantidade e valor unitário faturado.</div>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Financeiro: Parcelas, Vencimentos & Cartão</span></div>
+                          <div class="node-desc">Relação das parcelas no cartão de crédito/débito/PIX, datas de vencimento e valores pagos.</div>
+                        </div>
+                      </div>
+                    </li>
+                    <li class="leaf">
+                      <div class="node">
+                        <div class="node-content">
+                          <div class="node-header"><span class="node-title">Documentos, Vistorias Fotográficas & Checklists</span></div>
+                          <div class="node-desc">Auditoria do Checklist de Entrada, Ficha Técnica Mecânica e Notas Fiscais emitidas.</div>
+                        </div>
+                      </div>
+                    </li>
+                  </ul>
+                </li>
+
+              </ul>
+            </li>
+
+            <!-- RAMO 4: PRÓXIMOS PASSOS (EXPANSÃO DE LUCRO) -->
+            <li>
+              <div class="node" onclick="toggleNode(this)">
+                <span class="toggle-btn"></span>
+                <div class="node-content">
+                  <div class="node-header">
+                    <span class="node-title">4. Próximos Passos (Onde Vamos Ganhar Mais Dinheiro)</span>
+                    <span class="node-badge badge-roadmap">EXPANSÃO DE RECEITA</span>
+                  </div>
+                  <div class="node-desc">
+                    Módulos técnicos em implantação para aumentar margem líquida e ticket médio das oficinas.
+                  </div>
+                </div>
+              </div>
+
+              <ul>
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header"><span class="node-title">Tempário Inteligente de Mão de Obra</span></div>
+                      <div class="node-desc">
+                        Cruza o tempo de reparo com a tabela técnica de montadora (Cesvi/Sindipeças). Acaba com o gerente cobrando 1,5h em serviço que exige 4,0h.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header"><span class="node-title">Upsell Técnico Orientado a Processo (+15% a 25% Ticket Médio)</span></div>
+                      <div class="node-desc">
+                        Quando a OS tem troca de correia dentada, o Hydra exige orçar retentor, bomba d'água e aditivo. Ao trocar amortecedor, exige kit batente e geometria.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+
+                <li class="leaf">
+                  <div class="node">
+                    <div class="node-content">
+                      <div class="node-header"><span class="node-title">Padronização de Laudos & Orçamentos para Clientes</span></div>
+                      <div class="node-desc">
+                        A IA traduz o laudo técnico do mecânico em mensagem comercial clara e ilustrada para o cliente aprovar o orçamento mais rápido no WhatsApp.
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </li>
+
+          </ul>
+        </li>
+
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    function toggleNode(element) {
+      const li = element.parentElement;
+      if (li.classList.contains('leaf')) return;
+      li.classList.toggle('collapsed');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "memory-reminder": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "powershell -NoProfile -Command \"if (Test-Path '.agent/memory') { $json = @{ injectSteps = @( @{ ephemeralMessage = 'MEMORIA: Consulte .agent/memory/ antes de agir. Verifique anti-patterns e decisoes anteriores. Nao assuma — leia os arquivos.' } ) } | ConvertTo-Json -Depth 3 -Compress; Write-Output $json } else { Write-Output '{\\\"injectSteps\\\":[]}' }\"",
+        "timeout": 5
+      }
+    ]
+  },
+  "stop-gate": {
+    "Stop": [
+      {
+        "type": "command",
+        "command": "powershell -NoProfile -Command \"$input_data = $input | ConvertFrom-Json; $reason = $input_data.terminationReason; if ($reason -eq 'model_stop') { Write-Output '{\\\"decision\\\":\\\"allow\\\"}' } else { Write-Output '{\\\"decision\\\":\\\"allow\\\"}' }\"",
+        "timeout": 5
+      }
+    ]
+  }
+}

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>HYDRA AGENT — Apresentação Executiva para Sócios</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0c111d;
+      color: #e2e8f0;
+      line-height: 1.45;
+      font-size: 13px;
+    }
+
+    .page {
+      width: 297mm;
+      height: 210mm;
+      position: relative;
+      overflow: hidden;
+      page-break-after: always;
+      break-after: page;
+      padding: 24mm 26mm;
+      background: #0c111d;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Background Subtle Geometry */
+    .page::before {
+      content: "";
+      position: absolute;
+      top: -120px;
+      right: -120px;
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.08) 0%, rgba(12, 17, 29, 0) 70%);
+      pointer-events: none;
+    }
+
+    /* Header & Footer Rules */
+    .header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 16px;
+    }
+
+    .brand-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-badge {
+      background: #0284c7;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+
+    .brand-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      letter-spacing: 0.5px;
+    }
+
+    .header-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 4px 10px;
+      border-radius: 20px;
+    }
+
+    .footer-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      font-size: 10px;
+      color: #64748b;
+    }
+
+    /* Typography */
+    h1 {
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.15;
+      color: #ffffff;
+      letter-spacing: -0.8px;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.4px;
+      margin-bottom: 4px;
+    }
+
+    p.lead {
+      font-size: 14px;
+      color: #94a3b8;
+      max-width: 90%;
+      margin-bottom: 18px;
+      line-height: 1.5;
+    }
+
+    /* Grids & Cards */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    .card {
+      background: #131b2a;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 8px;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .card-highlight {
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.12) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .card-alert {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .card-success {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(15, 23, 42, 0.6) 100%);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .stat-number {
+      font-size: 24px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.5px;
+      line-height: 1.1;
+      margin-bottom: 6px;
+    }
+
+    .stat-desc {
+      font-size: 11.5px;
+      color: #94a3b8;
+      line-height: 1.4;
+    }
+
+    .badge-amber {
+      display: inline-block;
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .badge-emerald {
+      display: inline-block;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    .badge-sky {
+      display: inline-block;
+      background: rgba(14, 165, 233, 0.15);
+      color: #38bdf8;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    /* Comparison Table */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+
+    .compare-table th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .compare-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-size: 12px;
+      vertical-align: top;
+    }
+
+    .compare-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .td-old {
+      color: #94a3b8;
+      width: 44%;
+    }
+
+    .td-hydra {
+      color: #f1f5f9;
+      font-weight: 600;
+      background: rgba(2, 132, 199, 0.05);
+      width: 44%;
+      border-left: 2px solid #0284c7;
+    }
+
+    /* WhatsApp Prompt Cards */
+    .wa-card {
+      background: #111a28;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .wa-bubble-user {
+      background: #0284c7;
+      color: #ffffff;
+      padding: 6px 12px;
+      border-radius: 12px 12px 2px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      font-weight: 600;
+      align-self: flex-start;
+      display: inline-block;
+    }
+
+    .wa-bubble-purpose {
+      font-size: 11px;
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .wa-bubble-value {
+      font-size: 11.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+    }
+
+    /* Lists */
+    ul.check-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    ul.check-list li {
+      position: relative;
+      padding-left: 20px;
+      font-size: 12px;
+      color: #cbd5e1;
+    }
+
+    ul.check-list li::before {
+      content: "✔";
+      position: absolute;
+      left: 0;
+      top: 0;
+      color: #38bdf8;
+      font-size: 12px;
+      font-weight: 800;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== SLIDE 1: CAPA EXECUTIVA ==================== -->
+  <div class="page">
+    <div class="header-bar">
+      <div class="brand-tag">
+        <span class="brand-badge">HYDRA</span>
+        <span class="brand-title">REDE MECÂNICA POPULAR & TORK · RELATÓRIO DO SÓCIO</span>
+      </div>
+      <div class="header-pill">OUTUBRO / 2026</div>
+    </div>
+
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; max-width: 880px;">
+      <div class="badge-sky" style="font-size: 11px; padding: 4px 10px; width: fit-content; margin-bottom: 12px;">
+        AUDITORIA OPERACIONAL & FINANCEIRA EM TEMPO REAL
+      </div>
+      <h1 style="font-size: 40px; margin-bottom: 12px;">
+        O Olho do Sócio na Operação:<br>
+        <span style="color: #38bdf8;">Dinheiro em Caixa, Giro de Elevador e Controle Total.</span>
+      </h1>
+      <p class="lead" style="font-size: 15px; max-width: 820px; line-height: 1.6; color: #94a3b8; margin-bottom: 24px;">
+        O <strong>Hydra Agent</strong> não é um chatbot de atendimento nem um buscador de dados. É um auditor implacável
+        que fiscaliza as 10 oficinas da rede 24 horas por dia diretamente no seu WhatsApp — caçando dinheiro esquecido no pátio,
+        carros parados ocupando elevador sem faturar, margens de peças estouradas e falhas de processo dos gerentes.
+      </p>
+
+      <div class="grid-3" style="margin-top: 10px;">
+        <div class="card card-alert">
+          <span class="stat-label">Caixa Retido Identificado</span>
+          <span class="stat-number" style="color: #fbbf24;">R$ 44.869</span>
+          <span class="stat-desc">Ordens abertas na rede com serviços executados e <strong>zero sinal financeiro</strong> cobrado pelo gerente.</span>
+        </div>
+        <div class="card card-highlight">
+          <span class="stat-label">Giro de Elevador Travado</span>
+          <span class="stat-number" style="color: #38bdf8;">28% do Pátio</span>
+          <span class="stat-desc">Veículos físicos ocupando box há <strong>mais de 5 dias</strong> (casos críticos de 6 a 29 dias) sem previsão de saída.</span>
+        </div>
+        <div class="card card-success">
+          <span class="stat-label">Disponibilidade Imediata</span>
+          <span class="stat-number" style="color: #34d399;">WhatsApp Direto</span>
+          <span class="stat-desc">Auditoria das 10 lojas sem abrir tela de ERP, sem pedir planilha para gerente e sem intermediários.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>Mecânica Popular · Rei do Óleo Mauá · Rei do Módulo · Tork</span>
+      <span>Página 1 de 5</span>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 2: O VALOR REAL HOJE ==================== -->
+  <div class="page">
+    <div class="header-bar">
+      <div class="brand-tag">
+        <span class="brand-badge">CAPACIDADES REAIS</span>
+        <span class="brand-title">ONDE O HYDRA TRAZ DINHEIRO E CONTROLE HOJE</span>
+      </div>
+      <div class="header-pill">OPERAÇÃO ATIVA NO BANCO SQLITE</div>
+    </div>
+
+    <div>
+      <h2>Os 4 Pilares de Impacto no Bolso do Sócio</h2>
+      <p class="lead">O que o sistema entrega agora, com base no banco operacional real das 10 lojas da rede:</p>
+
+      <div class="grid-2" style="gap: 16px;">
+        
+        <!-- Bloco 1 -->
+        <div class="card card-alert" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <span class="badge-amber">1. EXPOSIÇÃO FINANCEIRA</span>
+              <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 4px 0;">Cobrança de Sinal & Caixa em Risco</div>
+            </div>
+            <span style="font-size: 20px; font-weight: 800; color: #fbbf24;">R$ 44k</span>
+          </div>
+          <p class="stat-desc" style="margin-top: 6px;">
+            O gerente comprou peça no distribuidor, desmontou o câmbio e colocou o mecânico para trabalhar, mas <strong>não cobrou 1 real de entrada</strong>.
+            O Hydra lista exatamente as ordens com saldo acima de R$ 2.500 sem sinal (ex: BMW 320i em Sto André com R$ 7.000 em aberto), blindando o caixa da rede contra calote ou desistência.
+          </p>
+        </div>
+
+        <!-- Bloco 2 -->
+        <div class="card card-highlight" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <span class="badge-sky">2. GIRO DE ELEVADOR & PÁTIO</span>
+              <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 4px 0;">Veículos Travados (Aging > 5 Dias)</div>
+            </div>
+            <span style="font-size: 20px; font-weight: 800; color: #38bdf8;">9 Carros</span>
+          </div>
+          <p class="stat-desc" style="margin-top: 6px;">
+            Elevador ocupado por carro parado não gera faturamento de mão de obra. O Hydra rastreia diariamente a retenção física de cada unidade:
+            aponta o <strong>Peugeot 408 travado há 29 dias</strong> em Dom Pedro I e <strong>Fox e Sonic retidos há 6 dias</strong> em Mauá com R$ 24k em serviço. O sócio cobra a liberação na hora.
+          </p>
+        </div>
+
+        <!-- Bloco 3 -->
+        <div class="card card-success" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <span class="badge-emerald">3. MARGEM & AUDITORIA DE CMV</span>
+              <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 4px 0;">Custo de Peças vs. Faturamento Real</div>
+            </div>
+            <span style="font-size: 20px; font-weight: 800; color: #34d399;">11.8% Médio</span>
+          </div>
+          <p class="stat-desc" style="margin-top: 6px;">
+            O Hydra calcula o CMV oficial em tempo real loja por loja. Mostra onde a margem está escapando:
+            enquanto o Rei do Óleo opera com CMV de <strong>8%</strong> e Rei do Módulo a <strong>1.8%</strong>, Jabaquara e Santo André operam com custo de peças acima de <strong>19.7%</strong>. 
+            Você enxerga se o gerente está comprando peça cara ou errando na margem.
+          </p>
+        </div>
+
+        <!-- Bloco 4 -->
+        <div class="card" style="padding: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <span class="badge-sky" style="background: rgba(148, 163, 184, 0.15); color: #cbd5e1;">4. BLINDAGEM JURÍDICA</span>
+              <div style="font-size: 15px; font-weight: 700; color: #ffffff; margin: 4px 0;">Auditoria de Checklists & Vistorias</div>
+            </div>
+            <span style="font-size: 20px; font-weight: 800; color: #94a3b8;">18 Pendentes</span>
+          </div>
+          <p class="stat-desc" style="margin-top: 6px;">
+            Carro que sai da oficina sem vistoria de entrada ou ficha técnica mecânica preenchida é risco puro de processo, cliente alegando risco pré-existente
+            ou cobrança indevida de garantia. O Hydra audita os 32 carros físicos da rede e cobra o cumprimento do processo pelo gerente antes da entrega.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>Painel Operacional · Dados Factualmente Auditados do SQLite WAL</span>
+      <span>Página 2 de 5</span>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 3: O PLAYBOOK DO SÓCIO ==================== -->
+  <div class="page">
+    <div class="header-bar">
+      <div class="brand-tag">
+        <span class="brand-badge">PLAYBOOK DE TESTE</span>
+        <span class="brand-title">MENSAGENS PRONTAS PARA O SÓCIO ENVIAR NO WHATSAPP</span>
+      </div>
+      <div class="header-pill">TESTE IMEDIATO NO CELULAR</div>
+    </div>
+
+    <div>
+      <h2>Como Você Testa no WhatsApp em 10 Segundos</h2>
+      <p class="lead">Copie e envie qualquer uma das perguntas abaixo para o Hydra Agent e veja a resposta executiva formatada na hora:</p>
+
+      <div class="grid-2" style="gap: 14px;">
+        
+        <div class="wa-card">
+          <div class="wa-bubble-purpose">1. AUDITORIA DE GARGALOS & RISCOS DA REDE</div>
+          <div class="wa-bubble-user">gargalos da rede</div>
+          <div class="wa-bubble-value">
+            <strong>O que você descobre:</strong> Os veículos mais travados da rede (> 5 dias), o saldo total exposto sem sinal e quantas vistorias estão pendentes.
+            <br><em>Decisão do sócio:</em> Cobra o gerente da loja que está travando o pátio e exige sinal nas ordens altas.
+          </div>
+        </div>
+
+        <div class="wa-card">
+          <div class="wa-bubble-purpose">2. RANKING DE CMV & MARGEM DE PEÇAS</div>
+          <div class="wa-bubble-user">cmv das lojas</div>
+          <div class="wa-bubble-value">
+            <strong>O que você descobre:</strong> O ranking exato de quem tem o maior custo de peças proporcional ao faturamento, lucro bruto gerado e quem está com margem sangrando.
+            <br><em>Decisão do sócio:</em> Identifica imediatamente gerentes que compram mal ou precificam peças abaixo da margem da rede.
+          </div>
+        </div>
+
+        <div class="wa-card">
+          <div class="wa-bubble-purpose">3. FATURAMENTO ACUMULADO & METAS</div>
+          <div class="wa-bubble-user">faturamento das lojas</div>
+          <div class="wa-bubble-value">
+            <strong>O que você descobre:</strong> Volume de faturamento bruto do mês por loja, quantidade de OSs entregues, ticket médio e percentual de atingimento da meta de outubro.
+            <br><em>Decisão do sócio:</em> Sabe qual loja vai bater a meta e qual precisa de tração comercial antes do fim do mês.
+          </div>
+        </div>
+
+        <div class="wa-card">
+          <div class="wa-bubble-purpose">4. RAIO-X FÍSICO DO PÁTIO DE UMA LOJA</div>
+          <div class="wa-bubble-user">quais os tem na jorge beretta</div>
+          <div class="wa-bubble-value">
+            <strong>O que você descobre:</strong> Lista separada carro a carro, cliente, placa, dias no box, status operacional e valor a receber de cada carro real da oficina.
+            <br><em>Decisão do sócio:</em> Fiscaliza o pátio da loja como se estivesse fisicamente em pé na frente do balcão.
+          </div>
+        </div>
+
+      </div>
+
+      <div class="card card-highlight" style="margin-top: 12px; padding: 10px 14px; flex-direction: row; align-items: center; justify-content: space-between;">
+        <div>
+          <span style="font-weight: 700; color: #ffffff; font-size: 12px;">Quer auditar uma OS específica pelo número ou placa?</span>
+          <span style="color: #94a3b8; font-size: 11.5px; margin-left: 8px;">Envie apenas <strong>"os 439"</strong> ou a placa <strong>"CYG2B02"</strong> para ver serviços, peças, mecânico e parcelas no cartão.</span>
+        </div>
+        <span class="badge-sky">PADRÃO HERMES WHATSAPP</span>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>Layout com Traços Hermes · Zero Amebas Horizontais · Leitura Limpa no Mobile</span>
+      <span>Página 3 de 5</span>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 4: PRÓXIMOS PASSOS ==================== -->
+  <div class="page">
+    <div class="header-bar">
+      <div class="brand-tag">
+        <span class="brand-badge">ROADMAP DE RECEITA</span>
+        <span class="brand-title">PRÓXIMOS PASSOS: ONDE VAMOS COLOCAR MAIS DINHEIRO NO CAIXA</span>
+      </div>
+      <div class="header-pill">EXPANSÃO DE MARGEM & PROCESSO</div>
+    </div>
+
+    <div>
+      <h2>A Próxima Fronteira: Rentabilidade Ativa</h2>
+      <p class="lead">O que vamos ativar a seguir para aumentar o ticket médio e a eficiência técnica das lojas:</p>
+
+      <div class="grid-3" style="gap: 14px;">
+        
+        <div class="card card-highlight" style="padding: 16px;">
+          <span class="badge-sky">1. TEMPÁRIO INTELIGENTE</span>
+          <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin: 6px 0;">Tabela de Montadora x Cobrança Real</div>
+          <p class="stat-desc" style="margin-bottom: 12px;">
+            Hoje o gerente costuma cobrar mão de obra "de cabeça" ou no achismo, cobrando 1,5h em serviços que a montadora/Cesvi estipula 4,0h.
+          </p>
+          <ul class="check-list">
+            <li><strong>Mão de Obra Justa:</strong> Parâmetro técnico irrefutável para orçamentos.</li>
+            <li><strong>Fim da Mão de Obra Barata:</strong> Alerta o gerente quando ele cobra abaixo do tempo de reparo real.</li>
+            <li><strong>Equiparação da Rede:</strong> O mesmo serviço custará o tempo correto em qualquer loja.</li>
+          </ul>
+        </div>
+
+        <div class="card card-success" style="padding: 16px;">
+          <span class="badge-emerald">2. UPSELL & COMPLEMENTOS</span>
+          <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin: 6px 0;">Sugestão Técnica de Serviços Faltantes</div>
+          <p class="stat-desc" style="margin-bottom: 12px;">
+            A IA analisa a OS em montagem e avisa o gerente sobre itens técnicos obrigatórios que ele esqueceu de incluir no orçamento.
+          </p>
+          <ul class="check-list">
+            <li><strong>Troca de Correia:</strong> Alerta para incluir retentor, bomba d'água e aditivo.</li>
+            <li><strong>Troca de Amortecedor:</strong> Lembra kit batente, coifa e alinhamento 3D.</li>
+            <li><strong>Impacto Direto:</strong> Aumento de <strong>15% a 25% no Ticket Médio</strong> da rede sem empurroterapia, com base técnica.</li>
+          </ul>
+        </div>
+
+        <div class="card card-alert" style="padding: 16px;">
+          <span class="badge-amber">3. COPILOTO DO GERENTE</span>
+          <div style="font-size: 16px; font-weight: 700; color: #ffffff; margin: 6px 0;">Trava de Processo & Laudo Rápido</div>
+          <p class="stat-desc" style="margin-bottom: 12px;">
+            O Hydra no WhatsApp do gerente de loja auxiliando o dia a dia do balcão com travas de segurança operacional.
+          </p>
+          <ul class="check-list">
+            <li><strong>Bloqueio de Peça sem Sinal:</strong> Avisa o gerente antes de fechar pedido de peças caras sem entrada mínima.</li>
+            <li><strong>Laudos para o Cliente:</strong> Traduz o jargão do mecânico em mensagem clara para o WhatsApp do cliente aprovar.</li>
+            <li><strong>Mais Agilidade:</strong> Reduz o tempo do carro na rampa esperando orçamento.</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="card" style="margin-top: 14px; padding: 12px 16px; background: rgba(15, 23, 42, 0.4); border: 1px dashed rgba(255, 255, 255, 0.15);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 12px; font-weight: 700; color: #e2e8f0;">
+            🎯 Objetivo Estratégico: Transformar a rede de oficinas em uma máquina previsível de margem líquida, onde nenhum gerente deixa dinheiro na mesa por esquecimento ou falta de padrão.
+          </span>
+          <span class="badge-sky" style="font-size: 11px;">FOCO EM RESULTADO LÍQUIDO</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>Roadmap Tecnológico 2026/2027 · Mecânica Popular & Tork</span>
+      <span>Página 4 de 5</span>
+    </div>
+  </div>
+
+  <!-- ==================== SLIDE 5: QUADRO COMPARATIVO ==================== -->
+  <div class="page">
+    <div class="header-bar">
+      <div class="brand-tag">
+        <span class="brand-badge">VISÃO DO SÓCIO</span>
+        <span class="brand-title">POR QUE O HYDRA MUDA O JOGO DA GESTÃO</span>
+      </div>
+      <div class="header-pill">RETORNO SOBRE O NEGÓCIO</div>
+    </div>
+
+    <div>
+      <h2>Antes vs. Depois: O Controle Real da Sua Rede</h2>
+      <p class="lead">A diferença entre esperar o fechamento do mês para ver o estrago e agir no mesmo dia em que o problema acontece:</p>
+
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width: 20%;">Área Operacional</th>
+            <th class="td-old" style="width: 40%;">Como Funciona no Modelo Tradicional (ERP / Planilhas)</th>
+            <th class="td-hydra" style="width: 40%;">Com o Hydra Agent Ativo no WhatsApp</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">Dinheiro & Cobrança de Sinal</td>
+            <td class="td-old">O sócio só descobre ordens sem sinal quando o cliente contesta a conta ou o carro fica abandonado no pátio.</td>
+            <td class="td-hydra">Alertas automáticos apontam ordens acima de R$ 2.500 sem entrada no exato momento da execução.</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">Giro de Pátio & Elevador</td>
+            <td class="td-old">Carros passam 10, 20 dias no box sem ninguém cobrar fornecedor de peça ou resposta do cliente.</td>
+            <td class="td-hydra">Rastreamento diário de aging (>5 dias) identificando veículos gargalo com valor parado.</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">Custo de Peças & CMV</td>
+            <td class="td-old">Planilha de CMV calculada dias depois do fim do mês. Se a margem foi comida, já era.</td>
+            <td class="td-hydra">CMV em tempo real por loja. O sócio sabe hoje quem está comprando mal antes de fechar o mês.</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">Cumprimento de Processos</td>
+            <td class="td-old">O gerente diz que "fez a vistoria", mas quando o cliente reclama um arranhão, não há fotos no sistema.</td>
+            <td class="td-hydra">Auditoria matemática de checklists de entrada e ficha técnica antes do faturamento final.</td>
+          </tr>
+          <tr>
+            <td style="font-weight: 700; color: #ffffff;">Rotina dos Sócios</td>
+            <td class="td-old">Abrir dezenas de abas no ERP, ligar para gerente perguntando "como tá o pátio", cobrar planilhas atrasadas.</td>
+            <td class="td-hydra">1 mensagem de texto no WhatsApp de qualquer lugar: dados factualizados, sem rodeios e sem maquiagem.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="card card-highlight" style="margin-top: 18px; padding: 14px 18px; text-align: center; border-radius: 8px;">
+        <div style="font-size: 14px; font-weight: 800; color: #ffffff; letter-spacing: -0.2px;">
+          "O Hydra Agent transforma dados mortos do ERP em caixa líquido, giro acelerado e autoridade de gestão para os donos da rede."
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>Mecânica Popular · Documento Confidencial para Sócios e Diretores</span>
+      <span>Página 5 de 5</span>
+    </div>
+  </div>
+
+</body>
+</html>

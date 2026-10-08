@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>HYDRA AGENT — Visão Executiva em 1 Minuto</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap');
+
+    @page {
+      size: A4 landscape;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: #090d16;
+      color: #e2e8f0;
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .page {
+      width: 297mm;
+      height: 210mm;
+      position: relative;
+      overflow: hidden;
+      padding: 16mm 20mm;
+      background: #090d16;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Subtle background grid */
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(circle at 50% 45%, rgba(14, 165, 233, 0.08) 0%, rgba(9, 13, 22, 0) 65%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 100% 100%, 36px 36px, 36px 36px;
+      pointer-events: none;
+    }
+
+    /* Header */
+    .top-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 2;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-hydra {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 2px;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+
+    .header-headline {
+      font-size: 16px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+
+    .header-sub {
+      font-size: 11.5px;
+      color: #94a3b8;
+    }
+
+    .tag-pill {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    /* Diagram Layout */
+    .diagram-container {
+      display: grid;
+      grid-template-columns: 1fr 240px 1fr;
+      gap: 18px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+      margin: 10px 0;
+      flex: 1;
+    }
+
+    .column {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+
+    .column-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .title-now {
+      color: #38bdf8;
+      border-bottom: 2px solid #0284c7;
+    }
+
+    .title-next {
+      color: #34d399;
+      border-bottom: 2px solid #059669;
+    }
+
+    /* Node Cards */
+    .node-card {
+      background: #111827;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 11px 14px;
+      position: relative;
+      transition: all 0.2s ease;
+    }
+
+    .node-card.accent-amber {
+      border-left: 4px solid #f59e0b;
+      background: linear-gradient(90deg, rgba(245, 158, 11, 0.05) 0%, #111827 100%);
+    }
+
+    .node-card.accent-sky {
+      border-left: 4px solid #38bdf8;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, #111827 100%);
+    }
+
+    .node-card.accent-emerald {
+      border-left: 4px solid #10b981;
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, #111827 100%);
+    }
+
+    .node-card.accent-indigo {
+      border-left: 4px solid #818cf8;
+      background: linear-gradient(90deg, rgba(129, 140, 248, 0.05) 0%, #111827 100%);
+    }
+
+    .node-card.accent-purple {
+      border-left: 4px solid #a855f7;
+      background: linear-gradient(90deg, rgba(168, 85, 247, 0.05) 0%, #111827 100%);
+    }
+
+    .node-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .node-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+
+    .node-metric {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .metric-amber { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .metric-sky { background: rgba(56, 189, 248, 0.15); color: #38bdf8; }
+    .metric-emerald { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .metric-purple { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+
+    .node-desc {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    .node-desc strong {
+      color: #e2e8f0;
+    }
+
+    /* Central Core / Brain */
+    .brain-core {
+      background: linear-gradient(180deg, #162438 0%, #0d1624 100%);
+      border: 2px solid #0284c7;
+      box-shadow: 0 0 35px rgba(2, 132, 199, 0.25);
+      border-radius: 12px;
+      padding: 18px 14px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .brain-icon {
+      width: 44px;
+      height: 44px;
+      background: #0284c7;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      margin-bottom: 8px;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.5);
+    }
+
+    .brain-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .brain-subtitle {
+      font-size: 10.5px;
+      color: #38bdf8;
+      font-weight: 600;
+      margin-top: 2px;
+      margin-bottom: 10px;
+    }
+
+    .brain-list {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.45;
+      text-align: left;
+      width: 100%;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      padding-top: 8px;
+    }
+
+    .brain-list span {
+      display: block;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    /* Bottom Action Bar */
+    .bottom-bar {
+      background: #0f172a;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 10px 16px;
+      display: grid;
+      grid-template-columns: 190px 1fr;
+      gap: 16px;
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    .action-intro {
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding-right: 12px;
+    }
+
+    .action-intro-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: #38bdf8;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .action-intro-desc {
+      font-size: 10px;
+      color: #94a3b8;
+      margin-top: 2px;
+    }
+
+    .prompts-row {
+      display: flex;
+      gap: 10px;
+      justify-content: space-between;
+    }
+
+    .prompt-box {
+      flex: 1;
+      background: #1e293b;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .prompt-cmd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .prompt-meaning {
+      font-size: 9.5px;
+      color: #94a3b8;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    
+    <!-- TOP HEADER -->
+    <div class="top-header">
+      <div class="brand-group">
+        <span class="badge-hydra">HYDRA</span>
+        <div>
+          <div class="header-headline">Organograma Operacional & Caixa da Rede</div>
+          <div class="header-sub">O que a IA fiscaliza hoje nas 10 lojas e onde ela vai colocar mais dinheiro no seu bolso</div>
+        </div>
+      </div>
+      <div class="tag-pill">VISÃO EXECUTIVA · 1 MINUTO</div>
+    </div>
+
+    <!-- MAIN DIAGRAM (THE HYDRA CORE & TENTACLES) -->
+    <div class="diagram-container">
+      
+      <!-- LEFT COLUMN: O QUE FUNCIONA HOJE -->
+      <div class="column">
+        <div class="column-title title-now">
+          <span>⚡ ATIVO HOJE: DINHEIRO & FISCALIZAÇÃO</span>
+        </div>
+
+        <!-- Node 1: Caixa e Sinal -->
+        <div class="node-card accent-amber">
+          <div class="node-header">
+            <span class="node-name">1. Caixa Retido & Sinal</span>
+            <span class="node-metric metric-amber">R$ 44k em Aberto</span>
+          </div>
+          <p class="node-desc">
+            Pega ordens caras iniciadas <strong>sem entrada cobrada pelo gerente</strong> (ex: BMW com R$ 7.000 pendente). Bloqueia calote e compra de peça no escuro.
+          </p>
+        </div>
+
+        <!-- Node 2: Giro de Elevador -->
+        <div class="node-card accent-sky">
+          <div class="node-header">
+            <span class="node-name">2. Giro de Pátio & Rampa</span>
+            <span class="node-metric metric-sky">Aging > 5 Dias</span>
+          </div>
+          <p class="node-desc">
+            Caça carros parados ocupando elevador sem faturar mão de obra (ex: <strong>Peugeot 408 há 29 dias</strong> e Fox há 6 dias em Mauá com R$ 24k em serviço).
+          </p>
+        </div>
+
+        <!-- Node 3: CMV e Peças -->
+        <div class="node-card accent-emerald">
+          <div class="node-header">
+            <span class="node-name">3. Auditoria de CMV & Margem</span>
+            <span class="node-metric metric-emerald">Custo de Peças</span>
+          </div>
+          <p class="node-desc">
+            Mostra na hora qual loja está com margem sangrando: <strong>Mauá opera a 8%</strong> enquanto <strong>Jabaquara e Santo André estouram a 19.8%</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- CENTER: CÉREBRO HYDRA -->
+      <div class="brain-core">
+        <div class="brain-icon">🐙</div>
+        <div class="brain-title">CÉREBRO HYDRA</div>
+        <div class="brain-subtitle">Auditor Central da Rede</div>
+        
+        <div class="brain-list">
+          <span>• 10 Lojas Integradas</span>
+          Mecânica Popular, Tork, Rei do Óleo Mauá e Rei do Módulo.
+          <br><br>
+          <span>• Auditoria Sem Planilhas</span>
+          Varre ordens, peças, saldo de caixa e pátio físico direto no banco WAL.
+          <br><br>
+          <span>• Direto no seu WhatsApp</span>
+          Respostas em cards Hermes, sem ameba de texto e sem rodeios.
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: PRÓXIMOS PASSOS -->
+      <div class="column">
+        <div class="column-title title-next">
+          <span>🚀 PRÓXIMOS PASSOS: AUMENTO DE LUCRO</span>
+        </div>
+
+        <!-- Node 4: Tempário Inteligente -->
+        <div class="node-card accent-sky">
+          <div class="node-header">
+            <span class="node-name">4. Tempário de Mão de Obra</span>
+            <span class="node-metric metric-sky">Tabela Montadora</span>
+          </div>
+          <p class="node-desc">
+            Cruza o tempo com tabela Cesvi/montadora. <strong>Acaba com o gerente cobrando 1,5h</strong> em serviço que a tabela técnica exige 4,0h.
+          </p>
+        </div>
+
+        <!-- Node 5: Upsell Técnico -->
+        <div class="node-card accent-emerald">
+          <div class="node-header">
+            <span class="node-name">5. Upsell & Precificação</span>
+            <span class="node-metric metric-emerald">+15% a 25% Ticket</span>
+          </div>
+          <p class="node-desc">
+            A IA avisa o gerente sobre itens técnicos esquecidos na OS: trocou correia? <strong>Exige retentor, bomba e aditivo</strong> no orçamento.
+          </p>
+        </div>
+
+        <!-- Node 6: Copiloto do Gerente -->
+        <div class="node-card accent-purple">
+          <div class="node-header">
+            <span class="node-name">6. Trava de Processo em Loja</span>
+            <span class="node-metric metric-purple">Anti-Prejuízo</span>
+          </div>
+          <p class="node-desc">
+            Trava pedidos de peças caras no distribuidor se o sinal não foi pago. Traduz laudos mecânicos para o cliente final aprovar rápido no WhatsApp.
+          </p>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BOTTOM ACTION BAR: MENSAGENS PARA O SÓCIO TESTAR -->
+    <div class="bottom-bar">
+      <div class="action-intro">
+        <div class="action-intro-title">📲 Teste no WhatsApp Agora</div>
+        <div class="action-intro-desc">Envie qualquer texto abaixo para ver a IA responder em 5s:</div>
+      </div>
+
+      <div class="prompts-row">
+        <div class="prompt-box">
+          <span class="prompt-cmd">gargalos da rede</span>
+          <span class="prompt-meaning">Carros travados > 5 dias e saldo exposto sem sinal</span>
+        </div>
+
+        <div class="prompt-box">
+          <span class="prompt-cmd">cmv das lojas</span>
+          <span class="prompt-meaning">Ranking de custo de peças vs faturamento</span>
+        </div>
+
+        <div class="prompt-box">
+          <span class="prompt-cmd">faturamento das lojas</span>
+          <span class="prompt-meaning">Receita do mês, ticket médio e metas da rede</span>
+        </div>
+
+        <div class="prompt-box">
+          <span class="prompt-cmd">quais os tem na jorge beretta</span>
+          <span class="prompt-meaning">Pátio físico detalhado de uma loja específica</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+</html>

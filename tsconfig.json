@@ -1,0 +1,42 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "src/hydra-sync/types/conversation_context_contract.ts",
+    "src/hydra-sync/types/semantic_contract.ts",
+    "src/hydra-sync/conversation_semantic_resolver.ts",
+    "src/hydra-sync/os_situation_composer.ts",
+    "src/hydra-sync/real_analysis_repository.ts",
+    "src/hydra-sync/operational_data_repository.ts",
+    "src/hydra-sync/conversation_source_adapter.ts",
+    "src/hydra-sync/summary_evidence_adapter.ts",
+    "src/hydra-sync/conversation_reader_safe.ts",
+    "src/hydra-sync/conversation_cache_manager.ts",
+    "src/hydra-sync/hybrid_os_coordinator.ts",
+    "src/hydra-sync/ontology_catalog.ts",
+    "src/hydra-sync/data_dictionary.ts",
+    "src/hydra-sync/evidence_repository.ts",
+    "src/hydra-sync/semantic_glossary.ts",
+    "src/hydra-sync/intent_rewriter.ts",
+    "src/hydra-sync/query_builder_safe.ts",
+    "src/hydra-sync/semantic_compiler.ts",
+    "src/hydra-sync/semantic_executor.ts",
+    "src/hydra-sync/balloon_composer.ts",
+    "src/hydra-sync/fixtures/conversation_context_fixtures.ts",
+    "src/hydra-sync/fixtures/semantic_fixtures.ts",
+    "src/hydra-sync/tests/test_os_conversation_context.ts",
+    "src/hydra-sync/tests/test_executor1_semantic_resolver.ts",
+    "src/hydra-sync/tests/test_executor2_sources_evidence.ts",
+    "src/hydra-sync/tests/test_executor3_cache_orchestration.ts",
+    "src/hydra-sync/tests/test_semantic_end_to_end.ts",
+    "src/hydra-sync/tests/test_linea_jabaquara_gates.ts"
+  ]
+}
