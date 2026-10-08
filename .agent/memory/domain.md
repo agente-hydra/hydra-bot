@@ -284,4 +284,16 @@
 - NUNCA enviar arquivos de planilha Excel (.xlsx) para canais de grupo.
 - NUNCA usar instâncias de gerentes como remetentes de notificações ou broadcasts.
 
+## [2026-10-08] — [Feature ID: hydra-hermes-balloons-and-os-audit]
+**Contexto:** Implementação de particionamento em balões nativos no WhatsApp via `---BLOCK---`, categorização semântica de peças e serviços por sistemas mecânicos, Title Case inteligente, hierarquização estrita de vistorias (inspeção de entrada subordinada ao checklist de entrada) e card de auditoria fática transparente do ERP quando não há conversas espelhadas no sistema central.
+**Regra aprendida:**
+1. **Particionamento em Balões Nativos via `---BLOCK---`:** Para evitar o botão `... Ler mais` no smartphone e garantir leitura escaneável, grandes relatórios (como a OS 360°) devem ser emitidos pelo composer delimitados por `\n\n---BLOCK---\n\n`. O dispatcher quebra nesses separadores e despacha balões independentes (<900 caracteres cada).
+2. **Categorização Semântica por Conjuntos Mecânicos:** Listas de serviços e peças no WhatsApp tornam-se ilegíveis quando descarregadas em texto plano. Agrupar os itens por sistemas (⚡ Elétrica/Ignição, 🌡️ Arrefecimento, 🔩 Suspensão/Rodagem, 🛑 Freios, 📦 Revisão/Apoio) com subtotais e Title Case limpo reduz drasticamente o esforço cognitivo do operador. Placeholders do ERP (`Preencher Executor...`) devem ser sempre suprimidos.
+3. **Hierarquia de Checklists no ERP:** O `Check-List de Inspeção` (feito na recepção do veículo) pertence conceitualmente ao processo de entrada e deve ser exibido imediatamente abaixo de `Checklist de Entrada`, antes de `Checklist do Mecânico`.
+4. **Auditoria Transparente vs. Silêncio/Eco Nulo:** Ao ser questionado sobre histórico e conversas de uma OS cujo atendimento ocorreu fisicamente fora do sistema, o bot nunca deve ecoar uma linha vazia. Ele deve declarar a auditoria factual completa do ERP: quem abriu a OS, quem atualizou por último, se o campo de anotações está em branco, quais arquivos estão anexados e que o número de telefone não possui chats vinculados nos canais centrais.
+**Não fazer:**
+- NUNCA despachar uma lista longa de peças e serviços colada em um único balão gigante sem separadores.
+- NUNCA posicionar o checklist de inspeção de entrada abaixo do checklist do mecânico.
+- NUNCA repetir a mesma frase curta nula ao ser cobrado por histórico de conversa.
+
 

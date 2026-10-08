@@ -14,6 +14,8 @@ import {
   type SecurityContext,
   SecurityAccessDeniedError
 } from './types/conversation_context_contract.js';
+import { getOSDetails, type OSDetailComplete } from './db_repository.js';
+export { getOSDetails, type OSDetailComplete };
 
 /**
  * Garante a existência da tabela ordens_servico (idempotente).
@@ -348,7 +350,7 @@ export class OperationalDataRepository implements IOperationalDataRepository {
       ensureOrdensServicoTable(this.db);
       let query = `
         SELECT os_id, loja_slug, veiculo, placa, cliente_nome, cliente_telefone, status_grid,
-               total_os, valor_pago, valor_restante, data_inicio, data_fim, updated_at
+               total_os, valor_pago, valor_restante, data_inicio, data_fim, raw_payload, updated_at
         FROM ordens_servico
         WHERE (CAST(os_id AS INTEGER) = ? OR os_id = ? OR os_id = ?)
       `;
@@ -359,23 +361,47 @@ export class OperationalDataRepository implements IOperationalDataRepository {
       }
       const row = this.db.prepare(query).get(...params) as any;
       if (!row) return null;
+
+      let raw: any = undefined;
+      if (row.raw_payload) {
+        try {
+          raw = typeof row.raw_payload === 'string' ? JSON.parse(row.raw_payload) : row.raw_payload;
+        } catch {
+          raw = undefined;
+        }
+      }
+
       return {
         osId: Number(row.os_id) || osId,
         lojaSlug: String(row.loja_slug),
         vehiclePlate: String(row.placa || ''),
         vehicleModel: String(row.veiculo || ''),
         customerName: String(row.cliente_nome || ''),
-        customerPhone: String(row.cliente_telefone || ''),
+        customerPhone: String(row.cliente_telefone || (raw?.cliente_telefone_sms || '')),
         status: String(row.status_grid || 'Em Aberto'),
         totalValue: Number(row.total_os) || 0,
         paidValue: Number(row.valor_pago) || 0,
         pendingServices: [],
         openedAt: row.data_inicio || new Date().toISOString(),
-        updatedAt: row.updated_at || row.data_inicio || new Date().toISOString()
+        updatedAt: row.updated_at || row.data_inicio || new Date().toISOString(),
+        clienteCpf: raw?.cliente_cpf || undefined,
+        observacao: raw?.observacao || undefined,
+        historicoCriadoEm: raw?.historico_criado_em || undefined,
+        historicoCriadoPor: raw?.historico_criado_por || undefined,
+        historicoAtualizadoEm: raw?.historico_atualizado_em || undefined,
+        historicoAtualizadoPor: raw?.historico_atualizado_por || undefined
       };
     } catch {
       return null;
     }
+  }
+
+  public getOSDetails(
+    target: string | number | { os_id?: string | number; osId?: string | number; loja_slug?: string; lojaSlug?: string },
+    lojaSlugParam?: string
+  ): OSDetailComplete | null {
+    if (!this.db) return null;
+    return getOSDetails(this.db, target, lojaSlugParam);
   }
 
   public async listActiveOSsByPhone(phone: string, lojaSlug?: string): Promise<readonly OperationalOSRecord[]> {

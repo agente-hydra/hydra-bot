@@ -4338,6 +4338,11 @@ export interface OSDetailComplete {
   extracao_completa?: boolean;
   rawPayload?: any;
   raw_payload?: any;
+  observacao?: string;
+  historicoCriadoEm?: string;
+  historicoCriadoPor?: string;
+  historicoAtualizadoEm?: string;
+  historicoAtualizadoPor?: string;
 }
 
 function isServiceItem(item: any): boolean {
@@ -4591,7 +4596,12 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     extracaoCompleta: payload ? payload.extracao_completa !== false : false,
     extracao_completa: payload ? payload.extracao_completa !== false : false,
     rawPayload: payload,
-    raw_payload: payload
+    raw_payload: payload,
+    observacao: payload?.observacao || undefined,
+    historicoCriadoEm: payload?.historico_criado_em || undefined,
+    historicoCriadoPor: payload?.historico_criado_por || undefined,
+    historicoAtualizadoEm: payload?.historico_atualizado_em || undefined,
+    historicoAtualizadoPor: payload?.historico_atualizado_por || undefined
   };
 }
 

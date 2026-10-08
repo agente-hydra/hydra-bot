@@ -966,20 +966,32 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
       };
     } else if (resolution.status === 'RESOLVED') {
       const caseCtx = getCaseContext(db, resolution.activeOrder);
+      const osDetail = getOSDetails(db, {
+        os_id: resolution.activeOrder.osId,
+        loja_slug: resolution.activeOrder.storeSlug
+      });
 
       if (isOSConv) {
-        toolsCalled = ['resolve_vehicle_target', 'get_os_case_history'];
+        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
         replyText = composeOSConversationCard({
-          osId: resolution.activeOrder.osId,
-          lojaSlug: resolution.activeOrder.storeSlug,
-          vehicleModel: resolution.vehicle.model,
-          vehiclePlate: resolution.vehicle.plate,
-          clientName: resolution.activeOrder.clientName,
-          statusGrid: resolution.activeOrder.statusGrid,
-          isOpen: resolution.activeOrder.isOpen,
-          daysInYard: resolution.activeOrder.daysInYard,
-          totalAmount: resolution.activeOrder.totalAmount,
-          remainingBalance: resolution.activeOrder.remainingBalance,
+          osId: osDetail?.osId ?? resolution.activeOrder.osId,
+          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
+          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
+          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
+          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
+          clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+          clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+          statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
+          isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
+          daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
+          totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
+          remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
+          observacao: osDetail?.observacao,
+          historicoCriadoEm: osDetail?.historicoCriadoEm,
+          historicoCriadoPor: osDetail?.historicoCriadoPor,
+          historicoAtualizadoEm: osDetail?.historicoAtualizadoEm,
+          historicoAtualizadoPor: osDetail?.historicoAtualizadoPor,
+          documentosAnexos: osDetail?.documentosAnexos,
           caseContext: caseCtx ? {
             documentedDelayReason: caseCtx.documentedDelayReason,
             nextPromisedStep: caseCtx.nextPromisedStep,
@@ -992,11 +1004,6 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
           } : undefined
         });
       } else {
-        const osDetail = getOSDetails(db, {
-          os_id: resolution.activeOrder.osId,
-          loja_slug: resolution.activeOrder.storeSlug
-        });
-
         toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
         replyText = composeFullOS360Card({
           osId: osDetail?.osId ?? resolution.activeOrder.osId,
@@ -1034,7 +1041,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         operation: opType,
         targetModel: resolution.vehicle.model,
         targetPlate: resolution.vehicle.plate,
-        targetOsId: resolution.activeOrder.osId,
+        targetOsId: String(resolution.activeOrder.osId),
         targetLojaSlug: resolution.vehicle.storeSlug,
         generationId: 1,
         requestedAt: new Date().toISOString(),
@@ -1055,10 +1062,10 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     saveTurnState(db, {
       phone,
       lastTurnId: previousState?.lastTurnId || ('turn_' + Date.now()),
-      lastIntent: resolution.status === 'RESOLVED' ? 'os_detail' : 'other',
+      lastIntent: resolution.status === 'RESOLVED' ? (isOSConv ? 'os_conversation' : 'os_detail') : 'other',
       lojaSlug: resolution.status === 'RESOLVED' ? resolution.vehicle.storeSlug : undefined,
       placa: resolution.status === 'RESOLVED' ? resolution.vehicle.plate : undefined,
-      osId: resolution.status === 'RESOLVED' ? resolution.activeOrder.osId : undefined,
+      osId: resolution.status === 'RESOLVED' ? String(resolution.activeOrder.osId) : undefined,
       filters: {
         ...(previousState?.filters || {}),
         vehicleModel: resolution.status === 'RESOLVED' ? resolution.vehicle.model : currentModel,

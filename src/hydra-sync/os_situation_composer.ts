@@ -14,8 +14,8 @@ import {
   CandidateVehicle,
   CandidateOrder,
   VehicleResolutionResult
-} from './types/conversation_context_contract';
-import { EvidencePolicyManager } from './evidence_policy_manager';
+} from './types/conversation_context_contract.js';
+import { EvidencePolicyManager } from './evidence_policy_manager.js';
 
 export interface ComposeInput {
   readonly osId: number;
@@ -532,8 +532,8 @@ export interface OS360CardParams {
   remainingBalance?: number;
   servicos?: Array<{ descricao: string; valorTotal: number; executor?: string }>;
   pecas?: Array<{ descricao: string; valorTotal: number; qtd?: number; codigo?: string }>;
-  pagamentos?: Array<{ parcela: number; valor: number; modalidade: string; vencimento?: string }>;
-  checklists?: Array<{ tipo: string; status: string; realizado_por?: string; data?: string }>;
+  pagamentos?: Array<{ parcela: string | number; valor: number; modalidade: string; vencimento?: string }>;
+  checklists?: Array<{ tipo: string; status?: string; realizado_por?: string; data?: string }>;
   checklistAudit?: { temChecklistEntrada?: boolean; temChecklistMecanico?: boolean; detalhes?: string };
   temNf?: boolean;
   documentosAnexosCount?: number;
@@ -549,8 +549,186 @@ export interface OS360CardParams {
 }
 
 /**
- * Monta o card canônico oficial Hermes 360° com os 6 blocos obrigatórios
- * e divisores visuais delimitados para o WhatsApp.
+ * Converte textos do ERP em Title Case limpo e legível.
+ */
+export function toCleanTitleCase(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+  const lowerWords = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'para', 'com', 'por', 'sem', 'sob', 'sobre', 'a', 'o', 'as', 'os', 'd']);
+  const upperAcronyms = new Set(['os', 'nf', 'pix', 'abs', 'ls', 'gl', 'gti', 'gts', 'cl', 'vw', 'gm', 'fiap', 'cci', 'dp', 'api', 'erp', 'cpf', 'cnpj']);
+
+  let clean = text
+    .replace(/DIAGNOSTICO/gi, 'Diagnóstico')
+    .replace(/REMO[CÇ][AÃ]O/gi, 'Remoção')
+    .replace(/MANUTEN[CÇ][AÃ]O/gi, 'Manutenção')
+    .replace(/INSTALA[CÇ][AÃ]O/gi, 'Instalação')
+    .replace(/INSPE[CÇ][AÃ]O/gi, 'Inspeção')
+    .replace(/HIGIENIZA[CÇ][AÃ]O/gi, 'Higienização')
+    .replace(/REGULAGEM/gi, 'Regulagem')
+    .replace(/ALINHAMENTO/gi, 'Alinhamento')
+    .replace(/GEOMETRIA/gi, 'Geometria')
+    .replace(/ARREFECIMENTO/gi, 'Arrefecimento')
+    .replace(/ELETRICA/gi, 'Elétrica')
+    .replace(/MECANICO/gi, 'Mecânico')
+    .trim();
+
+  const words = clean.split(/\s+/);
+  return words.map((w, index) => {
+    const prefix = w.match(/^[^a-zA-Z0-9À-ÿ]*/)?.[0] || '';
+    const suffix = w.match(/[^a-zA-Z0-9À-ÿ]*$/)?.[0] || '';
+    const core = w.slice(prefix.length, w.length - suffix.length);
+    if (!core) return w;
+
+    const coreLower = core.toLowerCase();
+    if (/^check-list$/i.test(coreLower)) {
+      return prefix + 'Check-List' + suffix;
+    }
+    if (upperAcronyms.has(coreLower)) {
+      return prefix + coreLower.toUpperCase() + suffix;
+    }
+    if (index > 0 && lowerWords.has(coreLower)) {
+      return prefix + coreLower + suffix;
+    }
+    // Suporte a palavras hifenizadas como Check-List
+    if (core.includes('-')) {
+      const parts = core.split('-');
+      const titleParts = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase());
+      return prefix + titleParts.join('-') + suffix;
+    }
+    const title = core.charAt(0).toUpperCase() + core.slice(1).toLowerCase();
+    return prefix + title + suffix;
+  }).join(' ');
+}
+
+function cleanExecutor(executor?: string): string | undefined {
+  if (!executor) return undefined;
+  const trimmed = executor.trim();
+  if (!trimmed || trimmed === '0') return undefined;
+  if (/preencher\s*executor/i.test(trimmed)) return undefined;
+  if (/mecanico\s*da\s*loja/i.test(trimmed)) return undefined;
+  return toCleanTitleCase(trimmed);
+}
+
+interface SemanticGroup {
+  id: string;
+  name: string;
+  icon: string;
+  keywords: string[];
+}
+
+const SEMANTIC_GROUPS: SemanticGroup[] = [
+  {
+    id: 'eletrica',
+    name: 'Elétrica & Ignição',
+    icon: '⚡',
+    keywords: [
+      'alternador', 'bateria', 'chicote', 'modulo', 'partida', 'ignicao',
+      'vela', 'bobina', 'sensor', 'rele', 'eletric', 'farol', 'lampada',
+      'fusivel', 'fusiveis', 'painel', 'arranque', 'distribuidor', 'cabo vela'
+    ]
+  },
+  {
+    id: 'arrefecimento',
+    name: 'Sistema de Arrefecimento',
+    icon: '🌡️',
+    keywords: [
+      'arrefecimento', 'radiador', 'aditivo', 'cebolao', 'agua', 'termostatica',
+      'mangueira', 'reservatorio', 'ventoinha', 'tampa reservatorio'
+    ]
+  },
+  {
+    id: 'suspensao',
+    name: 'Suspensão, Direção & Rodagem',
+    icon: '🔩',
+    keywords: [
+      'suspensao', 'amortecedor', 'coxim', 'bucha', 'rolamento', 'coifa',
+      'alinhamento', 'geometria', 'balanceamento', 'cambagem', 'pivo',
+      'terminal', 'estabilizadora', 'mola', 'bandeja', 'braco', 'roda',
+      'pneu', 'direcao', 'batente'
+    ]
+  },
+  {
+    id: 'freios',
+    name: 'Sistema de Freios',
+    icon: '🛑',
+    keywords: [
+      'freio', 'freios', 'pastilha', 'disco', 'tambor', 'lona', 'alavanca',
+      'fluido freio', 'cilindro', 'pinca', 'flexivel', 'servo'
+    ]
+  },
+  {
+    id: 'apoio',
+    name: 'Revisão, Apoio & Insumos',
+    icon: '📦',
+    keywords: [
+      'diagnostico', 'motoboy', 'limpeza', 'higienizacao', 'revisao',
+      'oleo', 'filtro', 'lavagem', 'combustivel', 'correia', 'junta',
+      'desengraxante', 'abracadeira', 'parafuso'
+    ]
+  }
+];
+
+function getSemanticGroup(desc: string): SemanticGroup {
+  const norm = desc
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  for (const grp of SEMANTIC_GROUPS) {
+    if (grp.id === 'apoio') continue;
+    for (const kw of grp.keywords) {
+      if (norm.includes(kw)) {
+        return grp;
+      }
+    }
+  }
+  return SEMANTIC_GROUPS.find(g => g.id === 'apoio')!;
+}
+
+function formatCategorizedSection<T extends { descricao: string; valorTotal: number; executor?: string; qtd?: number; codigo?: string }>(
+  items: T[],
+  isService: boolean,
+  moneyFmt: (v: number) => string
+): string[] {
+  const grouped = new Map<string, T[]>();
+  for (const grp of SEMANTIC_GROUPS) {
+    grouped.set(grp.id, []);
+  }
+
+  for (const item of items) {
+    const grp = getSemanticGroup(item.descricao);
+    grouped.get(grp.id)!.push(item);
+  }
+
+  const outputLines: string[] = [];
+
+  for (const grp of SEMANTIC_GROUPS) {
+    const groupItems = grouped.get(grp.id) || [];
+    if (groupItems.length === 0) continue;
+
+    const subtotal = groupItems.reduce((acc, it) => acc + (it.valorTotal || 0), 0);
+    outputLines.push(`*${grp.name}* (Subtotal: *${moneyFmt(subtotal)}*):`);
+
+    for (const it of groupItems) {
+      const titleDesc = toCleanTitleCase(it.descricao);
+      if (isService) {
+        const exec = cleanExecutor(it.executor);
+        outputLines.push(`  • ${titleDesc}: *${moneyFmt(it.valorTotal)}*${exec ? ` (${exec})` : ''}`);
+      } else {
+        const qtdStr = it.qtd && it.qtd > 1 ? `${it.qtd}x ` : '';
+        const codClean = it.codigo && it.codigo.length <= 10 && !/^\d{7,}$/.test(it.codigo) && !/^AP\d+$/i.test(it.codigo)
+          ? ` (${it.codigo})`
+          : '';
+        outputLines.push(`  • ${titleDesc}: ${qtdStr}*${moneyFmt(it.valorTotal)}*${codClean}`);
+      }
+    }
+  }
+
+  return outputLines;
+}
+
+/**
+ * Monta o card canônico oficial Hermes 360° em balões nativos para o WhatsApp.
+ * Divide as seções principais com '---BLOCK---' para evitar cortes no celular.
  */
 export function composeFullOS360Card(params: OS360CardParams): string {
   const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
@@ -564,22 +742,11 @@ export function composeFullOS360Card(params: OS360CardParams): string {
     ? ` (Saldo: *${moneyFmt(saldo)}*)`
     : ' (Quitado)';
 
-  // 1. Cabeçalho Executivo
   const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
   const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
   const statusStr = params.statusGrid || (params.isOpen ? 'Em Aberto' : 'Finalizada');
 
-  blocks.push(
-    `> *OS #${params.osId} — ${modelStr} (${plateStr})*\n` +
-    `- *Loja:* ${params.lojaSlug}\n` +
-    `- *Status:* *${statusStr}* (${params.isOpen ? 'Em Aberto' : 'Finalizada'})\n` +
-    `- *Permanência:* ${params.daysInYard || 0} dia(s) no pátio\n` +
-    `- *Cliente:* ${params.clientName || 'Não informado'}\n` +
-    (params.responsavel ? `- *Responsável:* ${params.responsavel}\n` : '') +
-    `- *Valor Total:* *${moneyFmt(params.totalAmount || 0)}*${saldoTxt}`
-  );
-
-  // 2. Situação e Atendimento (Grafo / Histórico)
+  // Histórico e Situação
   const caseLines: string[] = [];
   if (params.caseContext?.documentedDelayReason) {
     caseLines.push(`- *Motivo Operacional:* ${params.caseContext.documentedDelayReason}`);
@@ -602,87 +769,135 @@ export function composeFullOS360Card(params: OS360CardParams): string {
   if (caseLines.length === 0) {
     caseLines.push(`- *Histórico:* Sem pendência de atraso ou peças documentada nas conversas desta OS.`);
   }
-  blocks.push(`----------------------------------------\n> *Situação e Atendimento*\n${caseLines.join('\n')}`);
 
-  // 3. Serviços Discriminados
+  // Bloco 1: Cabeçalho Executivo + Situação e Atendimento
+  const b1Lines: string[] = [
+    `> *OS #${params.osId} — ${modelStr} (${plateStr})*`,
+    `- *Loja:* ${params.lojaSlug}`,
+    `- *Status:* *${statusStr}* (${params.isOpen ? 'Em Aberto' : 'Finalizada'})`,
+    `- *Permanência:* ${params.daysInYard || 0} dia(s) no pátio`,
+    `- *Cliente:* ${params.clientName || 'Não informado'}`,
+    ...(params.responsavel ? [`- *Responsável:* ${params.responsavel}`] : []),
+    `- *Valor Total:* *${moneyFmt(params.totalAmount || 0)}*${saldoTxt}`,
+    ``,
+    `> *Situação e Atendimento*`,
+    ...caseLines
+  ];
+  blocks.push(b1Lines.join('\n'));
+
+  // Bloco 2: Serviços Discriminados (agrupados por sistemas mecânicos)
+  const totalServicos = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
   if (params.servicos && params.servicos.length > 0) {
-    const servicosLines = params.servicos.map(s => 
-      `- ${s.descricao}: *${moneyFmt(s.valorTotal)}*${s.executor ? ` (${s.executor})` : ''}`
-    ).join('\n');
-    blocks.push(`----------------------------------------\n> *Serviços Discriminados*\n${servicosLines}`);
+    const servHeader = `> *Serviços Discriminados (${params.servicos.length} itens · ${moneyFmt(totalServicos)})*`;
+    const servLines = formatCategorizedSection(params.servicos, true, moneyFmt);
+    blocks.push([servHeader, ...servLines].join('\n'));
   } else {
-    blocks.push(`----------------------------------------\n> *Serviços Discriminados*\n- Nenhum serviço discriminado nesta OS.`);
+    blocks.push(`> *Serviços Discriminados*\n- Nenhum serviço discriminado nesta OS.`);
   }
 
-  // 4. Peças e Materiais Aplicados (Obrigatório - Nunca omitir)
+  // Bloco 3: Peças e Insumos (agrupados por sistemas mecânicos, com chunking se > 800ch)
+  const totalPecas = params.pecas?.reduce((acc, p) => acc + (p.valorTotal || 0), 0) ?? 0;
   if (params.pecas && params.pecas.length > 0) {
-    const pecasLines = params.pecas.map(p => 
-      `- ${p.descricao}: ${p.qtd || 1}x *${moneyFmt(p.valorTotal)}*${p.codigo ? ` (${p.codigo})` : ''}`
-    ).join('\n');
-    blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n${pecasLines}`);
-  } else {
-    const totServ = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
-    const saldoPecas = (params.totalAmount || 0) - totServ;
-    if (saldoPecas > 0.05) {
-      blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Peças / Componentes de Reparo: *${moneyFmt(saldoPecas)}*`);
+    const pecasHeader = `> *Peças e Materiais Aplicados (${params.pecas.length} itens · ${moneyFmt(totalPecas)})*`;
+    const pecasLines = formatCategorizedSection(params.pecas, false, moneyFmt);
+    const fullPecasText = [pecasHeader, ...pecasLines].join('\n');
+
+    if (fullPecasText.length > 800 && pecasLines.length > 6) {
+      const mid = Math.ceil(pecasLines.length / 2);
+      const p1 = pecasLines.slice(0, mid);
+      const p2 = pecasLines.slice(mid);
+      blocks.push([`> *Peças e Materiais (Parte 1/2 · ${moneyFmt(totalPecas)})*`, ...p1].join('\n'));
+      blocks.push([`> *Peças e Materiais (Parte 2/2)*`, ...p2].join('\n'));
     } else {
-      blocks.push(`----------------------------------------\n> *Peças e Materiais Aplicados*\n- Nenhuma peça discriminada nesta OS (ordem 100% serviços).`);
+      blocks.push(fullPecasText);
+    }
+  } else {
+    const saldoPecas = (params.totalAmount || 0) - totalServicos;
+    if (saldoPecas > 0.05) {
+      blocks.push(`> *Peças e Materiais Aplicados*\n- Peças / Componentes de Reparo: *${moneyFmt(saldoPecas)}*`);
+    } else {
+      blocks.push(`> *Peças e Materiais Aplicados*\n- Nenhuma peça discriminada nesta OS (ordem 100% serviços).`);
     }
   }
 
-  // 5. Formas de Pagamento
+  // Bloco 4: Formas de Pagamento + Vistorias e Documentos (com pareamento hierárquico estrito de checklists)
+  const b4Lines: string[] = [];
+  b4Lines.push(`> *Formas de Pagamento*`);
   if (params.pagamentos && params.pagamentos.length > 0) {
-    const pagLines = params.pagamentos.map(p => 
-      `- Parcela ${p.parcela}: *${moneyFmt(p.valor)}* (${p.modalidade}${p.vencimento ? `, Venc: ${p.vencimento}` : ''})`
-    ).join('\n');
-    blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n${pagLines}`);
+    for (const p of params.pagamentos) {
+      b4Lines.push(`- Parcela ${p.parcela}: *${moneyFmt(p.valor)}* (${p.modalidade}${p.vencimento ? `, Venc: ${p.vencimento}` : ''})`);
+    }
   } else if ((params.totalAmount || 0) > 0 && saldo <= 0) {
-    blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Ordem 100% quitada no ERP.`);
+    b4Lines.push(`- Ordem 100% quitada no ERP.`);
   } else {
-    blocks.push(`----------------------------------------\n> *Formas de Pagamento*\n- Total: *${moneyFmt(params.totalAmount || 0)}* (Saldo: *${moneyFmt(saldo)}*)\n- Modalidade específica de parcelamento não cadastrada; pendente de sinal/quitação.`);
+    b4Lines.push(`- Total: *${moneyFmt(params.totalAmount || 0)}* (Saldo: *${moneyFmt(saldo)}*)`);
+    b4Lines.push(`- Modalidade específica de parcelamento não cadastrada; pendente de sinal/quitação.`);
   }
 
-  // 6. Vistorias e Documentos
-  const docLines: string[] = [];
+  b4Lines.push(``);
+  b4Lines.push(`> *Vistorias e Documentos*`);
   if (params.extracaoCompleta === false) {
-    docLines.push(`- *Checklists:* Sincronização detalhada do ERP em andamento.`);
+    b4Lines.push(`- *Checklists:* Sincronização detalhada do ERP em andamento.`);
   } else {
     const temEntrada = params.checklistAudit?.temChecklistEntrada;
     const temMec = params.checklistAudit?.temChecklistMecanico;
-    docLines.push(`- *Checklist de Entrada:* ${temEntrada ? '✅ Realizado' : '⚠️ Pendente'}`);
-    docLines.push(`- *Checklist do Mecânico:* ${temMec ? '✅ Realizado' : '⚠️ Pendente'}`);
-    if (params.checklists && params.checklists.length > 0) {
-      for (const cl of params.checklists) {
-        docLines.push(`  └ *${cl.tipo}:* ${cl.status} (${cl.realizado_por || 'Técnico'}, ${cl.data})`);
-      }
-    } else if (params.checklistAudit?.detalhes) {
-      docLines.push(`- *Status:* ${params.checklistAudit.detalhes}`);
+
+    // 1. Checklist de Entrada (itens de inspeção/entrada aparecem imediatamente subordinados aqui)
+    b4Lines.push(`- *Checklist de Entrada:* ${temEntrada ? 'Realizado' : 'Pendente'}`);
+    const itensEntrada = (params.checklists || []).filter(c => {
+      const t = (c.tipo || '').toLowerCase();
+      return t.includes('inspe') || t.includes('entrada') || (!t.includes('mecanic') && !t.includes('mecanico'));
+    });
+    for (const cl of itensEntrada) {
+      const resp = cl.realizado_por ? `${cl.realizado_por}` : 'Técnico';
+      const dt = cl.data ? `, ${cl.data}` : '';
+      b4Lines.push(`  └ *${toCleanTitleCase(cl.tipo)}:* ${cl.status} (${resp}${dt})`);
+    }
+
+    // 2. Checklist do Mecânico (itens de mecânico aparecem subordinados aqui)
+    b4Lines.push(`- *Checklist do Mecânico:* ${temMec ? 'Realizado' : 'Pendente'}`);
+    const itensMecanico = (params.checklists || []).filter(c => {
+      const t = (c.tipo || '').toLowerCase();
+      return t.includes('mecanic') || t.includes('mecanico');
+    });
+    for (const cl of itensMecanico) {
+      const resp = cl.realizado_por ? `${cl.realizado_por}` : 'Mecânico';
+      const dt = cl.data ? `, ${cl.data}` : '';
+      b4Lines.push(`  └ *${toCleanTitleCase(cl.tipo)}:* ${cl.status} (${resp}${dt})`);
+    }
+
+    if ((!params.checklists || params.checklists.length === 0) && params.checklistAudit?.detalhes) {
+      b4Lines.push(`- *Status:* ${params.checklistAudit.detalhes}`);
     }
   }
-  docLines.push(`- *Nota Fiscal:* ${params.temNf ? 'Emitida/vinculada à OS' : 'Não emitida para esta OS.'}`);
-  if (params.documentosAnexosCount !== undefined && params.documentosAnexosCount > 0) {
-    docLines.push(`- *Anexos:* ${params.documentosAnexosCount} documento(s) arquivado(s).`);
-  }
-  blocks.push(`----------------------------------------\n> *Vistorias e Documentos*\n${docLines.join('\n')}`);
 
-  return blocks.join('\n\n');
+  b4Lines.push(`- *Nota Fiscal:* ${params.temNf ? 'Emitida/vinculada à OS' : 'Não emitida para esta OS.'}`);
+  if (params.documentosAnexosCount !== undefined && params.documentosAnexosCount > 0) {
+    b4Lines.push(`- *Anexos:* ${params.documentosAnexosCount} documento(s) arquivado(s).`);
+  }
+
+  blocks.push(b4Lines.join('\n'));
+
+  return blocks.join('\n\n---BLOCK---\n\n');
 }
 
 /**
  * Detecta se a mensagem é uma consulta sobre conversas, áudios,
- * diálogos ou alinhamentos com o cliente vinculados a uma OS.
+ * diálogos, histórico ou alinhamentos com o cliente vinculados a uma OS.
  */
 export function isOSConversationQuery(text: string): boolean {
   const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   return (
-    /\b(conversa|conversas|audio|audios|dialogo|dialogos|falou|falaram|combinou|combinado|alinhamento|disse|atendimento|chat|mensagem|mensagens|zap|whatsapp)\b/i.test(norm) ||
+    /\b(conversa|conversas|audio|audios|dialogo|dialogos|falou|falaram|combinou|combinado|alinhamento|disse|atendimento|chat|mensagem|mensagens|zap|whatsapp|historico)\b/i.test(norm) ||
     norm.includes('acesso a conversa') ||
     norm.includes('acesso as conversas') ||
     norm.includes('temcesso a nenhuma conversa') ||
     norm.includes('tem conversa') ||
     norm.includes('bate com grafo') ||
     norm.includes('grafo de conversa') ||
-    norm.includes('conversas que bate')
+    norm.includes('conversas que bate') ||
+    norm.includes('detalhes da conversa') ||
+    norm.includes('detalhe da conversa')
   );
 }
 
@@ -692,11 +907,25 @@ export interface OSConversationCardParams {
   vehicleModel?: string;
   vehiclePlate?: string;
   clientName?: string;
+  clientPhone?: string;
+  clienteTelefone?: string;
   statusGrid?: string;
   isOpen?: boolean;
   daysInYard?: number;
   totalAmount?: number;
   remainingBalance?: number;
+  // Auditoria do ERP
+  observacao?: string;
+  historicoCriadoEm?: string;
+  historicoCriadoPor?: string;
+  historicoAtualizadoEm?: string;
+  historicoAtualizadoPor?: string;
+  documentosAnexos?: Array<{
+    origem?: string;
+    data?: string;
+    descricao?: string;
+    opcao?: string;
+  }>;
   caseContext?: {
     documentedDelayReason?: string;
     nextPromisedStep?: string;
@@ -711,7 +940,7 @@ export interface OSConversationCardParams {
 
 /**
  * Monta o card executivo para consultas focadas em conversas e histórico
- * da ordem de serviço vinculada no Grafo de Atendimento.
+ * da ordem de serviço vinculada no Grafo de Atendimento e na Auditoria do ERP.
  */
 export function composeOSConversationCard(params: OSConversationCardParams): string {
   const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
@@ -719,16 +948,20 @@ export function composeOSConversationCard(params: OSConversationCardParams): str
   const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
   const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
   const statusStr = params.statusGrid || (params.isOpen ? 'Em Aberto' : 'Finalizada');
+  const phone = params.clienteTelefone || params.clientPhone;
 
-  // Cabeçalho
-  blocks.push(
-    `> *OS #${params.osId} — ${modelStr} (${plateStr}) | Histórico e Conversas*\n` +
+  // 1. Cabeçalho Executivo
+  let header = `> *OS #${params.osId} — ${modelStr} (${plateStr}) | Histórico e Conversas*\n` +
     `- *Loja:* ${params.lojaSlug}\n` +
     `- *Status:* *${statusStr}* (${params.isOpen ? 'Em Aberto' : 'Finalizada'})\n` +
     `- *Permanência:* ${params.daysInYard || 0} dia(s) no pátio\n` +
-    `- *Cliente:* ${params.clientName || 'Não informado'}`
-  );
+    `- *Cliente:* ${params.clientName || 'Não informado'}`;
+  if (phone) {
+    header += `\n- *Telefone:* ${phone}`;
+  }
+  blocks.push(header);
 
+  // 2. Se houver dados reais de conversa no grafo de atendimento
   const caseLines: string[] = [];
   if (params.caseContext?.documentedDelayReason) {
     caseLines.push(`- *Motivo Operacional:* ${params.caseContext.documentedDelayReason}`);
@@ -750,18 +983,43 @@ export function composeOSConversationCard(params: OSConversationCardParams): str
   }
 
   if (caseLines.length > 0) {
-    blocks.push(`----------------------------------------\n> *Posição de Atendimento no Grafo*\n${caseLines.join('\n')}`);
-  } else {
-    blocks.push(
-      `----------------------------------------\n` +
-      `> *Posição de Atendimento no Grafo*\n` +
-      `- Não há conversa de atendimento vinculada comprovadamente a esta OS no Grafo de Atendimento até o momento.\n` +
-      `- Os registros operacionais disponíveis são os consolidados no ERP:\n` +
-      `  └ Total da OS: *${moneyFmt(params.totalAmount || 0)}* (Saldo: *${moneyFmt(params.remainingBalance || 0)}*)\n` +
-      `  └ Permanência: *${params.daysInYard || 0} dia(s) no pátio*`
-    );
+    blocks.push(`> *Posição de Atendimento no Grafo*\n${caseLines.join('\n')}`);
   }
 
-  return blocks.join('\n\n');
+  // 3. Auditoria Operacional no ERP (Sempre presente para transparência fática da OS)
+  const auditLines: string[] = [];
+  if (params.historicoCriadoPor || params.historicoCriadoEm) {
+    const criador = params.historicoCriadoPor ? params.historicoCriadoPor : 'Consultor da Loja';
+    const dataCriacao = params.historicoCriadoEm ? ` em ${params.historicoCriadoEm}` : '';
+    auditLines.push(`- *Abertura no ERP:* ${criador}${dataCriacao}`);
+  }
+  if (params.historicoAtualizadoPor || params.historicoAtualizadoEm) {
+    const atualizador = params.historicoAtualizadoPor ? params.historicoAtualizadoPor : 'Consultor da Loja';
+    const dataAtualizacao = params.historicoAtualizadoEm ? ` em ${params.historicoAtualizadoEm}` : '';
+    auditLines.push(`- *Última Movimentação:* ${atualizador}${dataAtualizacao}`);
+  }
+
+  if (params.observacao && params.observacao.trim()) {
+    auditLines.push(`- *Observações do Sistema:* ${params.observacao.trim()}`);
+  } else {
+    auditLines.push(`- *Observações do Sistema:* Vazio (nenhuma anotação ou autorização textual registrada na OS)`);
+  }
+
+  if (params.documentosAnexos && params.documentosAnexos.length > 0) {
+    const docs = params.documentosAnexos.map(d => `${d.data ? `${d.data}: ` : ''}${d.descricao || d.origem || 'Documento'}`).join(', ');
+    auditLines.push(`- *Anexos Arquivados:* ${params.documentosAnexos.length} documento(s) (${docs})`);
+  } else {
+    auditLines.push(`- *Anexos Arquivados:* Nenhum anexo ou foto arquivada`);
+  }
+
+  if (phone) {
+    auditLines.push(`- *WhatsApp / Canais:* Não há conversas de balcão espelhadas para o número ${phone}. Negociações e alinhamentos ficam restritos ao aparelho físico da unidade ${params.lojaSlug}.`);
+  } else {
+    auditLines.push(`- *WhatsApp / Canais:* Telefone não cadastrado na OS para consulta nos canais de atendimento.`);
+  }
+
+  blocks.push(`> *Auditoria Operacional no ERP*\n${auditLines.join('\n')}`);
+
+  return blocks.join('\n\n---BLOCK---\n\n');
 }
 

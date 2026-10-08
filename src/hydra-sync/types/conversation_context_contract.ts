@@ -150,6 +150,12 @@ export interface OperationalOSRecord {
   readonly pendingServices: readonly string[];
   readonly openedAt: string;
   readonly updatedAt: string;
+  readonly clienteCpf?: string;
+  readonly observacao?: string;
+  readonly historicoCriadoEm?: string;
+  readonly historicoCriadoPor?: string;
+  readonly historicoAtualizadoEm?: string;
+  readonly historicoAtualizadoPor?: string;
 }
 
 export type LinkMethod = 
@@ -518,6 +524,9 @@ export interface CaseContextResult {
   readonly documentedDelayReason?: string;
   readonly nextPromisedStep?: string;
   readonly lastObservationDate?: string;
+  readonly conversationSummary?: string;
+  readonly partsBalanceSummary?: string;
+  readonly budgetStatus?: string;
   readonly evidenceOrigin?: 'GRAPH_PROJECTION' | 'CANONICAL_ANALYSIS' | 'ERP_DIRECT';
   readonly isLimitationDeclared?: boolean;
 }

@@ -5,6 +5,7 @@ import type { TurnPendingRequest } from './types/conversation_context_contract.j
 export type IntentType =
   | 'list_os'
   | 'os_detail'
+  | 'os_conversation'
   | 'store_overview'
   | 'financial_alerts'
   | 'service_search'
