@@ -47,5 +47,5 @@ supabase/.temp/
 *.jpeg
 
 # Subprojects
-projects/watchdog/
+projects/hydra-watchdog/
 projects/mec-nica-financeiro/
