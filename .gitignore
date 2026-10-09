@@ -49,3 +49,9 @@ supabase/.temp/
 # Subprojects
 projects/hydra-watchdog/
 projects/mec-nica-financeiro/
+
+# Local databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm

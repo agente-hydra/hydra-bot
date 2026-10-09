@@ -959,14 +959,7 @@ export function composeExecutiveOSSummary(params: OS360CardParams): string {
     `- Peças e materiais: ${pecasCount} item(ns)${pecasTotal > 0 ? ` (${moneyFmt(pecasTotal)})` : ''}`,
     `- Pagamentos: ${pagamentosCount} parcela(s) cadastrada(s)`,
     `- Vistorias e documentos: ${checklistsCount} checklist(s) · ${anexosCount} anexo(s)`,
-    `- Histórico: Auditoria ERP e conversas`,
-    ``,
-    `Selecione uma opção no menu ou digite:`,
-    `SERVICOS ${params.osId}`,
-    `PECAS ${params.osId}`,
-    `PAGAMENTOS ${params.osId}`,
-    `DOCUMENTOS ${params.osId}`,
-    `HISTORICO ${params.osId}`
+    `- Histórico: Auditoria ERP e conversas`
   ];
 
   return lines.join('\n');

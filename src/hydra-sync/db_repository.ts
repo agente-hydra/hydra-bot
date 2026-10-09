@@ -28,6 +28,9 @@ import type {
 
 export type { OrderRecord, OrderOperationalState, OrderDataQuality };
 
+import type { LancamentoContaPagar } from './contas_pagar_parser.js';
+export type { LancamentoContaPagar };
+
 
 import Database from 'better-sqlite3';
 import * as path from 'path';
@@ -521,6 +524,29 @@ export function initSchema(db: Database.Database): void {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_ai_telemetry_status ON ai_briefing_telemetry(status, created_at DESC);
+
+    -- Tabela oficial de Contas a Pagar (Contas Pagas)
+    CREATE TABLE IF NOT EXISTS contas_pagar_lancamentos (
+      id TEXT PRIMARY KEY,
+      loja_slug TEXT NOT NULL,
+      loja_original TEXT NOT NULL,
+      codigo INTEGER NOT NULL,
+      parcela TEXT NOT NULL,
+      fornecedor TEXT NOT NULL,
+      descricao TEXT NOT NULL,
+      tipo TEXT NOT NULL,
+      data_vencimento TEXT NOT NULL,
+      data_previsao TEXT,
+      valor_a_pagar REAL NOT NULL,
+      status TEXT NOT NULL,
+      data_pagamento TEXT NOT NULL,
+      valor_pago REAL NOT NULL,
+      data_extracao TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_cp_data_pgto ON contas_pagar_lancamentos(data_pagamento);
+    CREATE INDEX IF NOT EXISTS idx_cp_loja ON contas_pagar_lancamentos(loja_slug);
+    CREATE INDEX IF NOT EXISTS idx_cp_fornecedor ON contas_pagar_lancamentos(fornecedor);
   `);
 
     // Migrações aditivas idempotentes para ordens_servico e ordens_servico_staging (E3-E2.1)
@@ -581,9 +607,13 @@ export function initSchema(db: Database.Database): void {
           os_key TEXT PRIMARY KEY,
           os_embedding float[384]
         );
+        CREATE VIRTUAL TABLE IF NOT EXISTS vec_contas_pagar USING vec0(
+          id TEXT PRIMARY KEY,
+          embedding float[384]
+        );
       `);
     } catch (err: any) {
-      console.warn('[VEC] Falha ao criar tabela virtual vec_ordens_servico:', err?.message || err);
+      console.warn('[VEC] Falha ao criar tabela virtual vec_ordens_servico / vec_contas_pagar:', err?.message || err);
     }
   }
 
@@ -598,6 +628,15 @@ export function initSchema(db: Database.Database): void {
         cliente_nome,
         responsavel,
         termos_busca,
+        tokenize = 'unicode61 remove_diacritics 2'
+      );
+
+      CREATE VIRTUAL TABLE IF NOT EXISTS contas_pagar_fts USING fts5(
+        id UNINDEXED,
+        loja_slug UNINDEXED,
+        fornecedor,
+        descricao,
+        tipo,
         tokenize = 'unicode61 remove_diacritics 2'
       );
 
@@ -4798,6 +4837,141 @@ export function initHydraAccessAndMemorySchema(db: Database.Database): void {
   } catch (err: any) {
     console.warn('[ACCESS_MEMORY_SCHEMA] Erro ao inicializar schema de acesso e memoria:', err?.message || err);
   }
+}
+
+export function upsertLoteContasPagar(
+  db: Database.Database,
+  lancamentos: LancamentoContaPagar[]
+): { inseridos: number; atualizados: number } {
+  if (!lancamentos || lancamentos.length === 0) {
+    return { inseridos: 0, atualizados: 0 };
+  }
+
+  const checkStmt = db.prepare('SELECT id FROM contas_pagar_lancamentos WHERE id = ?');
+  const insertStmt = db.prepare(`
+    INSERT INTO contas_pagar_lancamentos (
+      id, loja_slug, loja_original, codigo, parcela, fornecedor, descricao,
+      tipo, data_vencimento, data_previsao, valor_a_pagar, status,
+      data_pagamento, valor_pago, data_extracao
+    ) VALUES (
+      @id, @lojaSlug, @lojaOriginal, @codigo, @parcela, @fornecedor, @descricao,
+      @tipo, @dataVencimento, @dataPrevisao, @valorAPagar, @status,
+      @dataPagamento, @valorPago, @dataExtracao
+    )
+    ON CONFLICT(id) DO UPDATE SET
+      loja_slug = excluded.loja_slug,
+      loja_original = excluded.loja_original,
+      fornecedor = excluded.fornecedor,
+      descricao = excluded.descricao,
+      tipo = excluded.tipo,
+      data_vencimento = excluded.data_vencimento,
+      data_previsao = excluded.data_previsao,
+      valor_a_pagar = excluded.valor_a_pagar,
+      status = excluded.status,
+      data_pagamento = excluded.data_pagamento,
+      valor_pago = excluded.valor_pago,
+      data_extracao = excluded.data_extracao
+  `);
+
+  let ftsInsertStmt: Database.Statement | null = null;
+  let ftsDeleteStmt: Database.Statement | null = null;
+  try {
+    const ftsCheck = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'contas_pagar_fts'").get();
+    if (ftsCheck) {
+      ftsDeleteStmt = db.prepare('DELETE FROM contas_pagar_fts WHERE id = ?');
+      ftsInsertStmt = db.prepare('INSERT INTO contas_pagar_fts(id, loja_slug, fornecedor, descricao, tipo) VALUES (?, ?, ?, ?, ?)');
+    }
+  } catch {}
+
+  let inseridos = 0;
+  let atualizados = 0;
+
+  const runTx = db.transaction((items: LancamentoContaPagar[]) => {
+    for (const item of items) {
+      const exists = checkStmt.get(item.id);
+      insertStmt.run(item);
+      if (exists) {
+        atualizados++;
+      } else {
+        inseridos++;
+      }
+
+      if (ftsInsertStmt && ftsDeleteStmt) {
+        try {
+          ftsDeleteStmt.run(item.id);
+          ftsInsertStmt.run(item.id, item.lojaSlug, item.fornecedor, item.descricao, item.tipo);
+        } catch {}
+      }
+    }
+  });
+
+  runTx(lancamentos);
+  return { inseridos, atualizados };
+}
+
+export interface FiltrosContasPagar {
+  dataInicio?: string;
+  dataFim?: string;
+  lojaSlug?: string;
+  fornecedor?: string;
+  termo?: string;
+  limite?: number;
+}
+
+export function consultarContasPagarRelacional(
+  db: Database.Database,
+  filtros: FiltrosContasPagar = {}
+): LancamentoContaPagar[] {
+  let sql = 'SELECT * FROM contas_pagar_lancamentos WHERE 1=1';
+  const params: any[] = [];
+
+  if (filtros.dataInicio) {
+    sql += ' AND data_pagamento >= ?';
+    params.push(filtros.dataInicio);
+  }
+  if (filtros.dataFim) {
+    sql += ' AND data_pagamento <= ?';
+    params.push(filtros.dataFim);
+  }
+  if (filtros.lojaSlug && filtros.lojaSlug !== '*' && filtros.lojaSlug !== 'todas') {
+    sql += ' AND loja_slug = ?';
+    params.push(filtros.lojaSlug);
+  }
+  if (filtros.fornecedor) {
+    sql += ' AND fornecedor LIKE ?';
+    params.push(`%${filtros.fornecedor}%`);
+  }
+  if (filtros.termo) {
+    sql += ' AND (descricao LIKE ? OR fornecedor LIKE ?)';
+    params.push(`%${filtros.termo}%`, `%${filtros.termo}%`);
+  }
+
+  sql += ' ORDER BY data_pagamento DESC, valor_pago DESC';
+
+  if (filtros.limite && filtros.limite > 0) {
+    sql += ' LIMIT ?';
+    params.push(filtros.limite);
+  }
+
+  const rows = db.prepare(sql).all(...params) as any[];
+  return rows.map((r: any) => ({
+    id: r.id,
+    lojaSlug: r.loja_slug,
+    lojaOriginal: r.loja_original,
+    codigo: r.codigo,
+    parcela: r.parcela,
+    fornecedor: r.fornecedor,
+    descricao: r.descricao,
+    tipo: r.tipo,
+    dataVencimento: r.data_vencimento,
+    dataPrevisao: r.data_previsao,
+    valorAPagar: r.valor_a_pagar,
+    status: r.status,
+    dataPagamento: r.data_pagamento,
+    valorPago: r.valor_pago,
+    dataExtracao: r.data_extracao,
+    textoSemantico: `${r.data_pagamento} - ${r.loja_slug}: Pago R$ ${r.valor_pago.toFixed(2)} para ${r.fornecedor} (${r.descricao})`
+  }));
 }
 
 export {

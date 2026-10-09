@@ -1614,6 +1614,20 @@ async function handleIncomingPayload(payload, headers = {}, customDb = null) {
     } catch {}
   }
 
+  // Injetor de Prompt Humano: Converte rowId técnico em pergunta conversacional para a IA
+  if (interactiveText) {
+    const osMatch = interactiveText.match(/^os_(\d{1,8})_(servicos|pecas|pagamentos|documentos|historico)$/i);
+    if (osMatch) {
+      const osId = osMatch[1];
+      const mod = osMatch[2].toLowerCase();
+      if (mod === "servicos") interactiveText = `Quais são os serviços discriminados da OS #${osId}?`;
+      else if (mod === "pecas") interactiveText = `Quais são as peças e materiais aplicados na OS #${osId}?`;
+      else if (mod === "pagamentos") interactiveText = `Quais são as formas de pagamento e parcelas da OS #${osId}?`;
+      else if (mod === "documentos") interactiveText = `Mostre as vistorias, checklists e documentos da OS #${osId}.`;
+      else if (mod === "historico") interactiveText = `Qual o histórico de atendimento, conversas e tratativas da OS #${osId}?`;
+    }
+  }
+
   let text = (
     interactiveText ||
     messageObj?.conversation ||

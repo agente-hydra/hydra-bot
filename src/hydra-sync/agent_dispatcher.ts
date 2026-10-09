@@ -48,7 +48,8 @@ import {
   type AllowedOSModule,
   ALLOWED_OS_MODULES,
   OS_MODULE_ROW_ID_REGEX,
-  type EvoListPayload
+  type EvoListPayload,
+  translateInteractiveRowToPrompt
 } from './types/evo_interactive_contract.js';
 
 export function parseOSModuleIntent(
@@ -284,7 +285,8 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   const db = input.db || getDatabaseConnection();
   const phone = (input.phone || '5511999999999').replace(/\D/g, '');
   const rawMsg = input.message || (input as any).text || '';
-  const textoLimpo = rawMsg.trim();
+  const translatedMsg = translateInteractiveRowToPrompt(rawMsg.trim());
+  const textoLimpo = translatedMsg.trim();
   const norm = normalizarTexto(textoLimpo);
   const rawMessageId = input.messageId != null ? String(input.messageId) : undefined;
   const rawConvId = input.conversationId != null ? String(input.conversationId) : undefined;
@@ -847,22 +849,6 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     : textoLimpo.match(/\b(?:os|ordem)[_\s]*#?\s*(\d{1,8})\b/i);
   let modelMatch = textoLimpo.match(/\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks|voyage|fox|c3|c4|sandero|clio|duster|logan|uno|siena|mobi|strada|saveiro|ka|ecosport|spin|prisma|cruze|fit|city|hr-v|etios|yaris|peugeot|208|308|408|celta|corsa|meriva|zafira|tucson|ix35|up|fusca|bravo|punto|stilo|idea|doblo|amarok|hilux|ranger|s10|l200|frontier|toro|oroch)\b/i);
 
-  if (!modelMatch && !plateMatch && !osMatch && !isExplicitFinancialQuery(textoLimpo) && norm.length >= 3) {
-    try {
-      const cleanWord = textoLimpo.replace(/[^a-zA-Z0-9]/g, ' ').trim().split(/\s+/)[0];
-      if (cleanWord && cleanWord.length >= 3) {
-        const dbModelRow = db.prepare(`
-          SELECT veiculo FROM ordens_servico 
-          WHERE UPPER(veiculo) LIKE UPPER(?) 
-          LIMIT 1
-        `).get(`%${cleanWord}%`) as { veiculo?: string } | undefined;
-        if (dbModelRow?.veiculo) {
-          modelMatch = [cleanWord, cleanWord] as any;
-        }
-      }
-    } catch {}
-  }
-
   // Precedência estrita: consultas financeiras ou de métricas NUNCA são capturadas como veículo
   const isFinancialQuery = isExplicitFinancialQuery(textoLimpo);
 
@@ -899,70 +885,6 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
 
   const isOSConv = isOSConversationQuery(norm);
 
-  if (isOSConv && !currentModel && !currentPlate && !currentOsId) {
-    const replyText = 'Sim, tenho acesso ao Grafo de Atendimento com o histórico de conversas, áudios e alinhamentos de clientes vinculados às ordens de serviço. Por favor, informe o número da OS ou a placa do veículo que deseja consultar.';
-    const messages = splitIntoWhatsAppBlocks(replyText);
-    const totalMs = Date.now() - startTime;
-
-    saveConversationMessage(db, phone, 'user', textoLimpo);
-    saveConversationMessage(db, phone, 'assistant', replyText, 'get_os_case_history', null);
-
-    saveTurnState(db, {
-      phone,
-      lastTurnId: previousState?.lastTurnId || ('turn_' + Date.now()),
-      lastIntent: 'os_conversation',
-      lojaSlug: prevLojaSlug,
-      placa: prevPlaca,
-      osId: prevOsId,
-      filters: {
-        ...(previousState?.filters || {}),
-        vehicleModel: prevVehicleModel,
-        pendingRequest: prevPending
-      },
-      lastMessageId: rawMessageId ? Number(rawMessageId) || undefined : undefined,
-      lastResponseText: replyText,
-      updatedAt: new Date().toISOString()
-    });
-
-    if (rawMessageId) {
-      markMessageCompleted(db, rawMessageId, {
-        messages,
-        replyText,
-        toolsCalled: ['get_os_case_history'],
-        motorUsed: 'FALLBACK_API',
-        latenciaMs: totalMs
-      });
-    }
-
-    insertAgentInteractionLog(db, {
-      phone,
-      conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
-      message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
-      pergunta: textoLimpo,
-      tools_chamadas: ['get_os_case_history'],
-      resposta_gerada: replyText,
-      latencia_ms: totalMs,
-      motor_utilizado: 'FALLBACK_API'
-    });
-
-    return {
-      messages,
-      replyText,
-      toolsCalled: ['get_os_case_history'],
-      motor: 'FALLBACK_API',
-      latenciaMs: totalMs,
-      telemetry: {
-        queueWaitMs,
-        intentRewriteMs: 0,
-        executionDbMs: 0,
-        llmMs: 0,
-        formatMs: 0,
-        totalMs
-      },
-      isFeedback: false
-    };
-  }
-
   const isAnaphoraOSRequest = Boolean(
     (currentOsId || currentPlate || currentModel) && (
       isOSConv ||
@@ -998,188 +920,8 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     isAnaphoraOSRequest
   );
 
-  if (isExplicitVehicleRequest && (currentModel || currentPlate || currentOsId)) {
-    const tDbStart = Date.now();
-    const resolution = resolveVehicleTarget(db, {
-      model: currentModel,
-      plate: currentPlate,
-      osId: currentOsId,
-      storeSlug: currentStore
-    });
-    executionDbMs = Date.now() - tDbStart;
-
-    let replyText = '';
-    let toolsCalled: string[] = [];
-    let pendingReq: TurnPendingRequest | undefined;
-    let interactiveListPayload: EvoListPayload | undefined = undefined;
-
-    if (resolution.status === 'AMBIGUOUS_VEHICLE') {
-      replyText = resolution.clarificationPrompt;
-      toolsCalled = ['resolve_vehicle_target'];
-      pendingReq = {
-        originalUserPrompt: textoLimpo,
-        operation: opType,
-        targetModel: currentModel,
-        targetPlate: undefined,
-        targetOsId: undefined,
-        targetLojaSlug: undefined,
-        generationId: 1,
-        requestedAt: new Date().toISOString(),
-        deliveryStatus: 'PENDING_CHOICE'
-      };
-    } else if (resolution.status === 'RESOLVED') {
-      const caseCtx = getCaseContext(db, resolution.activeOrder);
-      const osDetail = getOSDetails(db, {
-        os_id: resolution.activeOrder.osId,
-        loja_slug: resolution.activeOrder.storeSlug
-      });
-
-      const os360Params: OS360CardParams = {
-        osId: osDetail?.osId ?? resolution.activeOrder.osId,
-        lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
-        vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
-        vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
-        clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
-        clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
-        clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
-        responsavel: osDetail?.responsavel,
-        statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
-        isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
-        daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
-        totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
-        remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
-        servicos: osDetail?.servicos,
-        pecas: osDetail?.pecas,
-        pagamentos: osDetail?.pagamentos,
-        checklists: osDetail?.checklists,
-        checklistAudit: osDetail?.checklistAudit,
-        temNf: osDetail?.temNf,
-        documentosAnexosCount: osDetail?.documentosAnexos?.length,
-        extracaoCompleta: osDetail?.extracaoCompleta,
-        observacao: osDetail?.observacao,
-        historicoCriadoEm: osDetail?.historicoCriadoEm,
-        historicoCriadoPor: osDetail?.historicoCriadoPor,
-        historicoAtualizadoEm: osDetail?.historicoAtualizadoEm,
-        historicoAtualizadoPor: osDetail?.historicoAtualizadoPor,
-        documentosAnexos: osDetail?.documentosAnexos,
-        caseContext: caseCtx ? {
-          documentedDelayReason: caseCtx.documentedDelayReason,
-          nextPromisedStep: caseCtx.nextPromisedStep,
-          lastObservationDate: caseCtx.lastObservationDate,
-          conversationSummary: caseCtx.conversationSummary,
-          partsBalanceSummary: caseCtx.partsBalanceSummary,
-          budgetStatus: caseCtx.budgetStatus,
-          coverage: caseCtx.coverage,
-          evidenceOrigin: caseCtx.evidenceOrigin
-        } : undefined
-      };
-
-      const moduleIntent = parseOSModuleIntent(textoLimpo, resolution.activeOrder.osId);
-      const activeModule = isOSConv ? 'historico' : moduleIntent?.module;
-
-      toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
-      interactiveListPayload = composeOSInteractiveListPayload(os360Params, phone);
-
-      if (activeModule === 'servicos') {
-        replyText = composeOSServicesCard(os360Params);
-      } else if (activeModule === 'pecas') {
-        replyText = composeOSPartsCard(os360Params);
-      } else if (activeModule === 'pagamentos') {
-        replyText = composeOSPaymentsCard(os360Params);
-      } else if (activeModule === 'documentos') {
-        replyText = composeOSDocumentsCard(os360Params);
-      } else if (activeModule === 'historico') {
-        replyText = composeOSHistoryCard(os360Params);
-      } else {
-        replyText = composeExecutiveOSSummary(os360Params);
-      }
-
-      pendingReq = {
-        originalUserPrompt: textoLimpo,
-        operation: opType,
-        targetModel: resolution.vehicle.model,
-        targetPlate: resolution.vehicle.plate,
-        targetOsId: String(resolution.activeOrder.osId),
-        targetLojaSlug: resolution.vehicle.storeSlug,
-        generationId: 1,
-        requestedAt: new Date().toISOString(),
-        deliveryStatus: 'DELIVERED'
-      };
-    } else {
-      replyText = formatVehicleSituation(resolution);
-      toolsCalled = ['resolve_vehicle_target'];
-    }
-
-    replyText = sanitizeWhatsAppMarkdown(replyText);
-    const messages = splitIntoWhatsAppBlocks(replyText);
-    const totalMs = Date.now() - startTime;
-
-    saveConversationMessage(db, phone, 'user', textoLimpo);
-    saveConversationMessage(db, phone, 'assistant', replyText, toolsCalled[0] || null, null);
-
-    saveTurnState(db, {
-      phone,
-      lastTurnId: previousState?.lastTurnId || ('turn_' + Date.now()),
-      lastIntent: resolution.status === 'RESOLVED' ? (isOSConv ? 'os_conversation' : 'os_detail') : 'other',
-      lojaSlug: resolution.status === 'RESOLVED' ? resolution.vehicle.storeSlug : undefined,
-      placa: resolution.status === 'RESOLVED' ? resolution.vehicle.plate : undefined,
-      osId: resolution.status === 'RESOLVED' ? String(resolution.activeOrder.osId) : undefined,
-      filters: {
-        ...(previousState?.filters || {}),
-        vehicleModel: resolution.status === 'RESOLVED' ? resolution.vehicle.model : currentModel,
-        pendingRequest: pendingReq || prevPending
-      },
-      lastMessageId: rawMessageId ? Number(rawMessageId) || undefined : undefined,
-      lastResponseText: replyText,
-      updatedAt: new Date().toISOString()
-    });
-
-    if (rawMessageId) {
-      markMessageCompleted(db, rawMessageId, {
-        messages,
-        replyText,
-        toolsCalled,
-        motorUsed: 'FALLBACK_API',
-        latenciaMs: totalMs
-      });
-    }
-
-    insertAgentInteractionLog(db, {
-      phone,
-      conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
-      message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
-      pergunta: textoLimpo,
-      tools_chamadas: toolsCalled,
-      resposta_gerada: replyText,
-      latencia_ms: totalMs,
-      motor_utilizado: 'FALLBACK_API'
-    });
-
-    appendConversationToDailyDiary(phone, textoLimpo, replyText, {
-      turnId: previousState?.lastTurnId || ('turn_' + Date.now())
-    });
-
-    return {
-      messages,
-      replyText,
-      toolsCalled,
-      motor: 'FALLBACK_API',
-      latenciaMs: totalMs,
-      telemetry: {
-        queueWaitMs,
-        intentRewriteMs: 0,
-        executionDbMs,
-        llmMs: 0,
-        formatMs: 0,
-        totalMs
-      },
-      isFeedback: false,
-      interactiveList: interactiveListPayload
-    };
-  }
-
+  // 3. PIPELINE DE REESCRITA DE INTENÇÃO (Gera CanonicalIntent)
   saveConversationMessage(db, phone, 'user', textoLimpo);
-  // 3. PIPELINE DE REESCRITA DE INTEN??O (Gera CanonicalIntent)
   const tRewriteStart = Date.now();
   const canonical = rewriteIntent(textoLimpo, previousState, { batch: input.batch, parts: input.parts, mediaEvidence: input.mediaEvidence });
   intentRewriteMs = Date.now() - tRewriteStart;
@@ -1680,25 +1422,86 @@ ${textoLimpo}
     }
   } catch {
     llmMs = Date.now() - tLlmStart;
-    // Motor 2: Fallback Engine Determin?stico com Adaptador Desacoplado
+    // Motor 2: Fallback Engine Determinístico com Adaptador Desacoplado
     motor = 'FALLBACK_API';
     const tDbStart = Date.now();
 
-    // Blindagem de Contexto no Fallback: Herdar OS apenas se a consulta for anáfora explícita sobre aquela OS
-    if (!canonical.osId && inferredOsId && isAnaphoraOSRequest) {
-      canonical.osId = inferredOsId;
-    }
-    if (!canonical.lojaSlug && currentStore && currentStore !== 'Nenhuma (visão consolidada de rede)') {
-      canonical.lojaSlug = currentStore;
-    }
+    if (isExplicitVehicleRequest && (currentModel || currentPlate || currentOsId)) {
+      const resolution = resolveVehicleTarget(db, {
+        model: currentModel,
+        plate: currentPlate,
+        osId: currentOsId,
+        storeSlug: currentStore
+      });
+      if (resolution.status === 'RESOLVED') {
+        const osDetail = getOSDetails(db, {
+          os_id: resolution.activeOrder.osId,
+          loja_slug: resolution.activeOrder.storeSlug
+        });
+        const os360Params: OS360CardParams = {
+          osId: osDetail?.osId ?? resolution.activeOrder.osId,
+          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
+          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
+          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
+          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
+          clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+          clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+          responsavel: osDetail?.responsavel,
+          statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
+          isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
+          daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
+          totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
+          remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
+          servicos: osDetail?.servicos,
+          pecas: osDetail?.pecas,
+          pagamentos: osDetail?.pagamentos,
+          checklists: osDetail?.checklists,
+          checklistAudit: osDetail?.checklistAudit,
+          temNf: osDetail?.temNf,
+          documentosAnexosCount: osDetail?.documentosAnexos?.length,
+          extracaoCompleta: osDetail?.extracaoCompleta,
+          observacao: osDetail?.observacao,
+          historicoCriadoEm: osDetail?.historicoCriadoEm,
+          historicoCriadoPor: osDetail?.historicoCriadoPor,
+          historicoAtualizadoEm: osDetail?.historicoAtualizadoEm,
+          historicoAtualizadoPor: osDetail?.historicoAtualizadoPor,
+          documentosAnexos: osDetail?.documentosAnexos
+        };
+        const moduleIntent = parseOSModuleIntent(textoLimpo, resolution.activeOrder.osId);
+        const activeModule = isOSConv ? 'historico' : moduleIntent?.module;
+        if (activeModule === 'servicos') replyText = composeOSServicesCard(os360Params);
+        else if (activeModule === 'pecas') replyText = composeOSPartsCard(os360Params);
+        else if (activeModule === 'pagamentos') replyText = composeOSPaymentsCard(os360Params);
+        else if (activeModule === 'documentos') replyText = composeOSDocumentsCard(os360Params);
+        else if (activeModule === 'historico') replyText = composeOSHistoryCard(os360Params);
+        else replyText = composeExecutiveOSSummary(os360Params);
+        toolsCalled = ['resolve_vehicle_target', 'get_os_details'];
+      } else if (resolution.status === 'AMBIGUOUS_VEHICLE') {
+        replyText = resolution.clarificationPrompt;
+        toolsCalled = ['resolve_vehicle_target'];
+      } else {
+        replyText = formatVehicleSituation(resolution);
+        toolsCalled = ['resolve_vehicle_target'];
+      }
+      executionDbMs = Date.now() - tDbStart;
+      toolToRecord = toolsCalled[0] || null;
+    } else {
+      // Blindagem de Contexto no Fallback: Herdar OS apenas se a consulta for anáfora explícita sobre aquela OS
+      if (!canonical.osId && inferredOsId && isAnaphoraOSRequest) {
+        canonical.osId = inferredOsId;
+      }
+      if (!canonical.lojaSlug && currentStore && currentStore !== 'Nenhuma (visão consolidada de rede)') {
+        canonical.lojaSlug = currentStore;
+      }
 
-    const opResult = await executeOperationalQuery(db, canonical);
-    executionDbMs = Date.now() - tDbStart;
+      const opResult = await executeOperationalQuery(db, canonical);
+      executionDbMs = Date.now() - tDbStart;
 
-    replyText = opResult.replyText;
-    toolsCalled = opResult.toolsCalled;
-    toolToRecord = opResult.toolsCalled[0] || null;
-    paramsToRecord = opResult.filtersApplied;
+      replyText = opResult.replyText;
+      toolsCalled = opResult.toolsCalled;
+      toolToRecord = opResult.toolsCalled[0] || null;
+      paramsToRecord = opResult.filtersApplied;
+    }
   }
 
   // 5. ISOLAMENTO DE SA?DA E PERSIST?NCIA ESTRUTURADA DE ESTADO

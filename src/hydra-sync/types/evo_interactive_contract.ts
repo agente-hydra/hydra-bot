@@ -24,6 +24,29 @@ export function isAllowedOSModule(val: string): val is AllowedOSModule {
 
 export const OS_MODULE_ROW_ID_REGEX = /^os_(\d{1,8})_(servicos|pecas|pagamentos|documentos|historico)$/i;
 
+export function translateInteractiveRowToPrompt(rowId: string): string {
+  const osMatch = String(rowId || '').trim().match(OS_MODULE_ROW_ID_REGEX);
+  if (!osMatch) return rowId;
+
+  const osId = osMatch[1];
+  const mod = osMatch[2].toLowerCase() as AllowedOSModule;
+
+  switch (mod) {
+    case 'servicos':
+      return `Quais são os serviços discriminados da OS #${osId}?`;
+    case 'pecas':
+      return `Quais são as peças e materiais aplicados na OS #${osId}?`;
+    case 'pagamentos':
+      return `Quais são as formas de pagamento e parcelas da OS #${osId}?`;
+    case 'documentos':
+      return `Mostre as vistorias, checklists e documentos da OS #${osId}.`;
+    case 'historico':
+      return `Qual o histórico de atendimento, conversas e tratativas da OS #${osId}?`;
+    default:
+      return `Detalhe a Ordem de Serviço #${osId}.`;
+  }
+}
+
 export interface EvoListRow {
   /** Título principal visível na linha (ex: "1. Serviços") */
   readonly title: string;

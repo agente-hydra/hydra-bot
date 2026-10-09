@@ -24,6 +24,7 @@ import { getEmbedder } from './embeddings.js';
 import { processarDecisaoAuditada } from './decision_engine.js';
 import { retrieveOperationalData } from './hybrid_retrieval.js';
 import { resolveCaseContextByOs, buildCaseOperationalSummary } from './case_memory_reader.js';
+import { handleConsultarContasPagar } from './mcp_contas_pagar.js';
 
 const server = new Server(
   {
@@ -263,6 +264,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ['os_id'],
+        },
+      },
+      {
+        name: 'consultar_contas_pagar',
+        description: 'Consulta lançamentos de contas pagas da rede (favorecidos, peças, tributos, pró-labore, compras). Suporta filtros por data, loja e fornecedor, além de busca semântica em linguagem natural indexada em vetor.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            termo_busca: {
+              type: 'string',
+              description: 'Termo ou pergunta em linguagem natural para buscar despesas/pagamentos (ex: "pagamento de autopeças", "recolhimento de impostos")',
+            },
+            tipo_busca: {
+              type: 'string',
+              description: 'Tipo de busca: "semantica" (vetorial), "exata" ou "todas"',
+              enum: ['semantica', 'exata', 'todas'],
+              default: 'semantica',
+            },
+            data_inicio: {
+              type: 'string',
+              description: 'Data de pagamento inicial (formato YYYY-MM-DD)',
+            },
+            data_fim: {
+              type: 'string',
+              description: 'Data de pagamento final (formato YYYY-MM-DD)',
+            },
+            loja_slug: {
+              type: 'string',
+              description: 'Slug da loja para filtrar (ex: "maua", "rudge_ramos", "jabaquara")',
+            },
+            fornecedor: {
+              type: 'string',
+              description: 'Nome do favorecido ou fornecedor (busca parcial)',
+            },
+            limite: {
+              type: 'number',
+              description: 'Limite de registros a retornar (padrão: 20)',
+              default: 20,
+            },
+          },
         },
       },
     ],
@@ -648,6 +689,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify(resultPayload, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'consultar_contas_pagar': {
+        const dados = await handleConsultarContasPagar(db, args as any);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(dados, null, 2),
             },
           ],
         };

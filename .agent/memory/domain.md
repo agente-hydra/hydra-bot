@@ -342,5 +342,18 @@
 - NUNCA tentar retentativas de seletores ASP.NET sem recarregar a página (`page.reload`) quando houver travamento de ViewState ou modais fantasmas.
 - NUNCA permitir que o ciclo unificado encerre com status `SUCCESS` se alguma loja tiver ficado sem extração recente de OS.
 
+---
 
-
+## [2026-10-09] — [Feature ID: hydra-contas-pagar-excel-retention-vector]
+**Contexto:** Extração dupla automatizada (PDF oficial + planilha Excel estruturada) da tela `wfContaBuscaPagar.aspx` do ERP Oficina Inteligente, com política de retenção mínima de 2 dias (48 horas), ingestão relacional idempotente no SQLite WAL (`contas_pagar_lancamentos`), indexação vetorial e FTS5 para IA e registro da ferramenta MCP `consultar_contas_pagar`.
+**Regra aprendida:**
+1. **Mapeamento Dinâmico de Colunas em WebForms (`colIndex`):** Relatórios legados do ERP Oficina Inteligente (`BuscaContasAPagar.xls` / BIFF8) geram a primeira célula como `null` (coluna vazia). Nunca utilize índices fixos como `row[0]`, `row[1]`. Utilize obrigatoriamente regex dinâmica no array de cabeçalhos (`header.findIndex(h => /.../i)`) para mapear `Emp`, `Código`, `Parc`, `Cliente/Fornecedor`, `Descrição`, `Vl. Pago`, etc.
+2. **Tratamento Híbrido de Valores e Datas:** O Excel exporta valores monetários tanto como floats JS (`1266.5`) quanto strings brasileiras (`"1.266,50"`), e datas tanto como números seriais de calendário (`46303` para `2026-10-08`) quanto strings `DD/MM/YYYY`. A rotina deve verificar `typeof val === 'number'` antes de qualquer manipulação de string para evitar mutações de escala (ex: `1266.5` virar `12665`).
+3. **Política de Retenção Mínima ($\ge$ 48 Horas):** A rotina de limpeza de arquivos brutos deve respeitar compulsoriamente a janela de pelo menos 2 dias completos (`idadeMs > 48 * 3600 * 1000`). Arquivos recentes (< 48h) nunca podem ser removidos, permitindo auditoria física enquanto a persistência relacional no SQLite garante perenidade dos dados.
+4. **Idempotência Absoluta:** Chave primária composta `loja_slug:codigo:parcela` garante re-execuções sem duplicação de lançamentos e permite `ON CONFLICT DO UPDATE` contínuo.
+5. **Vetorização e MCP Híbrido:** Indexação em `vec_contas_pagar` com embeddings 384-dim e fallback transparente para FTS5 com tokenizador `unicode61 remove_diacritics 2`. Ferramenta MCP `consultar_contas_pagar` expõe buscas relacionais e semânticas estruturadas para o agente de IA.
+**Risco identificado:** Alteração futura nos seletores de rádio da tela `wfContaBuscaPagar.aspx` (`#ctl00_cph_rblFormato_1`) pode quebrar a captura do download do Excel se o ERP alterar a ordem dos formatos.
+**Não fazer:**
+- NUNCA assumir índices fixos de colunas em planilhas geradas pelo ERP sem inspecionar a linha de cabeçalho.
+- NUNCA excluir arquivos Excel da pasta de crawls com menos de 48 horas de vida.
+- NUNCA enviar relatórios de contas a pagar para grupos do financeiro ou com textos no WhatsApp; o envio permanece exclusivo para `5511996242812` em lote silencioso.
