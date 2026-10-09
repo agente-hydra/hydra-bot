@@ -16,6 +16,7 @@ import {
   VehicleResolutionResult
 } from './types/conversation_context_contract.js';
 import { EvidencePolicyManager } from './evidence_policy_manager.js';
+import type { EvoListPayload } from './types/evo_interactive_contract.js';
 
 export interface ComposeInput {
   readonly osId: number;
@@ -524,6 +525,8 @@ export interface OS360CardParams {
   vehicleModel?: string;
   vehiclePlate?: string;
   clientName?: string;
+  clientPhone?: string;
+  clienteTelefone?: string;
   responsavel?: string;
   statusGrid?: string;
   isOpen?: boolean;
@@ -538,6 +541,17 @@ export interface OS360CardParams {
   temNf?: boolean;
   documentosAnexosCount?: number;
   extracaoCompleta?: boolean;
+  observacao?: string;
+  historicoCriadoEm?: string;
+  historicoCriadoPor?: string;
+  historicoAtualizadoEm?: string;
+  historicoAtualizadoPor?: string;
+  documentosAnexos?: Array<{
+    origem?: string;
+    data?: string;
+    descricao?: string;
+    opcao?: string;
+  }>;
   caseContext?: {
     documentedDelayReason?: string;
     nextPromisedStep?: string;
@@ -545,6 +559,8 @@ export interface OS360CardParams {
     conversationSummary?: string;
     partsBalanceSummary?: string;
     budgetStatus?: string;
+    coverage?: string;
+    evidenceOrigin?: string;
   };
 }
 
@@ -611,7 +627,6 @@ function cleanExecutor(executor?: string): string | undefined {
 interface SemanticGroup {
   id: string;
   name: string;
-  icon: string;
   keywords: string[];
 }
 
@@ -619,7 +634,6 @@ const SEMANTIC_GROUPS: SemanticGroup[] = [
   {
     id: 'eletrica',
     name: 'Elétrica & Ignição',
-    icon: '⚡',
     keywords: [
       'alternador', 'bateria', 'chicote', 'modulo', 'partida', 'ignicao',
       'vela', 'bobina', 'sensor', 'rele', 'eletric', 'farol', 'lampada',
@@ -629,7 +643,6 @@ const SEMANTIC_GROUPS: SemanticGroup[] = [
   {
     id: 'arrefecimento',
     name: 'Sistema de Arrefecimento',
-    icon: '🌡️',
     keywords: [
       'arrefecimento', 'radiador', 'aditivo', 'cebolao', 'agua', 'termostatica',
       'mangueira', 'reservatorio', 'ventoinha', 'tampa reservatorio'
@@ -638,7 +651,6 @@ const SEMANTIC_GROUPS: SemanticGroup[] = [
   {
     id: 'suspensao',
     name: 'Suspensão, Direção & Rodagem',
-    icon: '🔩',
     keywords: [
       'suspensao', 'amortecedor', 'coxim', 'bucha', 'rolamento', 'coifa',
       'alinhamento', 'geometria', 'balanceamento', 'cambagem', 'pivo',
@@ -649,7 +661,6 @@ const SEMANTIC_GROUPS: SemanticGroup[] = [
   {
     id: 'freios',
     name: 'Sistema de Freios',
-    icon: '🛑',
     keywords: [
       'freio', 'freios', 'pastilha', 'disco', 'tambor', 'lona', 'alavanca',
       'fluido freio', 'cilindro', 'pinca', 'flexivel', 'servo'
@@ -658,7 +669,6 @@ const SEMANTIC_GROUPS: SemanticGroup[] = [
   {
     id: 'apoio',
     name: 'Revisão, Apoio & Insumos',
-    icon: '📦',
     keywords: [
       'diagnostico', 'motoboy', 'limpeza', 'higienizacao', 'revisao',
       'oleo', 'filtro', 'lavagem', 'combustivel', 'correia', 'junta',
@@ -712,13 +722,13 @@ function formatCategorizedSection<T extends { descricao: string; valorTotal: num
       const titleDesc = toCleanTitleCase(it.descricao);
       if (isService) {
         const exec = cleanExecutor(it.executor);
-        outputLines.push(`  • ${titleDesc}: *${moneyFmt(it.valorTotal)}*${exec ? ` (${exec})` : ''}`);
+        outputLines.push(`  - ${titleDesc}: *${moneyFmt(it.valorTotal)}*${exec ? ` (${exec})` : ''}`);
       } else {
         const qtdStr = it.qtd && it.qtd > 1 ? `${it.qtd}x ` : '';
         const codClean = it.codigo && it.codigo.length <= 10 && !/^\d{7,}$/.test(it.codigo) && !/^AP\d+$/i.test(it.codigo)
           ? ` (${it.codigo})`
           : '';
-        outputLines.push(`  • ${titleDesc}: ${qtdStr}*${moneyFmt(it.valorTotal)}*${codClean}`);
+        outputLines.push(`  - ${titleDesc}: ${qtdStr}*${moneyFmt(it.valorTotal)}*${codClean}`);
       }
     }
   }
@@ -879,6 +889,315 @@ export function composeFullOS360Card(params: OS360CardParams): string {
   blocks.push(b4Lines.join('\n'));
 
   return blocks.join('\n\n---BLOCK---\n\n');
+}
+
+/**
+ * Calcula métricas contábeis claras de pagamento para uma OS.
+ * Regra: Pago = total - saldoDevedor (soma das parcelas efetivamente amortizadas/recebidas).
+ */
+export function calculatePaymentMetrics(
+  totalAmount?: number,
+  remainingBalance?: number,
+  pagamentos?: Array<{ parcela: string | number; valor: number; modalidade: string; vencimento?: string }>
+): { total: number; saldo: number; pago: number } {
+  const total = Number(totalAmount || 0);
+  const saldo = remainingBalance !== undefined
+    ? Number(remainingBalance)
+    : Math.max(0, total - (pagamentos?.reduce((acc, p) => acc + (p.valor || 0), 0) || 0));
+  const pago = Math.max(0, total - saldo);
+  return { total, saldo, pago };
+}
+
+/**
+ * Monta o Resumo Executivo enxuto da OS para o primeiro balão WhatsApp.
+ * Zero emojis, focado em tomada de decisão rápida e formatação sóbria.
+ */
+export function composeExecutiveOSSummary(params: OS360CardParams): string {
+  const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
+  const { total, saldo, pago } = calculatePaymentMetrics(params.totalAmount, params.remainingBalance, params.pagamentos);
+
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
+  const statusStr = params.statusGrid || (params.isOpen ? 'Em Aberto' : 'Finalizada');
+  const clienteNome = params.clientName || 'Não informado';
+  const clienteTelefone = params.clienteTelefone || params.clientPhone || 'Não informado';
+
+  const servicosCount = params.servicos?.length || 0;
+  const servicosTotal = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) || 0;
+  const pecasCount = params.pecas?.length || 0;
+  const pecasTotal = params.pecas?.reduce((acc, p) => acc + (p.valorTotal || 0), 0) || Math.max(0, total - servicosTotal);
+  const pagamentosCount = params.pagamentos?.length || 0;
+  const checklistsCount = params.checklists?.length || 0;
+  const anexosCount = params.documentosAnexos?.length || params.documentosAnexosCount || 0;
+
+  const saldoStr = saldo > 0 ? `*${moneyFmt(saldo)}*` : '*Quitado*';
+
+  const lines: string[] = [
+    `*ORDEM DE SERVIÇO #${params.osId}*`,
+    ``,
+    `*CLIENTE*`,
+    `- Nome: ${clienteNome}`,
+    `- Telefone: ${clienteTelefone}`,
+    ``,
+    `*VEÍCULO*`,
+    `- Modelo: ${modelStr}`,
+    `- Placa: ${plateStr}`,
+    ``,
+    `*OPERAÇÃO*`,
+    `- Loja: ${params.lojaSlug}`,
+    `- Status: *${statusStr}* (${params.isOpen ? 'Em Aberto' : 'Finalizada'})`,
+    ...(params.responsavel ? [`- Responsável: ${params.responsavel}`] : []),
+    `- Permanência: ${params.daysInYard || 0} dia(s) no pátio`,
+    ``,
+    `*FINANCEIRO*`,
+    `- Total: *${moneyFmt(total)}*`,
+    `- Pago: *${moneyFmt(pago)}*`,
+    `- Saldo: ${saldoStr}`,
+    ``,
+    `*MÓDULOS DISPONÍVEIS*`,
+    `- Serviços: ${servicosCount} item(ns)${servicosTotal > 0 ? ` (${moneyFmt(servicosTotal)})` : ''}`,
+    `- Peças e materiais: ${pecasCount} item(ns)${pecasTotal > 0 ? ` (${moneyFmt(pecasTotal)})` : ''}`,
+    `- Pagamentos: ${pagamentosCount} parcela(s) cadastrada(s)`,
+    `- Vistorias e documentos: ${checklistsCount} checklist(s) · ${anexosCount} anexo(s)`,
+    `- Histórico: Auditoria ERP e conversas`,
+    ``,
+    `Selecione uma opção no menu ou digite:`,
+    `SERVICOS ${params.osId}`,
+    `PECAS ${params.osId}`,
+    `PAGAMENTOS ${params.osId}`,
+    `DOCUMENTOS ${params.osId}`,
+    `HISTORICO ${params.osId}`
+  ];
+
+  return lines.join('\n');
+}
+
+/**
+ * Constrói o payload oficial da Evolution API v2.3.7 para sendList.
+ */
+export function composeOSInteractiveListPayload(params: OS360CardParams, recipientPhone: string): EvoListPayload {
+  const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
+  const { total, saldo } = calculatePaymentMetrics(params.totalAmount, params.remainingBalance, params.pagamentos);
+  const cleanPhone = String(recipientPhone).replace(/\D/g, '');
+
+  const servicosCount = params.servicos?.length || 0;
+  const servicosTotal = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) || 0;
+  const pecasCount = params.pecas?.length || 0;
+  const pecasTotal = params.pecas?.reduce((acc, p) => acc + (p.valorTotal || 0), 0) || Math.max(0, total - servicosTotal);
+  const pagamentosCount = params.pagamentos?.length || 0;
+  const checklistsCount = params.checklists?.length || 0;
+  const anexosCount = params.documentosAnexos?.length || params.documentosAnexosCount || 0;
+
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const idStr = String(params.osId);
+
+  return {
+    number: cleanPhone,
+    title: `OS #${idStr} — ${modelStr}`,
+    description: `Selecione o módulo para consultar em detalhe:`,
+    buttonText: `Abrir detalhes`,
+    footerText: `Mecânica Popular · Sistema Hydra`,
+    sections: [
+      {
+        title: `Módulos da OS #${idStr}`,
+        rows: [
+          {
+            title: `1. Serviços`,
+            description: `${servicosCount} itens discriminados · ${moneyFmt(servicosTotal)}`,
+            rowId: `os_${idStr}_servicos`
+          },
+          {
+            title: `2. Peças e materiais`,
+            description: `${pecasCount} itens aplicados · ${moneyFmt(pecasTotal)}`,
+            rowId: `os_${idStr}_pecas`
+          },
+          {
+            title: `3. Pagamentos`,
+            description: `${pagamentosCount} parcelas · Saldo: ${moneyFmt(saldo)}`,
+            rowId: `os_${idStr}_pagamentos`
+          },
+          {
+            title: `4. Vistorias e Documentos`,
+            description: `${checklistsCount} checklists · ${anexosCount} anexos arquivados`,
+            rowId: `os_${idStr}_documentos`
+          },
+          {
+            title: `5. Histórico e Conversas`,
+            description: `Auditoria ERP e tratativas de atendimento`,
+            rowId: `os_${idStr}_historico`
+          }
+        ]
+      }
+    ]
+  };
+}
+
+/**
+ * Card focado: Serviços Discriminados (agrupados por sistema, sem emojis, sem placeholders).
+ */
+export function composeOSServicesCard(params: OS360CardParams): string {
+  const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
+
+  const totalServicos = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
+  const header = `> *OS #${params.osId} — SERVIÇOS DISCRIMINADOS*\n` +
+    `- Veículo: ${modelStr} (${plateStr}) · Loja: ${params.lojaSlug}\n` +
+    `- Total Serviços: *${moneyFmt(totalServicos)}* (${params.servicos?.length || 0} itens)`;
+
+  if (!params.servicos || params.servicos.length === 0) {
+    return `${header}\n\n- Nenhum serviço discriminado nesta OS.`;
+  }
+
+  const servLines = formatCategorizedSection(params.servicos, true, moneyFmt);
+  return [header, '', ...servLines].join('\n');
+}
+
+/**
+ * Card focado: Peças e Materiais Aplicados (agrupados por sistema, sem emojis).
+ */
+export function composeOSPartsCard(params: OS360CardParams): string {
+  const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
+
+  const totalPecas = params.pecas?.reduce((acc, p) => acc + (p.valorTotal || 0), 0) ?? 0;
+  const header = `> *OS #${params.osId} — PEÇAS E MATERIAIS APLICADOS*\n` +
+    `- Veículo: ${modelStr} (${plateStr}) · Loja: ${params.lojaSlug}\n` +
+    `- Total Peças: *${moneyFmt(totalPecas)}* (${params.pecas?.length || 0} itens)`;
+
+  if (!params.pecas || params.pecas.length === 0) {
+    const totalServicos = params.servicos?.reduce((acc, s) => acc + (s.valorTotal || 0), 0) ?? 0;
+    const saldoPecas = Math.max(0, (params.totalAmount || 0) - totalServicos);
+    if (saldoPecas > 0.05) {
+      return `${header}\n\n- Peças / Componentes de Reparo: *${moneyFmt(saldoPecas)}*`;
+    }
+    return `${header}\n\n- Nenhuma peça discriminada nesta OS (ordem 100% serviços).`;
+  }
+
+  const pecasLines = formatCategorizedSection(params.pecas, false, moneyFmt);
+  return [header, '', ...pecasLines].join('\n');
+}
+
+/**
+ * Card focado: Formas de Pagamento e Parcelas (com cálculo contábil transparente).
+ */
+export function composeOSPaymentsCard(params: OS360CardParams): string {
+  const moneyFmt = (v: number) => (v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }).replace(/[\u00A0\u202F]/g, ' ');
+  const { total, saldo, pago } = calculatePaymentMetrics(params.totalAmount, params.remainingBalance, params.pagamentos);
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
+
+  const lines: string[] = [
+    `> *OS #${params.osId} — FORMAS DE PAGAMENTO E PARCELAS*`,
+    `- Veículo: ${modelStr} (${plateStr}) · Loja: ${params.lojaSlug}`,
+    `- Total da OS: *${moneyFmt(total)}*`,
+    `- Valor Pago: *${moneyFmt(pago)}*`,
+    `- Saldo Devedor: *${saldo > 0 ? moneyFmt(saldo) : 'Quitado'}*`,
+    ``,
+    `*Parcelas Cadastradas:*`
+  ];
+
+  if (params.pagamentos && params.pagamentos.length > 0) {
+    for (const p of params.pagamentos) {
+      const isImmediate = /pix|dinheiro|especie|debito/i.test(p.modalidade || '');
+      const statusLabel = isImmediate || (saldo <= 0) ? '[Recebido]' : '[A Vencer / Cadastrado]';
+      const vencStr = p.vencimento ? `, Venc: ${p.vencimento}` : '';
+      lines.push(`- Parcela ${p.parcela}: *${moneyFmt(p.valor)}* (${p.modalidade}${vencStr}) · ${statusLabel}`);
+    }
+  } else if (total > 0 && saldo <= 0) {
+    lines.push(`- Ordem 100% quitada no ERP.`);
+  } else {
+    lines.push(`- Nenhuma parcela individual cadastrada no ERP; pendente de liquidação ou sinal.`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Card focado: Vistorias e Documentos (sem invenção de dados, pareamento estrito).
+ */
+export function composeOSDocumentsCard(params: OS360CardParams): string {
+  const modelStr = (params.vehicleModel || 'VEÍCULO').toUpperCase();
+  const plateStr = (params.vehiclePlate || 'Sem Placa').toUpperCase();
+
+  const lines: string[] = [
+    `> *OS #${params.osId} — VISTORIAS E DOCUMENTOS*`,
+    `- Veículo: ${modelStr} (${plateStr}) · Loja: ${params.lojaSlug}`,
+    ``
+  ];
+
+  if (params.extracaoCompleta === false) {
+    lines.push(`- *Checklists:* Sincronização detalhada do ERP em andamento.`);
+  } else {
+    const temEntrada = params.checklistAudit?.temChecklistEntrada;
+    const temMec = params.checklistAudit?.temChecklistMecanico;
+
+    lines.push(`- *Checklist de Entrada:* ${temEntrada ? 'Concluído' : 'Não realizado'}`);
+    const itensEntrada = (params.checklists || []).filter(c => {
+      const t = (c.tipo || '').toLowerCase();
+      return t.includes('inspe') || t.includes('entrada') || (!t.includes('mecanic') && !t.includes('mecanico'));
+    });
+    for (const cl of itensEntrada) {
+      const resp = cl.realizado_por ? `${cl.realizado_por}` : 'Técnico';
+      const dt = cl.data ? `, ${cl.data}` : '';
+      lines.push(`  └ *${toCleanTitleCase(cl.tipo)}:* ${cl.status} (${resp}${dt})`);
+    }
+
+    lines.push(`- *Checklist do Mecânico:* ${temMec ? 'Concluído' : 'Não realizado'}`);
+    const itensMecanico = (params.checklists || []).filter(c => {
+      const t = (c.tipo || '').toLowerCase();
+      return t.includes('mecanic') || t.includes('mecanico');
+    });
+    for (const cl of itensMecanico) {
+      const resp = cl.realizado_por ? `${cl.realizado_por}` : 'Mecânico';
+      const dt = cl.data ? `, ${cl.data}` : '';
+      lines.push(`  └ *${toCleanTitleCase(cl.tipo)}:* ${cl.status} (${resp}${dt})`);
+    }
+  }
+
+  lines.push(`- *Nota Fiscal:* ${params.temNf ? 'Emitida/vinculada à OS' : 'Não informada'}`);
+
+  const anexosList = params.documentosAnexos || [];
+  if (anexosList.length > 0) {
+    lines.push(`- *Anexos:* ${anexosList.length} arquivo(s) arquivado(s):`);
+    for (const a of anexosList) {
+      const dt = a.data ? ` (${a.data})` : '';
+      lines.push(`  - ${a.descricao || a.origem || 'Documento'}${dt}`);
+    }
+  } else {
+    const count = params.documentosAnexosCount || 0;
+    lines.push(`- *Anexos:* ${count > 0 ? `${count} arquivo(s) arquivado(s).` : 'Nenhum arquivo arquivado.'}`);
+  }
+
+  return lines.join('\n');
+}
+
+/**
+ * Card focado: Histórico, Tratativas e Atendimento.
+ */
+export function composeOSHistoryCard(params: OS360CardParams): string {
+  return composeOSConversationCard({
+    osId: params.osId,
+    lojaSlug: params.lojaSlug,
+    vehicleModel: params.vehicleModel,
+    vehiclePlate: params.vehiclePlate,
+    clientName: params.clientName,
+    clientPhone: params.clientPhone,
+    clienteTelefone: params.clienteTelefone,
+    statusGrid: params.statusGrid,
+    isOpen: params.isOpen,
+    daysInYard: params.daysInYard,
+    totalAmount: params.totalAmount,
+    remainingBalance: params.remainingBalance,
+    observacao: params.observacao,
+    historicoCriadoEm: params.historicoCriadoEm,
+    historicoCriadoPor: params.historicoCriadoPor,
+    historicoAtualizadoEm: params.historicoAtualizadoEm,
+    historicoAtualizadoPor: params.historicoAtualizadoPor,
+    documentosAnexos: params.documentosAnexos,
+    caseContext: params.caseContext
+  });
 }
 
 /**

@@ -296,4 +296,24 @@
 - NUNCA posicionar o checklist de inspeção de entrada abaixo do checklist do mecânico.
 - NUNCA repetir a mesma frase curta nula ao ser cobrado por histórico de conversa.
 
+---
+
+## [2026-10-09] — [Feature ID: hydra-evo-interactive-os]
+**Contexto:** Substituição do envio maciço de múltiplos balões colados de OS por uma arquitetura interativa e modular de 3 etapas no WhatsApp via Evolution API v2.3.7 (`sendText` resumo executivo sóbrio -> `sendList` menu nativo de módulos -> `sendText` detalhamento modular sob demanda), com arquitetura híbrida (zero state-lockout), regra contábil rigorosa de pagamento e tolerância a dados parciais.
+**Regra aprendida:**
+1. **Contrato Obrigatório de `sendList` na Evolution API v2.3.7:** O endpoint `POST /message/sendList/${INSTANCE}` exige compulsoriamente os campos `number`, `title`, `description`, `buttonText`, `footerText` e `sections` com `rows` contendo `title`, `description` e `rowId`. A omissão de `footerText` resulta em HTTP 400. Cada `rowId` deve seguir formato seguro e validado (`os_{id}_{modulo}`).
+2. **Ingress de Seleções da Evolution API:** No webhook de entrada (`messages.upsert`), cliques em linhas de lista trafegam prioritariamente em `messageObj.listResponseMessage.singleSelectReply.selectedRowId`. O listener deve inspecioná-lo antes de `conversation` ou `extendedTextMessage`.
+3. **Arquitetura 100% Híbrida (Zero State-Lockout):** Listas interativas convivem em perfeita simbiose com comandos de texto normalizados (`SERVICOS 18503`, `pecas`, `pagamentos`, `documentos`, `historico`) e perguntas livres em linguagem natural ("quanto Mauá faturou hoje?", "o cliente aprovou o orçamento?"). Nunca implementar máquina de estados restritiva (URA) que trave o usuário com "opção inválida".
+4. **Regra Contábil de "Pago":** O valor pago é calculado estritamente como `Pago = Total da OS - Saldo Devedor` (amortizações efetivas já liquidadas). Parcelas futuras ou a vencer cadastradas no ERP não devem ser computadas no montante pago.
+5. **Anti-Slop & Zero Emojis em Relatórios de OS:** Proibição de emojis (`⚡`, `🌡️`, `🔩`, `🛑`, etc.) e eliminação de placeholders do ERP (`Preencher Executor...`). Utilizar apenas negrito do WhatsApp, traços, indentação e números contábeis claros.
+6. **Segurança Crítica de Mensageria:** Trava de emissão estrita: apenas instâncias `hydra` e `atendimento` podem enviar listas (`sendWhatsAppList`) e mensagens. Instâncias de gerentes são bloqueadas incondicionalmente.
+**Risco identificado:** Enviar mensagens de lista sem `footerText` ou com instâncias não conectadas causa falha de entrega na Evolution API.
+**Não fazer:**
+- NUNCA omitir o campo `footerText` no payload de `sendList` na Evolution API v2.3.7.
+- NUNCA travar a conversa com menus rígidos que bloqueiam perguntas livres em linguagem natural.
+- NUNCA somar parcelas a vencer como valor já pago pelo cliente.
+- NUNCA usar emojis em relatórios executivos de OS.
+- NUNCA usar aparelhos/instâncias de gerentes para envio de listas ou mensagens interativas.
+
+
 

@@ -967,6 +967,98 @@ async function sendReplyWhatsApp(phone, text, maxRetries = 3) {
   return { sucesso: false, statusHttp: lastStatus, tentativas: maxRetries, duracaoMs, erro: lastError };
 }
 
+/**
+ * Envia mensagem interativa de lista via Evolution API (POST /message/sendList/{instance}).
+ * Aplica whitelist rigorosa de instâncias e revalidação de usuário no egress.
+ */
+async function sendWhatsAppList(phone, listPayload, maxRetries = 2) {
+  const cleanPhone = String(phone).replace(/\D/g, "");
+  if (!cleanPhone || !listPayload) return { sucesso: false, erro: "Parâmetros inválidos" };
+
+  // ─── BARREIRA 1: Whitelist Estrita de Instâncias Emissoras Autorizadas ───
+  const ALLOWED_INSTANCES = new Set(["hydra", "atendimento"]);
+  if (!ALLOWED_INSTANCES.has(INSTANCE)) {
+    console.error(`[Hydra Webhook] 🛑 Violação de Segurança: Tentativa de envio de lista por instância não autorizada (${INSTANCE}).`);
+    return { sucesso: false, erro: "unauthorized_sender_instance" };
+  }
+
+  // ─── BARREIRA 2: Revalidação no Egress de Mensagens ────────────────────────
+  if (db && !revalidateAuthorization(db, cleanPhone)) {
+    console.warn(`[AccessGuard] 🛑 Envio de lista bloqueado: usuário ${maskPhone(cleanPhone)} revogado.`);
+    recordSecurityRejection(db, {
+      remoteJidMasked: maskPhone(cleanPhone),
+      phoneMasked: maskPhone(cleanPhone),
+      reason: "revoked_user",
+      endpoint: "send_list_egress",
+      timestamp: new Date().toISOString()
+    });
+    return { sucesso: false, erro: "revoked_or_unauthorized" };
+  }
+
+  const endpoint = `${EVOLUTION_URL}/message/sendList/${INSTANCE}`;
+  const startTotal = Date.now();
+  let lastStatus = 0;
+  let lastError = null;
+  let lastRaw = null;
+  let capturedMsgId = null;
+
+  const payloadToSend = {
+    ...listPayload,
+    number: cleanPhone,
+    footerText: listPayload.footerText || "Mecânica Popular · Sistema Hydra"
+  };
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "User-Agent": "Hydra-Bot/1.0",
+          "Content-Type": "application/json",
+          "apikey": EVOLUTION_KEY
+        },
+        body: JSON.stringify(payloadToSend),
+        signal: AbortSignal.timeout(12000)
+      });
+
+      lastStatus = response.status;
+      lastRaw = await response.text();
+
+      try {
+        const parsed = JSON.parse(lastRaw);
+        capturedMsgId = parsed?.key?.id || parsed?.data?.key?.id || parsed?.id;
+      } catch {}
+
+      if (response.ok) {
+        const duracaoMs = Date.now() - startTotal;
+        logDelivery(cleanPhone, capturedMsgId, lastStatus, true, attempt, duracaoMs, lastRaw, null);
+        console.log(`[WhatsApp API] Lista interativa aceita pela Evolution API: status HTTP ${lastStatus}, messageId: ${capturedMsgId} para ${maskPhone(cleanPhone)}`);
+        return { sucesso: true, statusHttp: lastStatus, tentativas: attempt, duracaoMs, messageId: capturedMsgId };
+      }
+
+      if (lastStatus >= 400 && lastStatus < 429) {
+        lastError = `HTTP ${lastStatus}: ${lastRaw.slice(0, 150)}`;
+        break;
+      }
+
+      lastError = `HTTP ${lastStatus} Transitório: ${lastRaw.slice(0, 150)}`;
+    } catch (err) {
+      lastStatus = 0;
+      lastError = err?.name === "TimeoutError" ? "Timeout de 12s excedido" : (err?.message || String(err));
+    }
+
+    if (attempt < maxRetries) {
+      const backoff = 1000;
+      await new Promise(r => setTimeout(r, backoff));
+    }
+  }
+
+  const duracaoMs = Date.now() - startTotal;
+  logDelivery(cleanPhone, capturedMsgId, lastStatus, false, maxRetries, duracaoMs, lastRaw, lastError);
+  console.warn(`[Hydra Webhook] ⚠️ Falha no envio de lista interativa para ${maskPhone(cleanPhone)}: ${lastError}. Resumo de texto foi enviado como fallback.`);
+  return { sucesso: false, statusHttp: lastStatus, tentativas: maxRetries, duracaoMs, erro: lastError };
+}
+
 function extractDispatcherOutput(rawOutput) {
   const lines = rawOutput.trim().split("\n");
   for (let i = lines.length - 1; i >= 0; i--) {
@@ -1011,7 +1103,10 @@ function runDispatcherAsync(phone, text, conversationId, messageId, batch) {
         (error, stdout, stderr) => {
           if (error) {
             console.error("[Hydra Webhook] Erro no dispatcher:", error?.message || error, stderr);
-            return resolve(["Não consegui consultar os dados agora devido a uma oscilação na conexão com o banco. Pode tentar novamente em instantes?"]);
+            return resolve({
+              messages: ["Não consegui consultar os dados agora devido a uma oscilação na conexão com o banco. Pode tentar novamente em instantes?"],
+              interactiveList: null
+            });
           }
 
           try {
@@ -1021,18 +1116,30 @@ function runDispatcherAsync(phone, text, conversationId, messageId, batch) {
               : (parsed.replyText || "");
             if (rawText) {
               const composed = composeSemanticBalloons(rawText);
-              return resolve(composed);
+              return resolve({
+                messages: composed,
+                interactiveList: parsed.interactiveList || null
+              });
             }
-            return resolve(["Não foi possível formular uma resposta."]);
+            return resolve({
+              messages: ["Não foi possível formular uma resposta."],
+              interactiveList: null
+            });
           } catch (parseErr) {
             console.error("[Hydra Webhook] Erro ao parsear dispatcher output:", parseErr?.message || parseErr);
-            return resolve(["Não consegui processar a resposta dos dados. Pode tentar novamente?"]);
+            return resolve({
+              messages: ["Não consegui processar a resposta dos dados. Pode tentar novamente?"],
+              interactiveList: null
+            });
           }
         }
       );
     } catch (err) {
       console.error("[Hydra Webhook] Falha ao invocar dispatcher:", err?.message || err);
-      resolve(["Não consegui formular uma resposta no momento."]);
+      resolve({
+        messages: ["Não consegui formular uma resposta no momento."],
+        interactiveList: null
+      });
     }
   });
 }
@@ -1178,15 +1285,24 @@ async function processChatQueue(phone) {
         // Encerra imediatamente o "digitando" antes de iniciar a entrega do primeiro balão
         await chatQ.typing.stop();
 
-        console.log(`  ↳ [AsyncQueue] Despachando ${replies.length} balão(ões) para ${maskPhone(job.phone)}...`);
-        const replyRes = await sendSequentialReplies(job.phone, replies);
+        const replyMessages = Array.isArray(replies) ? replies : (replies?.messages || []);
+        const interactiveList = (!Array.isArray(replies) && replies?.interactiveList) ? replies.interactiveList : null;
+
+        console.log(`  ↳ [AsyncQueue] Despachando ${replyMessages.length} balão(ões) para ${maskPhone(job.phone)}...`);
+        const replyRes = await sendSequentialReplies(job.phone, replyMessages);
 
         if (replyRes && replyRes.sucesso) {
           console.log(`  ✓ [AsyncQueue] Envio concluído e auditado para ${maskPhone(job.phone)}.`);
 
+          // Se houver lista interativa da Evolution API, despacha logo após o texto
+          if (interactiveList) {
+            await new Promise(r => setTimeout(r, 300));
+            await sendWhatsAppList(job.phone, interactiveList);
+          }
+
           // Marco: sent_whatsapp
           for (const mId of targetMsgIds) {
-            recordLifecycle(mId, "sent_whatsapp", job.batch?.batchId, `replies_count:${replies.length}`);
+            recordLifecycle(mId, "sent_whatsapp", job.batch?.batchId, `replies_count:${replyMessages.length}`);
           }
 
           // Blindagem: Reação ✅ disparada em TODOS os messageIds que compuseram o lote
@@ -1480,7 +1596,26 @@ async function handleIncomingPayload(payload, headers = {}, customDb = null) {
   else if (messageObj?.documentMessage || messageObj?.documentWithCaptionMessage) mediaType = "document";
   const hasMedia = mediaType !== "text";
 
+  // Extração de mensagens interativas da Evolution API (Listas, Botões, Native Flows)
+  let interactiveText = null;
+  const listReply = messageObj?.listResponseMessage;
+  if (listReply?.singleSelectReply?.selectedRowId) {
+    interactiveText = String(listReply.singleSelectReply.selectedRowId).trim();
+  } else if (messageObj?.buttonsResponseMessage?.selectedButtonId) {
+    interactiveText = String(messageObj.buttonsResponseMessage.selectedButtonId).trim();
+  } else if (messageObj?.templateButtonReplyMessage?.selectedId) {
+    interactiveText = String(messageObj.templateButtonReplyMessage.selectedId).trim();
+  } else if (messageObj?.interactiveResponseMessage?.nativeFlowResponseMessage?.paramsJson) {
+    try {
+      const p = JSON.parse(messageObj.interactiveResponseMessage.nativeFlowResponseMessage.paramsJson);
+      if (p?.id || p?.rowId) {
+        interactiveText = String(p.id || p.rowId).trim();
+      }
+    } catch {}
+  }
+
   let text = (
+    interactiveText ||
     messageObj?.conversation ||
     messageObj?.extendedTextMessage?.text ||
     messageObj?.imageMessage?.caption ||

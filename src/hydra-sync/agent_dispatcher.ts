@@ -31,10 +31,67 @@ import { composeSemanticBalloons } from './balloon_composer.js';
 import {
   composeFullOS360Card,
   composeOSConversationCard,
-  isOSConversationQuery
+  isOSConversationQuery,
+  composeExecutiveOSSummary,
+  composeOSInteractiveListPayload,
+  composeOSServicesCard,
+  composeOSPartsCard,
+  composeOSPaymentsCard,
+  composeOSDocumentsCard,
+  composeOSHistoryCard,
+  type OS360CardParams
 } from './os_situation_composer.js';
 
 export { isOSConversationQuery };
+
+import {
+  type AllowedOSModule,
+  ALLOWED_OS_MODULES,
+  OS_MODULE_ROW_ID_REGEX,
+  type EvoListPayload
+} from './types/evo_interactive_contract.js';
+
+export function parseOSModuleIntent(
+  text: string,
+  activeOsId?: string | number
+): { osId?: string; module?: AllowedOSModule } | null {
+  const clean = text.trim();
+
+  // 1. Comando exato de rowId vindo de clique em lista (ex: "os_18503_servicos")
+  const rowMatch = clean.match(OS_MODULE_ROW_ID_REGEX);
+  if (rowMatch) {
+    const osId = rowMatch[1];
+    const mod = rowMatch[2].toLowerCase() as AllowedOSModule;
+    if (ALLOWED_OS_MODULES.includes(mod)) {
+      return { osId, module: mod };
+    }
+  }
+
+  // 2. Normalização de comandos de texto (tolerante a acentos e maiúsculas)
+  const norm = clean.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const osNumMatch = norm.match(/\b(\d{3,8})\b/);
+  const targetOsId = osNumMatch ? osNumMatch[1] : (activeOsId ? String(activeOsId) : undefined);
+
+  if (!targetOsId) return null;
+
+  if (/\b(servico|servicos|mao de obra)\b/.test(norm)) {
+    return { osId: targetOsId, module: 'servicos' };
+  }
+  if (/\b(peca|pecas|material|materiais|insumo|insumos)\b/.test(norm)) {
+    return { osId: targetOsId, module: 'pecas' };
+  }
+  if (/\b(pagamento|pagamentos|parcela|parcelas|financeiro|saldo)\b/.test(norm)) {
+    return { osId: targetOsId, module: 'pagamentos' };
+  }
+  if (/\b(documento|documentos|checklist|checklists|vistoria|vistorias|nf|nota fiscal|anexo|anexos)\b/.test(norm)) {
+    return { osId: targetOsId, module: 'documentos' };
+  }
+  if (/\b(historico|conversa|conversas|atendimento|chat|whatsapp)\b/.test(norm)) {
+    return { osId: targetOsId, module: 'historico' };
+  }
+
+  return null;
+}
 
 import {
   getLatestTurnState,
@@ -175,6 +232,7 @@ export interface DispatcherOutput {
   telemetry: StageTelemetry;
   isFeedback: boolean;
   contract?: TurnContract;
+  interactiveList?: EvoListPayload;
 }
 
 function fmtMoeda(val: number): string {
@@ -783,7 +841,10 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
 
   // 2.5. RESOLUÇÃO E COORDENAÇÃO DE VEÍCULO INDIVIDUAL ([E3-02], [E3-03], R01, R06, R08, R09, R10, R11, R12)
   const plateMatch = textoLimpo.match(/\b([A-Z]{3}-?\d[A-Z0-9]\d{2})\b/i);
-  const osMatch = textoLimpo.match(/\b(?:os|ordem)\s*#?\s*(\d{1,6})\b/i);
+  const osModuleMatch = textoLimpo.match(OS_MODULE_ROW_ID_REGEX);
+  const osMatch = osModuleMatch
+    ? [osModuleMatch[0], osModuleMatch[1]]
+    : textoLimpo.match(/\b(?:os|ordem)[_\s]*#?\s*(\d{1,8})\b/i);
   let modelMatch = textoLimpo.match(/\b(linea|civic|corolla|hb20|onix|gol|palio|fiesta|compass|renegade|renegate|kwid|argo|cronos|polo|virtus|t-cross|creta|tracker|kicks|voyage|fox|c3|c4|sandero|clio|duster|logan|uno|siena|mobi|strada|saveiro|ka|ecosport|spin|prisma|cruze|fit|city|hr-v|etios|yaris|peugeot|208|308|408|celta|corsa|meriva|zafira|tucson|ix35|up|fusca|bravo|punto|stilo|idea|doblo|amarok|hilux|ranger|s10|l200|frontier|toro|oroch)\b/i);
 
   if (!modelMatch && !plateMatch && !osMatch && !isExplicitFinancialQuery(textoLimpo) && norm.length >= 3) {
@@ -905,6 +966,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   const isAnaphoraOSRequest = Boolean(
     (currentOsId || currentPlate || currentModel) && (
       isOSConv ||
+      osModuleMatch ||
       norm.includes('detalhe') ||
       norm.includes('detalhes') ||
       norm.includes('fale mais') ||
@@ -949,6 +1011,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     let replyText = '';
     let toolsCalled: string[] = [];
     let pendingReq: TurnPendingRequest | undefined;
+    let interactiveListPayload: EvoListPayload | undefined = undefined;
 
     if (resolution.status === 'AMBIGUOUS_VEHICLE') {
       replyText = resolution.clarificationPrompt;
@@ -971,69 +1034,64 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         loja_slug: resolution.activeOrder.storeSlug
       });
 
-      if (isOSConv) {
-        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
-        replyText = composeOSConversationCard({
-          osId: osDetail?.osId ?? resolution.activeOrder.osId,
-          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
-          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
-          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
-          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
-          clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
-          clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
-          statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
-          isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
-          daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
-          totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
-          remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
-          observacao: osDetail?.observacao,
-          historicoCriadoEm: osDetail?.historicoCriadoEm,
-          historicoCriadoPor: osDetail?.historicoCriadoPor,
-          historicoAtualizadoEm: osDetail?.historicoAtualizadoEm,
-          historicoAtualizadoPor: osDetail?.historicoAtualizadoPor,
-          documentosAnexos: osDetail?.documentosAnexos,
-          caseContext: caseCtx ? {
-            documentedDelayReason: caseCtx.documentedDelayReason,
-            nextPromisedStep: caseCtx.nextPromisedStep,
-            lastObservationDate: caseCtx.lastObservationDate,
-            conversationSummary: caseCtx.conversationSummary,
-            partsBalanceSummary: caseCtx.partsBalanceSummary,
-            budgetStatus: caseCtx.budgetStatus,
-            coverage: caseCtx.coverage,
-            evidenceOrigin: caseCtx.evidenceOrigin
-          } : undefined
-        });
+      const os360Params: OS360CardParams = {
+        osId: osDetail?.osId ?? resolution.activeOrder.osId,
+        lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
+        vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
+        vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
+        clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
+        clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+        clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
+        responsavel: osDetail?.responsavel,
+        statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
+        isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
+        daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
+        totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
+        remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
+        servicos: osDetail?.servicos,
+        pecas: osDetail?.pecas,
+        pagamentos: osDetail?.pagamentos,
+        checklists: osDetail?.checklists,
+        checklistAudit: osDetail?.checklistAudit,
+        temNf: osDetail?.temNf,
+        documentosAnexosCount: osDetail?.documentosAnexos?.length,
+        extracaoCompleta: osDetail?.extracaoCompleta,
+        observacao: osDetail?.observacao,
+        historicoCriadoEm: osDetail?.historicoCriadoEm,
+        historicoCriadoPor: osDetail?.historicoCriadoPor,
+        historicoAtualizadoEm: osDetail?.historicoAtualizadoEm,
+        historicoAtualizadoPor: osDetail?.historicoAtualizadoPor,
+        documentosAnexos: osDetail?.documentosAnexos,
+        caseContext: caseCtx ? {
+          documentedDelayReason: caseCtx.documentedDelayReason,
+          nextPromisedStep: caseCtx.nextPromisedStep,
+          lastObservationDate: caseCtx.lastObservationDate,
+          conversationSummary: caseCtx.conversationSummary,
+          partsBalanceSummary: caseCtx.partsBalanceSummary,
+          budgetStatus: caseCtx.budgetStatus,
+          coverage: caseCtx.coverage,
+          evidenceOrigin: caseCtx.evidenceOrigin
+        } : undefined
+      };
+
+      const moduleIntent = parseOSModuleIntent(textoLimpo, resolution.activeOrder.osId);
+      const activeModule = isOSConv ? 'historico' : moduleIntent?.module;
+
+      toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
+      interactiveListPayload = composeOSInteractiveListPayload(os360Params, phone);
+
+      if (activeModule === 'servicos') {
+        replyText = composeOSServicesCard(os360Params);
+      } else if (activeModule === 'pecas') {
+        replyText = composeOSPartsCard(os360Params);
+      } else if (activeModule === 'pagamentos') {
+        replyText = composeOSPaymentsCard(os360Params);
+      } else if (activeModule === 'documentos') {
+        replyText = composeOSDocumentsCard(os360Params);
+      } else if (activeModule === 'historico') {
+        replyText = composeOSHistoryCard(os360Params);
       } else {
-        toolsCalled = ['resolve_vehicle_target', 'get_os_details', 'get_os_case_history'];
-        replyText = composeFullOS360Card({
-          osId: osDetail?.osId ?? resolution.activeOrder.osId,
-          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
-          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
-          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
-          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
-          responsavel: osDetail?.responsavel,
-          statusGrid: osDetail?.status_grid ?? resolution.activeOrder.statusGrid,
-          isOpen: osDetail?.isAberta ?? resolution.activeOrder.isOpen,
-          daysInYard: osDetail?.diasNoPatio ?? resolution.activeOrder.daysInYard,
-          totalAmount: osDetail?.valorTotal ?? resolution.activeOrder.totalAmount,
-          remainingBalance: osDetail?.saldoDevedor ?? resolution.activeOrder.remainingBalance,
-          servicos: osDetail?.servicos,
-          pecas: osDetail?.pecas,
-          pagamentos: osDetail?.pagamentos,
-          checklists: osDetail?.checklists,
-          checklistAudit: osDetail?.checklistAudit,
-          temNf: osDetail?.temNf,
-          documentosAnexosCount: osDetail?.documentosAnexos?.length,
-          extracaoCompleta: osDetail?.extracaoCompleta,
-          caseContext: caseCtx ? {
-            documentedDelayReason: caseCtx.documentedDelayReason,
-            nextPromisedStep: caseCtx.nextPromisedStep,
-            lastObservationDate: caseCtx.lastObservationDate,
-            conversationSummary: caseCtx.conversationSummary,
-            partsBalanceSummary: caseCtx.partsBalanceSummary,
-            budgetStatus: caseCtx.budgetStatus
-          } : undefined
-        });
+        replyText = composeExecutiveOSSummary(os360Params);
       }
 
       pendingReq = {
@@ -1115,7 +1173,8 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         formatMs: 0,
         totalMs
       },
-      isFeedback: false
+      isFeedback: false,
+      interactiveList: interactiveListPayload
     };
   }
 
