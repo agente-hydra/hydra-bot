@@ -9,6 +9,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import type { Page } from 'playwright';
 import {
   EMPRESAS_MAP,
   LOJAS_OPERACIONAIS_SLUGS,

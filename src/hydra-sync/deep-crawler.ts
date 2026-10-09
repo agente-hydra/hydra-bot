@@ -129,6 +129,7 @@ async function run() {
   const extracao_completa: any[] = [];
   const lojasSucesso: string[] = [];
   const lojasPendentes: Array<{ slug: string; falhaOS: boolean; falhaCMV: boolean; motivo?: string }> = [];
+  const lojasComFalhaOS: string[] = [];
 
   try {
     const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -229,7 +230,13 @@ async function run() {
               try {
                 const detalhe = await extrairDetalhe(page, p.os_id, BASE);
                 const statusGeral = String(detalhe.status_grid || '').toUpperCase();
-                const isFechada = statusGeral.includes('FECHAD') || statusGeral.includes('FATUR') || Boolean(detalhe.data_fim) || Boolean((detalhe as any).faturamento_data);
+                const isFechada = 
+                  Boolean(detalhe.is_bloqueada_fechada) ||
+                  statusGeral.includes('FECHAD') || 
+                  statusGeral.includes('FATUR') || 
+                  Boolean(detalhe.data_fim) || 
+                  Boolean((detalhe as any).faturamento_data) ||
+                  (detalhe.total_os !== undefined && detalhe.valor_pago !== undefined && detalhe.valor_pago >= detalhe.total_os && detalhe.valor_restante === 0);
                 const isCancelada = statusGeral.includes('CANCEL');
 
                 if (isFechada) {
@@ -238,11 +245,11 @@ async function run() {
                 } else if (isCancelada) {
                   formalizarTransicaoNominalOS(db, p.os_id, slug, 'CANCELADA', 'VALIDACAO_NOMINAL_CANCELADA', detalhe);
                   console.log(`[Deep Crawler] [${slug}] ✅ OS #${p.os_id} formalizada como CANCELADA via checagem nominal.`);
-                } else if (detalhe.extracao_completa) {
+                } else if (detalhe.extracao_completa && statusGeral.includes('ABERT') && !detalhe.is_bloqueada_fechada) {
                   formalizarTransicaoNominalOS(db, p.os_id, slug, 'ABERTA', 'VALIDACAO_NOMINAL_ABERTA', detalhe);
                   console.log(`[Deep Crawler] [${slug}] ✅ OS #${p.os_id} confirmada como ABERTA via checagem nominal.`);
                 } else {
-                  console.log(`[Deep Crawler] [${slug}] ℹ️ OS #${p.os_id} mantida em TRANSICAO_PENDENTE (inconclusiva: ${detalhe.erro || 'sem detalhe'}).`);
+                  console.log(`[Deep Crawler] [${slug}] ℹ️ OS #${p.os_id} mantida em TRANSICAO_PENDENTE (inconclusiva: ${detalhe.erro || 'sem comprovação de reabertura'}).`);
                 }
               } catch (nomErr: any) {
                 console.warn(`[Deep Crawler] [${slug}] ⚠️ Falha na verificação nominal individual da OS #${p.os_id}:`, nomErr?.message || nomErr);
@@ -286,6 +293,7 @@ async function run() {
           itemCount: documentos.length
         });
       } catch (osErr: any) {
+        lojasComFalhaOS.push(slug);
         motivoFalhaOS = String(osErr?.message || osErr);
         console.warn(`[Deep Crawler] ⚠️ CIRCUIT BREAKER ATIVADO (OS) para ${slug}: ${motivoFalhaOS}`);
         console.warn(`  Ação: Preservando snapshot anterior de OS em disco e no SQLite.`);
@@ -339,6 +347,118 @@ async function run() {
           motivo: [motivoFalhaOS ? `OS: ${motivoFalhaOS}` : '', motivoFalhaCMV ? `CMV: ${motivoFalhaCMV}` : ''].filter(Boolean).join(' | ')
         });
         console.warn(`[Deep Crawler] ⚠️ Loja ${slug} concluída com pendências (OS: ${osSucesso ? 'OK' : 'FALHA'}, CMV: ${cmvSucesso ? 'OK' : 'FALHA'}). Prosseguindo para próxima loja...`);
+      }
+    }
+
+    // ETAPA DE AUTO-HEALING: Recovery Pass para Lojas com Falha de OS
+    if (lojasComFalhaOS.length > 0) {
+      console.log('\n[Deep Crawler] ======================================================');
+      console.log(`[Deep Crawler] ETAPA DE AUTO-HEALING: Re-executando Recovery Pass para ${lojasComFalhaOS.length} lojas com falha de OS: ${lojasComFalhaOS.join(', ')}...`);
+      console.log('[Deep Crawler] ======================================================');
+
+      for (const slugRec of [...lojasComFalhaOS]) {
+        console.log(`[Deep Crawler] 🔄 [Recovery Pass] Tentando extração cirúrgica de OS para ${slugRec}...`);
+        const parcialPath = path.join(OUT_DIR, `extracao_mes_${slugRec}.json`);
+        const hojePath = path.join(OUT_DIR, `extracao_hoje_${slugRec}.json`);
+        const nomeAmigavel = empresasConfig[slugRec]?.nome_amigavel || EMPRESAS_RELATORIO[slugRec] || slugRec;
+        const inicioRecLoja = new Date();
+
+        try {
+          await page.goto(`${BASE}/wfOrdemDeServicoBusca.aspx`, { waitUntil: 'load', timeout: 30000 });
+          await ensureCompany(page, slugRec, { maxAttempts: 3, headerTimeoutMs: 12000 });
+
+          let documentos: any[] = [];
+          let paginacaoCompleta = true;
+          let totalPaginas = 1;
+          let totalEsperadoGrid: number | undefined = undefined;
+
+          const resInspector: any = await handleOSDeepInspector(page, { loja: slugRec });
+          if (Array.isArray(resInspector)) {
+            documentos = resInspector;
+            paginacaoCompleta = true;
+            totalPaginas = 1;
+          } else if (resInspector && typeof resInspector === 'object') {
+            documentos = resInspector.documentos || [];
+            paginacaoCompleta = resInspector.paginacaoCompleta ?? true;
+            totalPaginas = resInspector.totalPaginas || 1;
+            totalEsperadoGrid = resInspector.totalAbertasNativo;
+          }
+
+          if (documentos.length === 0) {
+            throw new Error('Nenhum documento retornado na recuperação de OS');
+          }
+
+          const totalAbertos = documentos.filter(d =>
+            d.is_aberta !== undefined
+              ? d.is_aberta === 1
+              : (!d.status_grid?.toLowerCase().includes('fechad') && !d.status_grid?.toLowerCase().includes('fatur'))
+          ).length;
+
+          const resRecon = salvarLoteOSs(db, slugRec, documentos, {
+            extracaoCompleta: documentos.length > 0 && paginacaoCompleta,
+            paginacaoCompleta: paginacaoCompleta,
+            provaPaginacaoNativa: paginacaoCompleta,
+            totalEsperadoGrid: totalEsperadoGrid || totalAbertos,
+            totalPaginas: totalPaginas,
+          });
+
+          await indexarEmbeddingsLote(db, slugRec, documentos);
+
+          const resultadoLoja = {
+            slug_loja: slugRec,
+            nome_amigavel: nomeAmigavel,
+            data_extracao: format(new Date(), 'yyyy-MM-dd HH:mm:ss'),
+            total_documentos: documentos.length,
+            total_abertos: totalAbertos,
+            total_fechados: documentos.filter(d =>
+              d.is_aberta !== undefined
+                ? d.is_aberta === 0
+                : (d.status_grid?.toLowerCase().includes('fechad') || d.status_grid?.toLowerCase().includes('fatur'))
+            ).length,
+            total_com_detalhe: documentos.filter(d => d.extracao_completa).length,
+            documentos,
+            erro: null,
+          };
+
+          fs.writeFileSync(parcialPath, JSON.stringify(resultadoLoja, null, 2));
+          fs.writeFileSync(hojePath, JSON.stringify(resultadoLoja, null, 2));
+
+          const idxAntigo = extracao_completa.findIndex(e => e.slug_loja === slugRec);
+          if (idxAntigo >= 0) {
+            extracao_completa[idxAntigo] = resultadoLoja;
+          } else {
+            extracao_completa.push(resultadoLoja);
+          }
+
+          const idxPendente = lojasPendentes.findIndex(p => p.slug === slugRec);
+          if (idxPendente >= 0) {
+            lojasPendentes[idxPendente].falhaOS = false;
+            if (!lojasPendentes[idxPendente].falhaCMV) {
+              lojasPendentes.splice(idxPendente, 1);
+              if (!lojasSucesso.includes(slugRec)) {
+                lojasSucesso.push(slugRec);
+              }
+            }
+          }
+
+          const idxFila = lojasComFalhaOS.indexOf(slugRec);
+          if (idxFila >= 0) {
+            lojasComFalhaOS.splice(idxFila, 1);
+          }
+
+          recordDataWorkerRun(db, {
+            kind: 'OS',
+            lojaSlug: slugRec,
+            dataReferencia: format(new Date(), 'yyyy-MM-dd'),
+            startedAt: inicioRecLoja.toISOString(),
+            status: 'SUCCESS',
+            itemCount: documentos.length
+          });
+
+          console.log(`[Deep Crawler] ✅ [Recovery Pass] Loja ${slugRec} recuperada com sucesso (${documentos.length} OSs)!`);
+        } catch (recErr: any) {
+          console.error(`[Deep Crawler] ❌ [Recovery Pass] Falha definitiva na recuperação de ${slugRec}: ${recErr?.message || recErr}`);
+        }
       }
     }
 
@@ -408,7 +528,7 @@ async function run() {
   }
 
   // Registrar status consolidado do ciclo diário
-  const cicloSucessoTotal = lojasPendentes.length === 0;
+  const cicloSucessoTotal = lojasPendentes.length === 0 && lojasComFalhaOS.length === 0;
   const statusCiclo = cicloSucessoTotal ? 'SUCCESS' : 'ERROR';
   const resumoPendentes = lojasPendentes
     .map(p => `${p.slug} [${p.falhaOS ? 'OS' : ''}${p.falhaOS && p.falhaCMV ? '+' : ''}${p.falhaCMV ? 'CMV' : ''}]`)

@@ -75,29 +75,35 @@ export interface DocumentoAberto {
   cliente_nome: string;
   cliente_cpf?: string;
   cliente_telefone?: string;
+  cliente_telefones?: string[];
   cliente_telefone_sms?: string;
   previsao: string;
   responsavel: string;
   pesquisa: string;
   status_grid: string;
   is_aberta?: number;
+  is_bloqueada_fechada?: boolean;
   dias_no_patio?: number;
 
   empresa?: string;
   hodometro?: string;
   ano?: string;
   observacao?: string;
+  observacao_cliente?: string;
   credito?: string;
   faturamento_data?: string;
 
-  // Aba Produtos e Serviços
+  // Aba 1: Produtos e Serviços
   itens?: ItemOS[];
   total_os?: number;
   desconto_pct?: string;
   total_produtos_pct?: string;
   total_servicos_pct?: string;
 
-  // Aba Pagamentos
+  // Aba 2: Buscar Produtos e Serviços
+  busca_produtos_servicos?: any[];
+
+  // Aba 3: Pagamentos
   pagamentos?: PagamentoOS[];
   valor_pago?: number;
   valor_restante?: number;
@@ -164,8 +170,35 @@ export function getRolling30DayRange(): { dIni: string; dFim: string } {
 
 // ─── Extração Instantânea do Detalhe da OS no DOM (9 Abas) ────────────────────
 
+export const SELETORES_ABAS_OS = [
+  { nome: 'Produtos e Serviços',        selector: 'a:has-text("Produtos e Serviços"), span:has-text("Produtos e Serviços"), [id*="tapItem"]' },
+  { nome: 'Buscar Produtos e Serviços', selector: 'a:has-text("Buscar Produtos"), span:has-text("Buscar Produtos"), [id*="tapBuscar"]' },
+  { nome: 'Pagamentos',                 selector: 'a:has-text("Pagamentos"), span:has-text("Pagamentos"), [id*="tapPagamento"]' },
+  { nome: 'Documentos',                 selector: 'a:has-text("Documentos"), span:has-text("Documentos"), [id*="tapDocumento"]' },
+  { nome: 'Notas',                      selector: 'a:has-text("Notas"), span:has-text("Notas"), [id*="tapFiscal"]' },
+  { nome: 'Agendamento(s)',             selector: 'a:has-text("Agendamento"), span:has-text("Agendamento"), [id*="tapAgenda"]' },
+  { nome: 'Check-List',                 selector: 'a:has-text("Check-List"), span:has-text("Check-List"), [id*="tapCheckList"]' },
+  { nome: 'Garantia(s)',                selector: 'a:has-text("Garantia"), span:has-text("Garantia"), [id*="tapGarantia"]' },
+  { nome: 'Histórico',                  selector: 'a:has-text("Histórico"), span:has-text("Histórico"), [id*="tapHistorico"]' },
+];
+
+export async function ativarTodasAsAbas(detailPage: Page): Promise<void> {
+  for (const aba of SELETORES_ABAS_OS) {
+    try {
+      const loc = detailPage.locator(aba.selector).first();
+      if (await loc.isVisible({ timeout: 800 }).catch(() => false)) {
+        await loc.click().catch(() => {});
+        await detailPage.waitForTimeout(300);
+      }
+    } catch {}
+  }
+}
+
 export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<DocumentoAberto>> {
   await detailPage.evaluate('window.__name = function(t) { return t; };');
+
+  // Ativação sequencial das 9 abas para forçar disparo dos UpdatePanels AJAX do ASP.NET WebForms
+  await ativarTodasAsAbas(detailPage);
 
   const detalhe = await detailPage.evaluate(() => {
     const parseMoedaDOM = (txt: string) => {
@@ -180,16 +213,60 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       return (el.textContent || '').trim();
     };
 
-    // 1. Cabeçalho
+    const bodyText = document.body ? (document.body.innerText || document.body.textContent || '') : '';
+    const is_bloqueada_fechada = /fechada\s+e\s+bloqueada/i.test(bodyText);
+
+    // ─── 0. Cabeçalho Geral da OS ─────────────────────────
     const empresa = (document.querySelector('#ctl00_cph_ddlEmpresa option:checked')?.textContent || '').trim();
     const hodometro = getVal('#ctl00_cph_txtHodometro');
     const ano = getVal('#ctl00_cph_txtAno');
     const cpf = getVal('input[id*="txtCPF"]');
     const observacao = getVal('#ctl00_cph_txtObservacao');
+    const observacao_cliente = getVal('#ctl00_cph_txtObservacaoCliente, textarea[id*="ObservacaoCliente"]');
     const credito = getVal('input[id*="Credito"], #ctl00_cph_txtCredito');
     const faturamento_data = getVal('#ctl00_cph_txtDataFaturamento');
+    const veiculo = getVal('#ctl00_cph_txtVeiculo, span[id*="lblVeiculo"]');
+    const placa = getVal('#ctl00_cph_txtPlaca, span[id*="lblPlaca"]');
+    const cliente_nome = getVal('#ctl00_cph_txtCliente, span[id*="lblCliente"]');
+    const responsavel = getVal('#ctl00_cph_txtResponsavel, span[id*="lblResponsavel"]');
+    const telefone_sms = getVal('#txtTelefoneSMS, input[id*="TelefoneSMS"]');
 
-    // 2. Itens
+    // Telefones do cliente extraídos no cabeçalho
+    const cliente_telefones: string[] = [];
+    const telMatches = bodyText.match(/\(\d{2}\)\s*\d{4,5}-?\d{4}/g);
+    if (telMatches) {
+      for (const t of telMatches) {
+        if (!cliente_telefones.includes(t)) cliente_telefones.push(t);
+      }
+    }
+
+    // Datas de Início e Fim
+    let data_inicio = getVal('input[id*="txtDataInicio"], input[id*="txtDtInicio"], span[id*="lblDataInicio"]');
+    if (!data_inicio) {
+      const iniMatch = bodyText.match(/\bIn[íi]cio\s+([0-3]?\d\/[0-1]?\d\/\d{4}(?:\s+[0-2]?\d:[0-5]\d)?)/i);
+      if (iniMatch) data_inicio = iniMatch[1].trim();
+    }
+
+    let data_fim: string | null = getVal('input[id*="txtDataFim"], input[id*="txtDtFim"], span[id*="lblDataFim"]');
+    if (!data_fim) {
+      const fimMatch = bodyText.match(/\bFim\s+([0-3]?\d\/[0-1]?\d\/\d{4}(?:\s+[0-2]?\d:[0-5]\d)?)/i);
+      if (fimMatch) data_fim = fimMatch[1].trim();
+    }
+    if (!data_fim) data_fim = null;
+
+    // Status da OS
+    const statusSelect = document.querySelector('select[id*="ddlStatus"] option:checked') as any;
+    const statusSelectTxt = (statusSelect?.textContent || '').trim();
+    let status_grid = '';
+    if (statusSelectTxt && !statusSelectTxt.toLowerCase().includes('selecione')) {
+      status_grid = statusSelectTxt;
+    } else if (is_bloqueada_fechada || Boolean(data_fim)) {
+      status_grid = 'FECHADO';
+    } else {
+      status_grid = 'ABERTO';
+    }
+
+    // ─── Aba 1: Produtos e Serviços ───────────────────────
     const itens: any[] = [];
     const itemRows = document.querySelectorAll('table[id*="ucOrdemDeServicoItem_grd"] tr');
     for (let i = 1; i < itemRows.length; i++) {
@@ -212,26 +289,54 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
     const servPctInput  = getVal('#tab_tapItem_ucOrdemDeServicoItem_txtTotalServico');
     const total_os = parseMoedaDOM(totalValInput) || itens.reduce((acc, it) => acc + it.valor_total, 0);
 
-    // 3. Pagamentos
+    // ─── Aba 2: Buscar Produtos e Serviços ─────────────────
+    const busca_produtos_servicos: any[] = [];
+    const buscaRows = document.querySelectorAll('table[id*="ucOrdemDeServicoBuscaItem_grd"], table[id*="tapBuscar_grd"] tr');
+    for (let i = 1; i < buscaRows.length; i++) {
+      const tds = buscaRows[i].querySelectorAll('td');
+      if (tds.length >= 2) {
+        busca_produtos_servicos.push({
+          descricao: (tds[0].textContent || '').trim(),
+          detalhe: (tds[1].textContent || '').trim(),
+        });
+      }
+    }
+
+    // ─── Aba 3: Pagamentos ────────────────────────────────
     const pagamentos: any[] = [];
     const pagRows = document.querySelectorAll('table[id*="ucOrdemDeServicoPagamento_grd"] tr');
+    let somaParcelas = 0;
     for (let i = 1; i < pagRows.length; i++) {
       const tds = pagRows[i].querySelectorAll('td');
       if (tds.length >= 4) {
+        const valParcela = parseMoedaDOM(tds[3].textContent || '0');
+        somaParcelas += valParcela;
         pagamentos.push({
           parcela: (tds[0].textContent || '').trim(),
           vencimento: (tds[1].textContent || '').trim(),
           forma: (tds[2].textContent || '').trim(),
-          valor: parseMoedaDOM(tds[3].textContent || '0'),
+          valor: valParcela,
           num_operacao: tds.length > 4 ? (tds[4].textContent || '').trim() : '',
           enviado_financeiro: tds.length > 6 ? (tds[6].textContent || '').trim() : '',
         });
       }
     }
-    const valor_pago = parseMoedaDOM(getVal('#tab_tapPagamento_ucOrdemDeServicoPagamento_txtTotalValor'));
-    const valor_restante = parseMoedaDOM(getVal('#tab_tapPagamento_ucOrdemDeServicoPagamento_txtRestante'));
+    const txtTotalPago = getVal('#tab_tapPagamento_ucOrdemDeServicoPagamento_txtTotalValor, input[id*="Pagamento_txtTotalValor"]');
+    const txtRestante  = getVal('#tab_tapPagamento_ucOrdemDeServicoPagamento_txtRestante, input[id*="Pagamento_txtRestante"]');
+    const valor_pago_input = parseMoedaDOM(txtTotalPago);
+    const valor_restante_input = parseMoedaDOM(txtRestante);
 
-    // 4. Documentos
+    const valor_pago = valor_pago_input > 0 ? valor_pago_input : somaParcelas;
+    let valor_restante = 0;
+    if (txtRestante !== '') {
+      valor_restante = valor_restante_input;
+    } else {
+      valor_restante = Math.max(0, total_os - valor_pago);
+    }
+
+    const is_aberta = (is_bloqueada_fechada || Boolean(data_fim) || (valor_restante === 0 && valor_pago >= total_os && total_os > 0)) ? 0 : 1;
+
+    // ─── Aba 4: Documentos ────────────────────────────────
     const documentos_anexos: any[] = [];
     const docRows = document.querySelectorAll('table[id*="ucOrdemDeServicoDocumento_grd"] tr');
     for (let i = 1; i < docRows.length; i++) {
@@ -246,7 +351,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       }
     }
 
-    // 5. Notas Fiscais
+    // ─── Aba 5: Notas Fiscais ─────────────────────────────
     const notas_fiscais: string[] = [];
     const nfRows = document.querySelectorAll('table[id*="ucOrdemDeServicoFiscal_grd"] tr');
     for (let i = 0; i < nfRows.length; i++) {
@@ -256,8 +361,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       }
     }
 
-    // 6. Agendamentos & Alertas
-    const telefone_sms = getVal('#txtTelefoneSMS');
+    // ─── Aba 6: Agendamentos & Alertas ────────────────────
     const alertas_preventiva: any[] = [];
     const alertaRows = document.querySelectorAll('table[id*="ucPlacaDoVeiculoAlerta_grd"] tr');
     for (let i = 1; i < alertaRows.length; i++) {
@@ -286,7 +390,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       }
     }
 
-    // 7. Check-list
+    // ─── Aba 7: Check-list ────────────────────────────────
     const checklists: any[] = [];
     const clRows = document.querySelectorAll('table[id*="ucOrdemDeServicoCheckList_grdCheckList"] tr');
     for (let i = 1; i < clRows.length; i++) {
@@ -305,7 +409,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       }
     }
 
-    // 8. Garantias
+    // ─── Aba 8: Garantias ─────────────────────────────────
     const garantias: any[] = [];
     const garRows = document.querySelectorAll('table[id*="ucOrdemDeServicoOperacaoEstoque_grdOperacaoEstoque"] tr');
     for (let i = 1; i < garRows.length; i++) {
@@ -322,7 +426,7 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       }
     }
 
-    // 9. Histórico
+    // ─── Aba 9: Histórico ─────────────────────────────────
     const historico_criado_em = getVal('#tab_tapHistorico_txtDataDeCadastro');
     const historico_criado_por = getVal('#tab_tapHistorico_txtUsuarioCadastroNome');
     const historico_atualizado_em = getVal('#tab_tapHistorico_txtDataDeAtualizacao');
@@ -332,12 +436,25 @@ export async function extrairDetalheDaPagina(detailPage: Page): Promise<Partial<
       empresa,
       hodometro,
       ano,
+      cliente_nome,
       cliente_cpf: cpf,
+      cliente_telefone: cliente_telefones[0] || '',
+      cliente_telefones,
       cliente_telefone_sms: telefone_sms,
+      veiculo,
+      placa,
+      responsavel,
       observacao,
+      observacao_cliente,
       credito,
       faturamento_data,
+      data_inicio,
+      data_fim,
+      status_grid,
+      is_aberta,
+      is_bloqueada_fechada,
       itens,
+      busca_produtos_servicos,
       total_os,
       desconto_pct: descInput,
       total_produtos_pct: prodPctInput,
@@ -489,7 +606,8 @@ export async function extrairGridComPaginacao(
           const pagerRow = document.querySelector('table[id*="grd"] tr.pgr');
           if (!pagerRow) return false;
           const links = pagerRow.querySelectorAll('a');
-          for (const a of links) {
+          for (let i = 0; i < links.length; i++) {
+            const a = links[i];
             if ((a.textContent || '').trim() === String(targetPage) || a.getAttribute('href')?.includes(`Page$${targetPage}`)) {
               a.click();
               return true;
@@ -597,7 +715,8 @@ export async function handleOSDeepInspector(page: Page, params: { loja: string }
               const pagerRow = document.querySelector('table[id*="grd"] tr.pgr');
               if (!pagerRow) return false;
               const links = pagerRow.querySelectorAll('a');
-              for (const a of links) {
+              for (let i = 0; i < links.length; i++) {
+                const a = links[i];
                 if ((a.textContent || '').trim() === String(targetPage) || a.getAttribute('href')?.includes(`Page$${targetPage}`)) {
                   a.click();
                   return true;

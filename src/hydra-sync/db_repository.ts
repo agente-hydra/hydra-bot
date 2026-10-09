@@ -1141,11 +1141,19 @@ export function formalizarTransicaoNominalOS(
   const isAberta = novoEstado === 'ABERTA' ? 1 : 0;
   const diasNoPatio = novoEstado === 'ABERTA' ? (dadosDetalhe?.dias_no_patio || 0) : 0;
   let dataFimIso: string | null = null;
+  let dataFimRaw: string | null = dadosDetalhe?.data_fim || null;
+
   if (dadosDetalhe?.data_fim) {
     dataFimIso = parseBrDateToIso(dadosDetalhe.data_fim);
   } else if (novoEstado === 'ENCERRADA' || novoEstado === 'CANCELADA') {
     dataFimIso = formatIsoTimestamp();
+    if (!dataFimRaw) dataFimRaw = formatIsoTimestamp();
   }
+
+  const totalOs = dadosDetalhe?.total_os !== undefined ? Number(dadosDetalhe.total_os) : null;
+  const valorPago = dadosDetalhe?.valor_pago !== undefined ? Number(dadosDetalhe.valor_pago) : null;
+  const valorRestante = dadosDetalhe?.valor_restante !== undefined ? Number(dadosDetalhe.valor_restante) : null;
+  const rawPayload = dadosDetalhe ? (typeof dadosDetalhe === 'string' ? dadosDetalhe : JSON.stringify(dadosDetalhe)) : null;
 
   const res = db.prepare(`
     UPDATE ordens_servico
@@ -1153,19 +1161,29 @@ export function formalizarTransicaoNominalOS(
         qualidade_dado = 'VALIDADO',
         is_aberta = @is_aberta,
         dias_no_patio = @dias_no_patio,
+        total_os = COALESCE(@total_os, total_os),
+        valor_pago = COALESCE(@valor_pago, valor_pago),
+        valor_restante = COALESCE(@valor_restante, valor_restante),
+        data_fim = COALESCE(@data_fim, data_fim),
         data_fim_iso = COALESCE(@data_fim_iso, data_fim_iso),
         data_evento_iso = COALESCE(@data_fim_iso, data_evento_iso),
         data_observacao_iso = @data_observacao_iso,
         origem_transicao = @origem_transicao,
+        raw_payload = COALESCE(@raw_payload, raw_payload),
         updated_at = CURRENT_TIMESTAMP
     WHERE os_id = @os_id AND loja_slug = @loja_slug
   `).run({
     estado_operacional: novoEstado,
     is_aberta: isAberta,
     dias_no_patio: diasNoPatio,
+    total_os: totalOs,
+    valor_pago: valorPago,
+    valor_restante: valorRestante,
+    data_fim: dataFimRaw,
     data_fim_iso: dataFimIso,
     data_observacao_iso: formatIsoTimestamp(),
     origem_transicao: origemTransicao,
+    raw_payload: rawPayload,
     os_id: String(osId),
     loja_slug: lojaSlug
   });

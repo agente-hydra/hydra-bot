@@ -4,6 +4,19 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-09] — [Feature ID: hydra-crawler-payment-tab-and-closure-reconciliation]
+**Contexto:** Correção da discrepância financeira e de ciclo de vida de OSs no crawler (`os_deep_inspector.ts`, `deep-crawler.ts`, `db_repository.ts`), onde ordens faturadas/fechadas e quitadas (caso real OS #1856 Fusca Novo - Rei do Módulo, R$ 4.000 quitado via PIX) apareciam como "0% pago / R$ 4.000 pendente" devido à falta de ativação das abas AJAX do ASP.NET WebForms e reversão cega em checagem nominal.
+**Regra aprendida:**
+1. Ativação Sequencial das 9 Abas no Playwright (`ativarTodasAsAbas`): O ERP Oficina Inteligente utiliza `AjaxControlToolkit.TabContainer`. Abas secundárias (Pagamentos, Documentos, Notas, Agendamentos, Check-List, Garantias, Histórico, etc.) só têm seus UpdatePanels renderizados no DOM após o disparo real do evento de clique. A função `ativarTodasAsAbas` navega pelas 9 abas antes do parsing final, garantindo 100% de cobertura nos grids financeiros e cadastrais.
+2. Detecção Factual de Bloqueio e Encerramento: A presença do banner `"O.S. fechada e bloqueada"` (`is_bloqueada_fechada: true`), de `data_fim` preenchida ou de saldo restante zerado com valor pago igual ao total determina sem ambiguidade que a OS está ENCERRADA (`is_aberta = 0`).
+3. Proibição de Reversão Cega para ABERTA em Checagem Nominal: Ordens ausentes na grade de abertas (`TRANSICAO_PENDENTE`) nunca podem ser revertidas para `ABERTA` com base apenas no sucesso técnico da extração (`extracao_completa === true`). A reativação exige comprovação nominal ativa de status "ABERTO" e ausência de trava de bloqueio.
+4. Sincronização Financeira Bidirecional em Transição Nominal: `formalizarTransicaoNominalOS` deve compulsoriamente atualizar `total_os`, `valor_pago`, `valor_restante`, `data_fim` e o `raw_payload` completo com as 9 abas, mantendo consistência no SQLite WAL.
+**Risco identificado:** Alterações de layout no TabContainer do ERP podem quebrar seletores de clique de abas. Mitigado por fallbacks resilientes de texto e IDs parciais (`[id*="tapPagamento"]`).
+**Não fazer:**
+- Nunca extrair tabelas de abas AJAX no WebForms sem disparar previamente o evento de clique na respectiva aba.
+- Nunca reabrir uma OS ausente de grade apenas porque a página de detalhe carregou com HTTP 200 / extracao_completa.
+- Nunca deixar de sincronizar os campos financeiros quando uma OS formaliza transição de encerramento.
+
 ## [2026-10-08] — [Feature ID: hydra-harness-async-and-intent-hardening]
 **Contexto:** Endurecimento crítico do harness e dispatcher do Hydra Agent (`dual_worker_router.ts`, `agent_dispatcher.ts`, `db_repository.ts`, `webhook-listener.js`) na VPS Linux, eliminando congelamento do event loop, vazamento de contexto de veículos/OS em mensagens subsequentes, timeouts de 90s em consultas de auditoria e loops de retry da Evolution API.
 **Regra aprendida:**
@@ -314,6 +327,20 @@
 - NUNCA somar parcelas a vencer como valor já pago pelo cliente.
 - NUNCA usar emojis em relatórios executivos de OS.
 - NUNCA usar aparelhos/instâncias de gerentes para envio de listas ou mensagens interativas.
+
+---
+
+## [2026-10-09] — [Feature ID: hydra-patio-piraporinha-stale-fix]
+**Contexto:** Correção e blindagem de resiliência após discrepância de conciliação de OSs em Piraporinha causada por timeout transiente de ASP.NET WebForms (`#lblSiglaEmpresa`) na virada de loja, que acionou o Circuit Breaker e preservou o snapshot do dia anterior (24h obsoleto), gerando relatório matinal com dados desatualizados.
+**Regra aprendida:**
+1. **Active Recovery em WebForms ASP.NET (`ensureCompany`):** Em trocas sequenciais de empresa, timeouts no seletor `#lblSiglaEmpresa` não devem falhar cegamente em loop fechado sem intervenção de rede. Se a página cair em `Default.aspx` ou login, re-autenticar imediatamente; caso contrário, forçar `page.reload({ waitUntil: 'load' })` para purgar modais/overlays travados e estender o timeout para 12s.
+2. **Recovery Pass (Auto-Healing) no Crawler Diário:** Preservar snapshots anteriores em caso de falha transitória é essencial para contingência, mas o ciclo diário não pode encerrar sem uma segunda passada de recuperação. O `deep-crawler.ts` deve enfileirar as lojas com erro de OS (`lojasComFalhaOS`) e tentar a extração cirúrgica de recuperação após a etapa de CMV antes de consolidar os dados. Se alguma loja continuar pendente após a retentativa, o processo deve falhar com código de erro explícito.
+3. **Freshness Guard no Pátio Ledger (`validateStoresFreshness`):** O adaptador de ingestão matinal (`patio_hydra_bot_adapter.js`) nunca deve confiar que um arquivo `os_store_<slug>.json` é válido apenas porque seu tamanho é maior que 1KB. Ele deve auditar o mtime e o campo `ultima_atualizacao` interno contra a tolerância máxima (12 horas). Se houver lojas obsoletas em execução de produção, o relatório deve ser bloqueado com alerta determinístico para o time de desenvolvimento.
+**Risco identificado:** Execuções automáticas continuarem consumindo caches antigos em disco quando o crawler primário falha silenciosamente, transmitindo falsos positivos na conciliação financeira da diretoria.
+**Não fazer:**
+- NUNCA assumir que um arquivo JSON local é fresco apenas pelo tamanho em bytes sem verificar `mtime` e `ultima_atualizacao`.
+- NUNCA tentar retentativas de seletores ASP.NET sem recarregar a página (`page.reload`) quando houver travamento de ViewState ou modais fantasmas.
+- NUNCA permitir que o ciclo unificado encerre com status `SUCCESS` se alguma loja tiver ficado sem extração recente de OS.
 
 
 

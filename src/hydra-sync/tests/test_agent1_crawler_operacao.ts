@@ -119,6 +119,46 @@ async function runTests() {
     );
   });
 
+  await it('1.6 - ensureCompany recupera com sucesso via Active Recovery apos timeout na 1a tentativa', async () => {
+    let attempts = 0;
+    let reloadCalled = false;
+    let currentHeader = 'EMPRESA_ANTERIOR';
+    const targetHeader = 'MPplanalto';
+
+    const mockPage: any = {
+      url: () => 'https://sistemaoficinainteligente.com.br/wfOrdemDeServicoBusca.aspx',
+      reload: async () => {
+        reloadCalled = true;
+      },
+      goto: async () => {},
+      locator: (selector: string) => ({
+        textContent: async () => {
+          if (selector === '#lblSiglaEmpresa') {
+            return currentHeader;
+          }
+          return '';
+        },
+        waitFor: async () => {
+          if (selector === '#lblSiglaEmpresa' && attempts === 0) {
+            attempts++;
+            throw new Error('Timeout 8000ms waiting for #lblSiglaEmpresa');
+          }
+        },
+        click: async () => {},
+        selectOption: async (opt: any) => {
+          currentHeader = targetHeader;
+        }
+      }),
+      waitForTimeout: async () => {},
+      waitForLoadState: async () => {},
+      evaluate: async () => true
+    };
+
+    await ensureCompany(mockPage, 'MPplanalto', { maxAttempts: 3, headerTimeoutMs: 1000 });
+    assert.strictEqual(reloadCalled, true, 'page.reload deve ter sido acionado no Active Recovery');
+    assert.strictEqual(currentHeader, targetHeader, 'Empresa deve ter sido trocada com sucesso na 2a tentativa');
+  });
+
   // =========================================================================
   // GRUPO 2: Extracao e Validacao Matematica (Areas + Linha Totalizadora CMV)
   // =========================================================================
