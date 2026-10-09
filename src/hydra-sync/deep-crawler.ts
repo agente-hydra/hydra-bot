@@ -15,6 +15,7 @@ import {
   gerarPdfMapaMetas,
   gerarNomesArquivosOficiais
 } from './crawler_meta_reconciliation.js';
+import { gerarPdfContasPagar } from './contas_pagar_crawler.js';
 import type { MapaMetasReconciliationSnapshot } from './types/meta_reconciliation_contract.js';
 
 dotenvConfig({ path: '/opt/bots/.env' });
@@ -506,6 +507,19 @@ async function run() {
         const nomesArquivos = gerarNomesArquivosOficiais();
         const caminhoPdf = path.join(OUT_DIR, nomesArquivos.mapaMetas);
         await gerarPdfMapaMetas(page, caminhoPdf);
+
+        // Geração do PDF Oficial de Contas a Pagar (Contas Pagas de D-1 / Sexta+Sábado na Segunda)
+        try {
+          const dateTagBR = format(new Date(), 'dd-MM-yyyy');
+          const caminhoPdfContas = path.join(OUT_DIR, `Contas a Pagar - ${dateTagBR}.pdf`);
+          console.log('\n[Deep Crawler] ======================================================');
+          console.log('[Deep Crawler] ETAPA: Gerando PDF Oficial de Contas a Pagar...');
+          console.log('[Deep Crawler] ======================================================');
+          await gerarPdfContasPagar(page, caminhoPdfContas, { baseUrl: BASE });
+        } catch (errContas: unknown) {
+          const msg = errContas instanceof Error ? errContas.message : String(errContas);
+          console.warn(`[Deep Crawler] ⚠️ Falha ao gerar PDF de Contas a Pagar: ${msg}`);
+        }
       } catch (errDoubleCheck: unknown) {
         const msg = errDoubleCheck instanceof Error ? errDoubleCheck.message : String(errDoubleCheck);
         console.warn(`[Deep Crawler] ⚠️ Falha no double-check final ou geração do PDF: ${msg}`);
