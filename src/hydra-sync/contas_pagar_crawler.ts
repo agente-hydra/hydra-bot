@@ -17,10 +17,12 @@
 import { type Page } from 'playwright';
 import * as fs from 'fs';
 import * as path from 'path';
+import { calcularJanelaAcumulada } from './feriados_calendario.js';
 
 export interface ContasPagarDataRange {
   dataInicialFormatada: string; // "DD/MM/YYYY"
   dataFinalFormatada: string;   // "DD/MM/YYYY"
+  filtroValor: string;          // '2' = Vencimento, '3' = Pagamento
   isSegundaFeira: boolean;
   diasCobertosDescricao: string;
 }
@@ -30,6 +32,7 @@ export interface ContasPagarCrawlerOptions {
   dataReferencia?: Date;
   timeoutMs?: number;
   desmarcarMaster?: boolean;
+  modo?: 'vencimento_hoje' | 'pagamento_anterior';
 }
 
 export interface ContasPagarExtractionResult {
@@ -46,50 +49,35 @@ export interface ContasPagarExtractionResult {
 
 /**
  * Calcula o intervalo de datas para a consulta de Contas a Pagar:
- * - Terça a Domingo: Data Inicial = Ontem (D-1), Data Final = Ontem (D-1)
- * - Segunda-feira: Data Inicial = Sexta-feira passada (D-3), Data Final = Ontem/Domingo (D-1)
+ * - Padrão Diretor (vencimento_hoje): Contas a Vencer no dia atual (Hoje D)
+ * - Modo alternativo (pagamento_anterior): filtro por Data de Pagamento do dia D-1
  */
-export function calcularPeriodoContasPagar(dataRef: Date = new Date()): ContasPagarDataRange {
-  const diaSemana = dataRef.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
-  const isSegundaFeira = diaSemana === 1;
+export function calcularPeriodoContasPagar(
+  dataRef: Date = new Date(),
+  modo: 'vencimento_hoje' | 'pagamento_anterior' = 'vencimento_hoje'
+): ContasPagarDataRange {
+  const d = String(dataRef.getDate()).padStart(2, '0');
+  const m = String(dataRef.getMonth() + 1).padStart(2, '0');
+  const y = dataRef.getFullYear();
+  const hojeBR = `${d}/${m}/${y}`;
 
-  let dtInicio: Date;
-  let dtFim: Date;
-  let descricao: string;
-
-  if (isSegundaFeira) {
-    // Sexta-feira anterior = D-3
-    dtInicio = new Date(dataRef);
-    dtInicio.setDate(dataRef.getDate() - 3);
-
-    // Ontem (Domingo) = D-1 (cobrindo pagamentos de sexta, sábado e domingo)
-    dtFim = new Date(dataRef);
-    dtFim.setDate(dataRef.getDate() - 1);
-
-    descricao = 'Segunda-feira: período estendido de sexta-feira a domingo';
-  } else {
-    // Dia comum: D-1
-    dtInicio = new Date(dataRef);
-    dtInicio.setDate(dataRef.getDate() - 1);
-
-    dtFim = new Date(dataRef);
-    dtFim.setDate(dataRef.getDate() - 1);
-
-    descricao = 'Dia comum: data de ontem (D-1)';
+  if (modo === 'vencimento_hoje') {
+    return {
+      dataInicialFormatada: hojeBR,
+      dataFinalFormatada: hojeBR,
+      filtroValor: '2', // Data de Vencimento
+      isSegundaFeira: dataRef.getDay() === 1,
+      diasCobertosDescricao: `Contas a Vencer no dia atual (${hojeBR})`
+    };
   }
 
-  const formatarBR = (d: Date): string => {
-    const dia = String(d.getDate()).padStart(2, '0');
-    const mes = String(d.getMonth() + 1).padStart(2, '0');
-    const ano = d.getFullYear();
-    return `${dia}/${mes}/${ano}`;
-  };
-
+  const janela = calcularJanelaAcumulada(dataRef);
   return {
-    dataInicialFormatada: formatarBR(dtInicio),
-    dataFinalFormatada: formatarBR(dtFim),
-    isSegundaFeira,
-    diasCobertosDescricao: descricao
+    dataInicialFormatada: janela.dataInicioBR,
+    dataFinalFormatada: janela.dataFimBR,
+    filtroValor: '3', // Data de Pagamento
+    isSegundaFeira: janela.motivo === 'segunda_feira',
+    diasCobertosDescricao: janela.descricao
   };
 }
 
@@ -107,7 +95,7 @@ export async function gerarPdfContasPagar(
   const timeoutMs = options.timeoutMs || 45000;
   const desmarcarMaster = options.desmarcarMaster !== false;
 
-  const periodo = calcularPeriodoContasPagar(dataReferencia);
+  const periodo = calcularPeriodoContasPagar(dataReferencia, options.modo || 'vencimento_hoje');
   console.log(`[Contas Pagar] Iniciando extração do PDF oficial...`);
   console.log(`[Contas Pagar] Período calculado: ${periodo.dataInicialFormatada} até ${periodo.dataFinalFormatada} (${periodo.diasCobertosDescricao})`);
 
@@ -152,11 +140,11 @@ export async function gerarPdfContasPagar(
     await page.waitForTimeout(500);
   }
 
-  // 2. Filtro de Data: Selecionar "Data de Pagamento" (opção '3')
-  console.log(`[Contas Pagar] Selecionando filtro 'Data de Pagamento' (#ctl00_cph_rblFiltroData -> '3')...`);
+  // 2. Filtro de Data: Selecionar Tipo de Data (opção '2' = Vencimento, '3' = Pagamento)
+  console.log(`[Contas Pagar] Selecionando filtro (#ctl00_cph_rblFiltroData -> '${periodo.filtroValor}')...`);
   const selectFiltroData = page.locator('#ctl00_cph_rblFiltroData');
   await selectFiltroData.waitFor({ state: 'visible', timeout: 10000 });
-  await selectFiltroData.selectOption('3');
+  await selectFiltroData.selectOption(periodo.filtroValor);
   await page.waitForTimeout(500);
 
   // 3. Preencher datas

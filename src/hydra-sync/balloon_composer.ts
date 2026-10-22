@@ -253,8 +253,9 @@ export function parseSemanticSections(raw: string | SemanticPayload): ParsedSema
       }
     }
 
-    // 1. Resposta Direta (primeiro card ou conclusão)
-    if (!directAnswer && (para.startsWith('>') || lower.includes('conclusão') || lower.includes('resumo'))) {
+    // 1. Resposta Direta (conclusão ou resumo, nunca um card de OS individual)
+    const isOsCard = /^>?\s*\*?OS\s*#?\d+/i.test(para);
+    if (!isOsCard && !directAnswer && (para.startsWith('>') || lower.includes('conclusão') || lower.includes('resumo'))) {
       directAnswer = para;
       continue;
     }
@@ -263,9 +264,11 @@ export function parseSemanticSections(raw: string | SemanticPayload): ParsedSema
     detailBlocks.push(para);
   }
 
-  // Se não foi encontrada resposta direta explícita, o primeiro parágrafo é a resposta direta
+  // Se não foi encontrada resposta direta explícita e o primeiro parágrafo NÃO for um card de OS, ele é a resposta direta
   if (!directAnswer && detailBlocks.length > 0) {
-    directAnswer = detailBlocks.shift();
+    if (!/^>?\s*\*?OS\s*#?\d+/i.test(detailBlocks[0])) {
+      directAnswer = detailBlocks.shift();
+    }
   }
 
   return {
@@ -297,14 +300,20 @@ export function splitIntoAtomicItems(detailsText: string): string[] {
 
     const firstLine = lines[0].trim();
     // É um card com título e campos subordinados?
-    // Ex: *Item* ou > *Título* ou *Título:* seguido por - *Campo:*
-    const isCardHeader = firstLine.startsWith('>') || /^\*[^*]+\*$/.test(firstLine) || /^\*[^*]+:\*$/.test(firstLine);
-    const hasFieldBullets = lines.slice(1).some(l => /^\s*-\s+/.test(l));
+    // Ex: *Item* ou > *Título* ou *Título:* seguido por - *Campo:* ou └ Status:
+    const isCardHeader =
+      firstLine.startsWith('>') ||
+      /^\*[^*]+\*$/.test(firstLine) ||
+      /^\*[^*]+:\*$/.test(firstLine) ||
+      /^\*OS\s*#?\d+/i.test(firstLine);
+
+    // Reconhece tanto bullets (-) quanto joelhos (└) como linhas filhas de card atômico
+    const hasFieldBullets = lines.slice(1).some(l => /^\s*(?:[-•]|└)\s+/.test(l));
 
     if (isCardHeader && hasFieldBullets) {
       // Card indivisível: mantém todo o bloco unido
       items.push(block.trim());
-    } else if (lines.length > 1 && lines.every(l => /^\s*-\s+/.test(l))) {
+    } else if (lines.length > 1 && lines.every(l => /^\s*(?:[-•]|└)\s+/.test(l))) {
       // Lista uniforme de itens independentes (- Loja A, - Loja B)
       for (const line of lines) {
         if (line.trim()) items.push(line.trim());

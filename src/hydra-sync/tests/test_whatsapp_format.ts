@@ -149,10 +149,11 @@ const rawPipedOS = `*Rudge Ramos (6 veículos)*
 - *Tucson* (GDZ7I78) | OS #8829 | Marcos Eder Perez | 5 dias | Em Teste | Total: R$ 2.100,00 (Resta: R$ 2.100,00)`;
 
 const sanitizedOS = sanitizeWhatsAppMarkdown(rawPipedOS);
-assert(sanitizedOS.includes('----------------------------------------'), 'Preserva divisor Hermes de traços');
-assert(sanitizedOS.includes('> *OS #8803 — FOCUS (LLX5E81)*'), 'Gera card Hermes com setinha > e modelo/placa');
-assert(sanitizedOS.includes('- *Status:* Em Execução • *Pátio:* 6 dias'), 'Formata status e pátio em linha própria');
-assert(sanitizedOS.includes('- *Cliente:* Vanderlei Lucchetti'), 'Formata cliente em linha própria');
+assert(!sanitizedOS.includes('----------------------------------------'), 'Expurga divisor de traços em cards de OS');
+assert(sanitizedOS.includes('*OS #8803 — FOCUS (LLX5E81)*'), 'Gera card Hermes 2.0 com título em negrito puro');
+assert(sanitizedOS.includes('  └ Status: *Em Execução* · *6 dias*'), 'Formata status e pátio em joelho');
+assert(sanitizedOS.includes('  └ Operação: Cliente: Vanderlei Lucchetti'), 'Formata cliente em joelho de operação');
+assert(sanitizedOS.includes('  └ Financeiro:'), 'Formata financeiro em joelho');
 assert(!sanitizedOS.includes('|'), 'Elimina completamente pipes | nas listagens de OS');
 
 const rawPipedStore = `*Posição de pátio por unidade*

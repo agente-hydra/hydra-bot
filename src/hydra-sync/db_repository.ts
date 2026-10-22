@@ -4417,6 +4417,40 @@ function isServiceItem(item: any): boolean {
   return serviceRegex.test(desc);
 }
 
+export function determineCanonicalOSStatus(
+  statusGridRaw?: string | null,
+  dataFimRaw?: string | null,
+  horaFimRaw?: string | null,
+  finalizadoEmRaw?: string | null,
+  isAbertaRaw?: number | boolean | null
+): { statusExibicao: string; isEfetivamenteAberta: boolean } {
+  const normStatus = String(statusGridRaw || '').trim().toUpperCase();
+  const hasDataFim = Boolean(
+    (dataFimRaw && String(dataFimRaw).trim() !== '' && !String(dataFimRaw).includes('0000-00-00')) ||
+    (horaFimRaw && String(horaFimRaw).trim() !== '') ||
+    (finalizadoEmRaw && String(finalizadoEmRaw).trim() !== '')
+  );
+
+  if (
+    hasDataFim ||
+    isAbertaRaw === 0 ||
+    isAbertaRaw === false ||
+    normStatus.includes('FINALIZ') ||
+    normStatus.includes('ENTREG') ||
+    normStatus.includes('FATURAD')
+  ) {
+    return {
+      statusExibicao: normStatus.includes('ENTREG') ? 'Finalizada / Entregue' : (normStatus.includes('FATURAD') ? 'Faturada' : 'Finalizada'),
+      isEfetivamenteAberta: false
+    };
+  }
+
+  return {
+    statusExibicao: normStatus || 'Em Aberto',
+    isEfetivamenteAberta: true
+  };
+}
+
 function parseOSDetailRow(row: any): OSDetailComplete {
   let payload: any = {};
   if (row.raw_payload) {
@@ -4431,6 +4465,14 @@ function parseOSDetailRow(row: any): OSDetailComplete {
   const valorPago = Number(row.valor_pago ?? payload.valor_pago ?? payload.valorPago ?? 0);
   const saldoDevedor = Number(
     row.valor_restante ?? payload.valor_restante ?? payload.saldoDevedor ?? Math.max(0, valorTotal - valorPago)
+  );
+
+  const statusAudit = determineCanonicalOSStatus(
+    row.status_grid || payload.status_grid,
+    row.data_fim || payload.data_fim || payload.previsao,
+    payload.hora_fim,
+    payload.finalizado_em || payload.dt_fechamento,
+    row.is_aberta
   );
 
   const servicos: OSServiceItem[] = [];
@@ -4604,8 +4646,8 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     lojaSlug: row.loja_slug,
     loja_slug: row.loja_slug,
     tipo: row.tipo || payload.tipo || 'OS',
-    situacao: row.status_grid || payload.status_grid || (row.is_aberta ? 'ABERTO' : 'FECHADO'),
-    status_grid: row.status_grid || payload.status_grid || (row.is_aberta ? 'ABERTO' : 'FECHADO'),
+    situacao: statusAudit.statusExibicao,
+    status_grid: statusAudit.statusExibicao,
     dataAbertura: row.data_inicio || payload.data_inicio || payload.dataAbertura || '',
     data_inicio: row.data_inicio || payload.data_inicio || payload.dataAbertura || '',
     dataPromessa: row.data_fim || payload.data_fim || payload.previsao || payload.dataPromessa || '',
@@ -4616,10 +4658,10 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     valor_pago: valorPago,
     saldoDevedor,
     valor_restante: saldoDevedor,
-    veiculo: row.veiculo || payload.veiculo || 'N?o informado',
+    veiculo: row.veiculo || payload.veiculo || 'Não informado',
     placa: row.placa || payload.placa || 'Sem placa',
-    clienteNome: row.cliente_nome || payload.cliente_nome || payload.cliente || 'N?o informado',
-    cliente_nome: row.cliente_nome || payload.cliente_nome || payload.cliente || 'N?o informado',
+    clienteNome: row.cliente_nome || payload.cliente_nome || payload.cliente || 'Não informado',
+    cliente_nome: row.cliente_nome || payload.cliente_nome || payload.cliente || 'Não informado',
     clienteCpf: payload.cliente_cpf || undefined,
     cliente_cpf: payload.cliente_cpf || undefined,
     clienteTelefone: payload.cliente_telefone_sms || undefined,
@@ -4627,8 +4669,8 @@ function parseOSDetailRow(row: any): OSDetailComplete {
     responsavel: row.responsavel || payload.responsavel || undefined,
     diasNoPatio: Number(row.dias_no_patio ?? payload.dias_no_patio ?? 0),
     dias_no_patio: Number(row.dias_no_patio ?? payload.dias_no_patio ?? 0),
-    isAberta: row.is_aberta != null ? Boolean(row.is_aberta) : true,
-    is_aberta: row.is_aberta != null ? Number(row.is_aberta) : 1,
+    isAberta: statusAudit.isEfetivamenteAberta,
+    is_aberta: statusAudit.isEfetivamenteAberta ? 1 : 0,
     temNf: row.tem_nf != null ? Boolean(row.tem_nf) : false,
     tem_nf: row.tem_nf != null ? Number(row.tem_nf) : 0,
     servicos,

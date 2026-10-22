@@ -952,14 +952,7 @@ export function composeExecutiveOSSummary(params: OS360CardParams): string {
     `*FINANCEIRO*`,
     `- Total: *${moneyFmt(total)}*`,
     `- Pago: *${moneyFmt(pago)}*`,
-    `- Saldo: ${saldoStr}`,
-    ``,
-    `*MÓDULOS DISPONÍVEIS*`,
-    `- Serviços: ${servicosCount} item(ns)${servicosTotal > 0 ? ` (${moneyFmt(servicosTotal)})` : ''}`,
-    `- Peças e materiais: ${pecasCount} item(ns)${pecasTotal > 0 ? ` (${moneyFmt(pecasTotal)})` : ''}`,
-    `- Pagamentos: ${pagamentosCount} parcela(s) cadastrada(s)`,
-    `- Vistorias e documentos: ${checklistsCount} checklist(s) · ${anexosCount} anexo(s)`,
-    `- Histórico: Auditoria ERP e conversas`
+    `- Saldo: ${saldoStr}`
   ];
 
   return lines.join('\n');

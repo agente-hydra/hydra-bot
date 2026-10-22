@@ -25,26 +25,48 @@ export function isAllowedOSModule(val: string): val is AllowedOSModule {
 export const OS_MODULE_ROW_ID_REGEX = /^os_(\d{1,8})_(servicos|pecas|pagamentos|documentos|historico)$/i;
 
 export function translateInteractiveRowToPrompt(rowId: string): string {
-  const osMatch = String(rowId || '').trim().match(OS_MODULE_ROW_ID_REGEX);
-  if (!osMatch) return rowId;
+  const clean = String(rowId || '').trim();
+  const osMatch = clean.match(OS_MODULE_ROW_ID_REGEX);
+  if (osMatch) {
+    const osId = osMatch[1];
+    const mod = osMatch[2].toLowerCase() as AllowedOSModule;
 
-  const osId = osMatch[1];
-  const mod = osMatch[2].toLowerCase() as AllowedOSModule;
-
-  switch (mod) {
-    case 'servicos':
-      return `Quais são os serviços discriminados da OS #${osId}?`;
-    case 'pecas':
-      return `Quais são as peças e materiais aplicados na OS #${osId}?`;
-    case 'pagamentos':
-      return `Quais são as formas de pagamento e parcelas da OS #${osId}?`;
-    case 'documentos':
-      return `Mostre as vistorias, checklists e documentos da OS #${osId}.`;
-    case 'historico':
-      return `Qual o histórico de atendimento, conversas e tratativas da OS #${osId}?`;
-    default:
-      return `Detalhe a Ordem de Serviço #${osId}.`;
+    switch (mod) {
+      case 'servicos':
+        return `Quais são os serviços discriminados da OS #${osId}?`;
+      case 'pecas':
+        return `Quais são as peças e materiais aplicados na OS #${osId}?`;
+      case 'pagamentos':
+        return `Quais são as formas de pagamento e parcelas da OS #${osId}?`;
+      case 'documentos':
+        return `Mostre as vistorias, checklists e documentos da OS #${osId}.`;
+      case 'historico':
+        return `Qual o histórico de atendimento, conversas e tratativas da OS #${osId}?`;
+      default:
+        return `Detalhe a Ordem de Serviço #${osId}.`;
+    }
   }
+
+  // Suporte a comandos manuais legados (ex: "SERVICOS 445", "pecas #445")
+  const manualMatch = clean.match(/^(servicos|serviços|pecas|peças|pagamentos|documentos|historico|histórico)\s*#?\s*(\d{1,8})$/i);
+  if (manualMatch) {
+    const rawMod = manualMatch[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const osId = manualMatch[2];
+    switch (rawMod) {
+      case 'servicos':
+        return `Quais são os serviços discriminados da OS #${osId}?`;
+      case 'pecas':
+        return `Quais são as peças e materiais aplicados na OS #${osId}?`;
+      case 'pagamentos':
+        return `Quais são as formas de pagamento e parcelas da OS #${osId}?`;
+      case 'documentos':
+        return `Mostre as vistorias, checklists e documentos da OS #${osId}.`;
+      case 'historico':
+        return `Qual o histórico de atendimento, conversas e tratativas da OS #${osId}?`;
+    }
+  }
+
+  return rowId;
 }
 
 export interface EvoListRow {

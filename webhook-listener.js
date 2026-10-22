@@ -6,6 +6,7 @@ import { execFile } from "child_process";
 import { createRequire } from "module";
 import { isDeterministicCommand, interceptCommand, InFlightAbortRegistry, STORE_COMMANDS } from "./src/hydra-sync/command_interceptor.js";
 import { composeSemanticBalloons } from "./src/hydra-sync/balloon_composer.js";
+import { sanitizeWhatsAppMarkdown as sanitizeCore } from "./src/hydra-sync/format_utils.js";
 import {
   authenticateWebhookRequest,
   resolveCanonicalIdentity,
@@ -214,57 +215,11 @@ function recordLifecycle(messageId, state, batchId = null, details = null) {
 }
 
 /**
- * Sanitizer defensivo de segunda camada para o protocolo WhatsApp (Idempotente)
+ * Sanitizer defensivo de segunda camada para o protocolo WhatsApp (Hermes 2.0 Nativo)
  */
 function sanitizeWhatsAppMarkdown(raw) {
   if (!raw) return "";
-  let text = String(raw);
-
-  // 1. Converte cabeçalhos Markdown (# Título) para Blockquotes do WhatsApp (> *Título*)
-  text = text.replace(/^#{1,6}\s+(.+)$/gm, (_match, p1) => {
-    const trimmed = p1.trim();
-    if (trimmed.startsWith("*") && trimmed.endsWith("*")) {
-      return `> ${trimmed}`;
-    }
-    return `> *${trimmed}*`;
-  });
-
-  // 2. Remove separadores Markdown horizontais (---, ___, ***) que não sejam o delimitador ---BLOCK---
-  text = text.replace(/^(?!---BLOCK---)[\t ]*[-*_]{3,}[\t ]*$/gm, "");
-
-  // 3. Converte tabelas markdown em listas com marcadores nativos (- )
-  text = text.replace(/^\|(.+)\|$/gm, (match) => {
-    if (/^\|[\s\-:|]+\|$/.test(match)) return "";
-    const cols = match.split("|").map(c => c.trim()).filter(Boolean);
-    return cols.map(c => `- ${c}`).join("\n");
-  });
-
-  // 4. Converte negrito duplo (**) e asteriscos triplos (***) para negrito simples (*)
-  text = text.replace(/\*\*\*+([^*\n]+?)\*\*\*+/g, "*$1*");
-  text = text.replace(/\*\*([^*\n]+?)\*\*/g, "*$1*");
-
-  // 5. Converte itálico duplo (__) para itálico simples (_)
-  text = text.replace(/__([^_\n]+?)__/g, "_$1_");
-
-  // 6. Normaliza marcadores de lista variados (•, +, ou * solto com espaço) para traço nativo (- )
-  text = text.replace(/^[\t ]*[•+]\s+/gm, "- ");
-  text = text.replace(/^[\t ]*\*\s+(?!\*)/gm, "- ");
-
-  // 7. Garante que campos chave-valor em listas tenham a chave em negrito (- *Chave:* Valor)
-  text = text.replace(/^([\t ]*-\s+)([A-Za-zÀ-ÖØ-öø-ÿ0-9\s/—–-]{2,30}:)\s+(?!\*)/gm, (_m, prefix, key) => {
-    return `${prefix}*${key.trim()}* `;
-  });
-
-  // 8. Suprime emojis repetidos em série (> 2 repetições consecutivas)
-  text = text.replace(/([\p{Emoji_Presentation}\p{Extended_Pictographic}])\1{2,}/gu, "$1");
-
-  // 9. Remove tags HTML residuais
-  text = text.replace(/<[^>]+>/g, "");
-
-  // 10. Remove acúmulo excessivo de linhas em branco
-  text = text.replace(/\n{3,}/g, "\n\n");
-
-  return text.trim();
+  return sanitizeCore(String(raw));
 }
 
 /**
@@ -1104,32 +1059,39 @@ function runDispatcherAsync(phone, text, conversationId, messageId, batch) {
           if (error) {
             console.error("[Hydra Webhook] Erro no dispatcher:", error?.message || error, stderr);
             return resolve({
-              messages: ["Não consegui consultar os dados agora devido a uma oscilação na conexão com o banco. Pode tentar novamente em instantes?"],
-              interactiveList: null
+              messages: ["Não consegui consultar os dados agora devido a uma oscilação na conexão com o banco. Pode tentar novamente em instantes?"]
             });
           }
 
           try {
             const parsed = extractDispatcherOutput(stdout);
-            const rawText = (Array.isArray(parsed.messages) && parsed.messages.length > 0)
-              ? parsed.messages.join("\n\n")
-              : (parsed.replyText || "");
+
+            // Se o dispatcher já retornou balões pré-validados e particionados com Anti-Orphan guard:
+            if (Array.isArray(parsed.messages) && parsed.messages.length > 0) {
+              const validBalloons = parsed.messages
+                .map(m => sanitizeWhatsAppMarkdown(m).trim())
+                .filter(Boolean);
+              if (validBalloons.length > 0) {
+                return resolve({
+                  messages: validBalloons
+                });
+              }
+            }
+
+            const rawText = parsed.replyText || "";
             if (rawText) {
               const composed = composeSemanticBalloons(rawText);
               return resolve({
-                messages: composed,
-                interactiveList: parsed.interactiveList || null
+                messages: composed
               });
             }
             return resolve({
-              messages: ["Não foi possível formular uma resposta."],
-              interactiveList: null
+              messages: ["Não foi possível formular uma resposta."]
             });
           } catch (parseErr) {
             console.error("[Hydra Webhook] Erro ao parsear dispatcher output:", parseErr?.message || parseErr);
             return resolve({
-              messages: ["Não consegui processar a resposta dos dados. Pode tentar novamente?"],
-              interactiveList: null
+              messages: ["Não consegui processar a resposta dos dados. Pode tentar novamente?"]
             });
           }
         }
@@ -1137,8 +1099,7 @@ function runDispatcherAsync(phone, text, conversationId, messageId, batch) {
     } catch (err) {
       console.error("[Hydra Webhook] Falha ao invocar dispatcher:", err?.message || err);
       resolve({
-        messages: ["Não consegui formular uma resposta no momento."],
-        interactiveList: null
+        messages: ["Não consegui formular uma resposta no momento."]
       });
     }
   });
@@ -1286,19 +1247,12 @@ async function processChatQueue(phone) {
         await chatQ.typing.stop();
 
         const replyMessages = Array.isArray(replies) ? replies : (replies?.messages || []);
-        const interactiveList = (!Array.isArray(replies) && replies?.interactiveList) ? replies.interactiveList : null;
 
         console.log(`  ↳ [AsyncQueue] Despachando ${replyMessages.length} balão(ões) para ${maskPhone(job.phone)}...`);
         const replyRes = await sendSequentialReplies(job.phone, replyMessages);
 
         if (replyRes && replyRes.sucesso) {
           console.log(`  ✓ [AsyncQueue] Envio concluído e auditado para ${maskPhone(job.phone)}.`);
-
-          // Se houver lista interativa da Evolution API, despacha logo após o texto
-          if (interactiveList) {
-            await new Promise(r => setTimeout(r, 300));
-            await sendWhatsAppList(job.phone, interactiveList);
-          }
 
           // Marco: sent_whatsapp
           for (const mId of targetMsgIds) {

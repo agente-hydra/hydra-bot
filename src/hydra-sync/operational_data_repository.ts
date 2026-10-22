@@ -14,7 +14,7 @@ import {
   type SecurityContext,
   SecurityAccessDeniedError
 } from './types/conversation_context_contract.js';
-import { getOSDetails, type OSDetailComplete } from './db_repository.js';
+import { getOSDetails, type OSDetailComplete, determineCanonicalOSStatus } from './db_repository.js';
 export { getOSDetails, type OSDetailComplete };
 
 /**
@@ -62,14 +62,27 @@ export function ensureOrdensServicoTable(db: Database.Database): void {
  * Mapeia registro de banco bruto para CandidateOrder tipada.
  */
 export function mapRowToCandidateOrder(row: any): CandidateOrder {
+  let rawPayload: any = {};
+  if (row.raw_payload) {
+    try {
+      rawPayload = typeof row.raw_payload === 'string' ? JSON.parse(row.raw_payload) : row.raw_payload;
+    } catch {}
+  }
+  const canonical = determineCanonicalOSStatus(
+    row.status_grid,
+    row.data_fim || rawPayload.data_fim || rawPayload.previsao,
+    rawPayload.hora_fim,
+    rawPayload.finalizado_em || rawPayload.dt_fechamento,
+    row.is_aberta
+  );
   return {
     osId: String(row.os_id),
     storeSlug: String(row.loja_slug),
     plate: String(row.placa || '').trim(),
     vehicleModel: String(row.veiculo || '').trim(),
     clientName: row.cliente_nome ? String(row.cliente_nome).trim() : undefined,
-    statusGrid: String(row.status_grid || 'EM_ANDAMENTO'),
-    isOpen: Boolean(row.is_aberta === 1 || row.is_aberta === true),
+    statusGrid: canonical.statusExibicao,
+    isOpen: canonical.isEfetivamenteAberta,
     daysInYard: Number(row.dias_no_patio) || 0,
     totalAmount: Number(row.total_os) || 0,
     remainingBalance: Number(row.valor_restante) || 0,
@@ -81,7 +94,7 @@ export function mapRowToCandidateOrder(row: any): CandidateOrder {
  * Busca candidatos a veículo no ERP por padrão de modelo e discrimina explicitamente o resultado [E2-02].
  *
  * Query SQL parametrizada:
- * SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio
+ * SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso, data_fim, raw_payload
  * FROM ordens_servico WHERE loja_slug = ? AND veiculo LIKE ?
  *
  * Discriminação estrita:
@@ -114,7 +127,7 @@ export function findVehicleCandidates(
   try {
     ensureOrdensServicoTable(db);
     rows = db.prepare(`
-      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso
+      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso, data_fim, raw_payload
       FROM ordens_servico
       WHERE (loja_slug = ? OR LOWER(loja_slug) = LOWER(?)) AND veiculo LIKE ?
       ORDER BY is_aberta DESC, dias_no_patio DESC, os_id DESC
@@ -236,7 +249,7 @@ export function findOrderByOsId(
   try {
     ensureOrdensServicoTable(db);
     const row = db.prepare(`
-      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso
+      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso, data_fim, raw_payload
       FROM ordens_servico
       WHERE (loja_slug = ? OR LOWER(loja_slug) = LOWER(?)) AND os_id = ?
     `).get(cleanStore, cleanStore, cleanOsId) as any;
@@ -273,7 +286,7 @@ export function findVehicleByPlate(
   try {
     ensureOrdensServicoTable(db);
     rows = db.prepare(`
-      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso
+      SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid, is_aberta, total_os, valor_restante, dias_no_patio, data_inicio, data_inicio_iso, data_fim, raw_payload
       FROM ordens_servico
       WHERE (loja_slug = ? OR LOWER(loja_slug) = LOWER(?))
         AND UPPER(REPLACE(REPLACE(placa, '-', ''), ' ', '')) = ?
@@ -371,6 +384,14 @@ export class OperationalDataRepository implements IOperationalDataRepository {
         }
       }
 
+      const canonical = determineCanonicalOSStatus(
+        row.status_grid,
+        row.data_fim || raw?.data_fim || raw?.previsao,
+        raw?.hora_fim,
+        raw?.finalizado_em || raw?.dt_fechamento,
+        undefined
+      );
+
       return {
         osId: Number(row.os_id) || osId,
         lojaSlug: String(row.loja_slug),
@@ -378,7 +399,7 @@ export class OperationalDataRepository implements IOperationalDataRepository {
         vehicleModel: String(row.veiculo || ''),
         customerName: String(row.cliente_nome || ''),
         customerPhone: String(row.cliente_telefone || (raw?.cliente_telefone_sms || '')),
-        status: String(row.status_grid || 'Em Aberto'),
+        status: canonical.statusExibicao,
         totalValue: Number(row.total_os) || 0,
         paidValue: Number(row.valor_pago) || 0,
         pendingServices: [],
@@ -421,20 +442,23 @@ export class OperationalDataRepository implements IOperationalDataRepository {
         params.push(lojaSlug, lojaSlug);
       }
       const rows = this.db.prepare(query).all(...params) as any[];
-      return rows.map(row => ({
-        osId: Number(row.os_id),
-        lojaSlug: String(row.loja_slug),
-        vehiclePlate: String(row.placa || ''),
-        vehicleModel: String(row.veiculo || ''),
-        customerName: String(row.cliente_nome || ''),
-        customerPhone: String(row.cliente_telefone || ''),
-        status: String(row.status_grid || 'Em Aberto'),
-        totalValue: Number(row.total_os) || 0,
-        paidValue: Number(row.valor_pago) || 0,
-        pendingServices: [],
-        openedAt: row.data_inicio || new Date().toISOString(),
-        updatedAt: row.updated_at || row.data_inicio || new Date().toISOString()
-      }));
+      return rows.map(row => {
+        const canonical = determineCanonicalOSStatus(row.status_grid, row.data_fim, undefined, undefined, undefined);
+        return {
+          osId: Number(row.os_id),
+          lojaSlug: String(row.loja_slug),
+          vehiclePlate: String(row.placa || ''),
+          vehicleModel: String(row.veiculo || ''),
+          customerName: String(row.cliente_nome || ''),
+          customerPhone: String(row.cliente_telefone || ''),
+          status: canonical.statusExibicao,
+          totalValue: Number(row.total_os) || 0,
+          paidValue: Number(row.valor_pago) || 0,
+          pendingServices: [],
+          openedAt: row.data_inicio || new Date().toISOString(),
+          updatedAt: row.updated_at || row.data_inicio || new Date().toISOString()
+        };
+      });
     } catch {
       return [];
     }
@@ -484,31 +508,48 @@ export class OperationalDataRepository implements IOperationalDataRepository {
     const cleanPlate = plate.trim().toUpperCase();
     const rows = this.db.prepare(`
       SELECT os_id, loja_slug, veiculo, placa, cliente_nome, cliente_telefone, status_grid,
-             is_aberta, total_os, valor_pago, valor_restante, dias_no_patio, data_inicio, updated_at
+             is_aberta, total_os, valor_pago, valor_restante, dias_no_patio, data_inicio, data_fim, raw_payload, updated_at
       FROM ordens_servico
       WHERE UPPER(placa) = ?
       ORDER BY os_id DESC
     `).all(cleanPlate) as any[];
 
-    return rows.map(r => ({
-      osId: Number(r.os_id),
-      lojaSlug: String(r.loja_slug),
-      storeSlug: String(r.loja_slug),
-      vehicleModel: String(r.veiculo || ''),
-      model: String(r.veiculo || ''),
-      vehiclePlate: String(r.placa || ''),
-      plate: String(r.placa || ''),
-      customerName: String(r.cliente_nome || ''),
-      customerPhone: String(r.cliente_telefone || ''),
-      status: String(r.status_grid || ''),
-      statusGrid: String(r.status_grid || ''),
-      isAberta: Boolean(r.is_aberta === 1 || r.is_aberta === true),
-      totalValue: Number(r.total_os) || 0,
-      paidValue: Number(r.valor_pago) || 0,
-      remainingBalance: Number(r.valor_restante) || 0,
-      openedAt: r.data_inicio || '',
-      updatedAt: r.updated_at || ''
-    }));
+    return rows.map(r => {
+      let raw: any = undefined;
+      if (r.raw_payload) {
+        try {
+          raw = typeof r.raw_payload === 'string' ? JSON.parse(r.raw_payload) : r.raw_payload;
+        } catch {
+          raw = undefined;
+        }
+      }
+      const canonical = determineCanonicalOSStatus(
+        r.status_grid,
+        r.data_fim || raw?.data_fim || raw?.previsao,
+        raw?.hora_fim,
+        raw?.finalizado_em || raw?.dt_fechamento,
+        r.is_aberta
+      );
+      return {
+        osId: Number(r.os_id),
+        lojaSlug: String(r.loja_slug),
+        storeSlug: String(r.loja_slug),
+        vehicleModel: String(r.veiculo || ''),
+        model: String(r.veiculo || ''),
+        vehiclePlate: String(r.placa || ''),
+        plate: String(r.placa || ''),
+        customerName: String(r.cliente_nome || ''),
+        customerPhone: String(r.cliente_telefone || ''),
+        status: canonical.statusExibicao,
+        statusGrid: canonical.statusExibicao,
+        isAberta: canonical.isEfetivamenteAberta,
+        totalValue: Number(r.total_os) || 0,
+        paidValue: Number(r.valor_pago) || 0,
+        remainingBalance: Number(r.valor_restante) || 0,
+        openedAt: r.data_inicio || '',
+        updatedAt: r.updated_at || ''
+      };
+    });
   }
 
   public async searchVehiclesByModel(

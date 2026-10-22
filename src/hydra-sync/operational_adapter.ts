@@ -1585,14 +1585,24 @@ async function _executeOperationalQueryCore(
 
       const cardHeader = `> *Busca Operacional: "${termo}"*`;
       const itens = resultados.map(r => {
-        return `- *${r.loja_slug}:* OS #${r.os_id} • ${r.veiculo || 'Veículo'} (${r.placa || 'Sem placa'}) • Status: *${r.status_grid}* • Total: *${fmtMoeda(r.total_os)}* • *${r.dias_no_patio}d* no pátio`;
-      }).join('\n');
+        const saldoStr = r.valor_restante > 0 ? `*${fmtMoeda(r.valor_restante)}*` : '*Quitado*';
+        const modelStr = (r.veiculo || 'Veículo').toUpperCase();
+        const plateStr = (r.placa || 'Sem placa').toUpperCase();
+        const statusStr = r.status_grid || (r.is_aberta ? 'Em Aberto' : 'Finalizada');
+        const lojaNome = (r.loja_slug && STORE_PRETTY_NAMES[r.loja_slug]?.name) || r.loja_slug;
+
+        return [
+          `*OS #${r.os_id} — ${modelStr} (${plateStr})*`,
+          `  └ Loja: ${lojaNome} · Status: *${statusStr}* · *${r.dias_no_patio || 0} dias* no pátio`,
+          `  └ Financeiro: Total *${fmtMoeda(r.total_os)}* · Saldo: ${saldoStr}`
+        ].join('\n');
+      }).join('\n\n');
 
       return {
         source: 'SQL_EXACT',
         records: resultados,
         filtersApplied: { termo, lojaSlug },
-        replyText: sanitizeWhatsAppMarkdown(`${cardHeader}\n${itens}`),
+        replyText: sanitizeWhatsAppMarkdown(`${cardHeader}\n\n${itens}`),
         toolsCalled: ['search_os']
       };
     } else {
@@ -1694,19 +1704,42 @@ async function _executeOperationalQueryCore(
         };
       }
 
-      // Caso 9.2: Listagem de OSs (ex: sem sinal, pátio, abertas)
+      // Caso 9.2: Listagem Hierárquica de OSs (com joelho └ e espaçamento de parágrafos)
+      const nomeLoja = (intent.lojaSlug && STORE_PRETTY_NAMES[intent.lojaSlug]?.name) || intent.lojaSlug || 'Rede';
       const semSinalAviso = intent.noDeposit ? ' (Sem Sinal / Entrada Zero)' : '';
-      const cardHeader = `> *Ordens de Serviço Abertas: ${intent.lojaSlug || 'Rede'}${semSinalAviso}*`;
-      const itens = recs.slice(0, 5).map(o => {
-        const saldoStr = o.valor_restante > 0 ? ` • Saldo: *${fmtMoeda(o.valor_restante)}*` : ' • Quitado';
-        return `- *OS #${o.os_id}:* ${o.veiculo} (${o.placa}) • *${fmtMoeda(o.total_os)}*${saldoStr} [${o.loja_slug}]`;
-      }).join('\n');
+      const cardHeader = `> *Ordens de Serviço Abertas: ${nomeLoja}${semSinalAviso}*`;
+
+      const totalPatio = recs.length;
+      const saldoTotal = recs.reduce((acc, o) => acc + (o.valor_restante || 0), 0);
+      const metricsHeader = [
+        `- *Veículos no pátio:* ${totalPatio} veículo(s)`,
+        `- *Saldo a receber:* *${fmtMoeda(saldoTotal)}*`
+      ].join('\n');
+
+      const osCards = recs.slice(0, 10).map(o => {
+        const saldoStr = o.valor_restante > 0 ? `*${fmtMoeda(o.valor_restante)}*` : '*Quitado*';
+        const modelStr = (o.veiculo || 'Veículo').toUpperCase();
+        const plateStr = (o.placa || 'Sem placa').toUpperCase();
+        const statusStr = o.status_grid || (o.is_aberta ? 'Em Aberto' : 'Finalizada');
+        const diasStr = `${o.dias_no_patio || 0} dias no pátio`;
+        const resp = o.responsavel ? ` · Resp: ${o.responsavel}` : '';
+        const cliente = o.cliente_nome ? ` · Cliente: ${o.cliente_nome}` : '';
+
+        return [
+          `*OS #${o.os_id} — ${modelStr} (${plateStr})*`,
+          `  └ Status: *${statusStr}* · *${diasStr}*`,
+          `  └ Financeiro: Total *${fmtMoeda(o.total_os)}* · Saldo: ${saldoStr}`,
+          `  └ Operação:${resp}${cliente}`
+        ].join('\n');
+      }).join('\n\n');
+
+      const fullListReply = `${cardHeader}\n${metricsHeader}\n\n${osCards}`;
 
       return {
         source: retrieval.source,
         records: recs,
         filtersApplied: retrieval.filtersApplied,
-        replyText: sanitizeWhatsAppMarkdown(`${cardHeader}\n${itens}`),
+        replyText: sanitizeWhatsAppMarkdown(fullListReply),
         toolsCalled: ['retrieve_operational_data']
       };
     }

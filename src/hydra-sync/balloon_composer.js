@@ -1,77 +1,14 @@
-// src/hydra-sync/format_utils.js
-function alignWhatsAppList(text) {
-  if (!text) return "";
-  const lines = text.split("\n");
-  const aligned = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const listMatch = line.match(/^(\s*)([-•+*])\s*(.*)$/);
-    if (listMatch) {
-      const indent = listMatch[1];
-      const rawContent = listMatch[3].trim();
-      const prefix = indent.length >= 2 ? "  - " : "- ";
-      let formattedContent = rawContent;
-      formattedContent = formattedContent.replace(/^\*([^*:\n]+)\*\s*:\s*/, "*$1:* ");
-      if (!formattedContent.startsWith("*")) {
-        formattedContent = formattedContent.replace(/^([A-Za-zÀ-ÖØ-öø-ÿ0-9\s/—–-]{2,30}):\s+(?!\*)/, (_m, key) => {
-          return `*${key.trim()}:* `;
-        });
-      }
-      aligned.push(`${prefix}${formattedContent}`);
-    } else {
-      aligned.push(line);
-    }
-  }
-  return aligned.join("\n");
+import {
+  sanitizeWhatsAppMarkdown,
+  purgeDecorativeEmojis,
+  enforceAntiEmptyBalloons
+} from "./format_utils.js";
+function formatCurrencyBRL(val) {
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val).replace(/\u00a0/g, " ");
 }
-function sanitizeWhatsAppMarkdown(raw) {
-  if (!raw) return "";
-  let text = String(raw);
-  text = text.replace(/Retidos\s+h\?\s+mais\s+de\s+(\d+)\s+dias/gi, "Retidos h\xE1 mais de $1 dias");
-  text = text.replace(/\bRetidos\s+h\?\b/gi, "Retidos h\xE1");
-  text = text.replace(/\bh\?\s+mais/gi, "h\xE1 mais");
-  text = text.replace(/\bh\?\b/g, "h\xE1");
-  text = text.replace(/\bt\?\s+h\?\b/gi, "t\xE1 h\xE1");
-  text = text.replace(/\bt\?\b/g, "t\xE1");
-  text = text.replace(/Situa\?\?o/gi, "Situa\xE7\xE3o");
-  text = text.replace(/Perman\?ncia/gi, "Perman\xEAncia");
-  text = text.replace(/Cen\?rio/gi, "Cen\xE1rio");
-  text = text.replace(/espec\?fic([ao]s?)/gi, "espec\xEDfic$1");
-  text = text.replace(/^#{1,6}\s+(.+)$/gm, (_match, p1) => {
-    const trimmed = p1.trim();
-    if (trimmed.startsWith("*") && trimmed.endsWith("*")) {
-      return `> ${trimmed}`;
-    }
-    return `> *${trimmed}*`;
-  });
-  text = text.replace(/^(?!---BLOCK---)[\t ]*[-*_]{3,}[\t ]*$/gm, "");
-  text = text.replace(/^\|(.+)\|$/gm, (match) => {
-    if (/^\|[\s\-:|]+\|$/.test(match)) return "";
-    const cols = match.split("|").map((c) => c.trim()).filter(Boolean);
-    return cols.map((c) => `- ${c}`).join("\n");
-  });
-  text = text.replace(/\*\*\*+([^*\n]+?)\*\*\*+/g, "*$1*");
-  text = text.replace(/\*\*([^*\n]+?)\*\*/g, "*$1*");
-  text = text.replace(/__([^_\n]+?)__/g, "_$1_");
-  text = text.replace(/^[\t ]*[•+]\s+/gm, "- ");
-  text = text.replace(/^[\t ]*\*\s+(?!\*)/gm, "- ");
-  text = text.replace(/^([\t ]*-\s+)([A-Za-zÀ-ÖØ-öø-ÿ0-9\s/—–-]{2,30}:)\s+(?!\*)/gm, (_m, prefix, key) => {
-    return `${prefix}*${key.trim()}* `;
-  });
-  text = alignWhatsAppList(text);
-  while (text.includes("**")) {
-    text = text.replace(/\*\*/g, "*");
-  }
-  while (text.includes("__")) {
-    text = text.replace(/__/g, "_");
-  }
-  text = text.replace(/([\p{Emoji_Presentation}\p{Extended_Pictographic}])\1{2,}/gu, "$1");
-  text = text.replace(/<[^>]+>/g, "");
-  text = text.replace(/\n{3,}/g, "\n\n");
-  return text.trim();
+function formatPercentBR(val) {
+  return new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(val / 100).replace(/\u00a0/g, " ");
 }
-
-// src/hydra-sync/balloon_composer.ts
 function convertMarkdownTablesToWhatsAppLists(text) {
   if (!text || !text.includes("|")) return text;
   const lines = text.split("\n");
@@ -143,13 +80,14 @@ function convertMarkdownTablesToWhatsAppLists(text) {
 }
 function parseSemanticSections(raw) {
   if (typeof raw === "object" && raw !== null) {
-    const detailsStr = Array.isArray(raw.details) ? raw.details.map((d) => sanitizeWhatsAppMarkdown(d)).join("\n") : raw.details ? sanitizeWhatsAppMarkdown(raw.details) : void 0;
+    const detailsStr = Array.isArray(raw.details) ? raw.details.map((d) => sanitizeWhatsAppMarkdown(d)).join("\n\n") : raw.details ? sanitizeWhatsAppMarkdown(raw.details) : void 0;
     const reading = raw.resultReading || raw.indicatorsReading;
     const footer = raw.sourcePeriod || raw.footer;
     return {
       directAnswer: raw.directAnswer ? sanitizeWhatsAppMarkdown(raw.directAnswer) : void 0,
       resultReading: reading ? sanitizeWhatsAppMarkdown(reading) : void 0,
       details: detailsStr,
+      incompletenessDeclaration: raw.incompletenessDeclaration ? sanitizeWhatsAppMarkdown(raw.incompletenessDeclaration) : void 0,
       sourcePeriod: footer ? sanitizeWhatsAppMarkdown(footer) : void 0
     };
   }
@@ -161,7 +99,7 @@ function parseSemanticSections(raw) {
   let sourcePeriod;
   for (const para of paragraphs) {
     const lower = para.toLowerCase();
-    if (lower.includes("fonte:") || lower.includes("per\xEDodo:") || lower.includes("periodo:") || lower.includes("base de dados:") || lower.includes("atualizado em:") || lower.includes("data de refer\xEAncia:") || lower.includes("data de referencia:") || lower.startsWith("_atualizado") || lower.startsWith("atualizado") || lower.startsWith("_fonte")) {
+    if (lower.includes("fonte:") || lower.includes("per\xEDodo:") || lower.includes("periodo:") || lower.includes("base de dados:") || lower.includes("atualizado em:") || lower.includes("data de refer\xEAncia:") || lower.includes("data de referencia:") || lower.startsWith("_atualizado") || lower.startsWith("atualizado") || lower.startsWith("_fonte") || lower.startsWith("_dados atualizados")) {
       sourcePeriod = para;
       continue;
     }
@@ -171,14 +109,17 @@ function parseSemanticSections(raw) {
         continue;
       }
     }
-    if (!directAnswer && (para.startsWith(">") || lower.includes("conclus\xE3o") || lower.includes("resumo"))) {
+    const isOsCard = /^>?\s*\*?OS\s*#?\d+/i.test(para);
+    if (!isOsCard && !directAnswer && (para.startsWith(">") || lower.includes("conclus\xE3o") || lower.includes("resumo"))) {
       directAnswer = para;
       continue;
     }
     detailBlocks.push(para);
   }
   if (!directAnswer && detailBlocks.length > 0) {
-    directAnswer = detailBlocks.shift();
+    if (!/^>?\s*\*?OS\s*#?\d+/i.test(detailBlocks[0])) {
+      directAnswer = detailBlocks.shift();
+    }
   }
   return {
     directAnswer: directAnswer ? sanitizeWhatsAppMarkdown(directAnswer) : void 0,
@@ -189,38 +130,40 @@ function parseSemanticSections(raw) {
 }
 function splitIntoAtomicItems(detailsText) {
   if (!detailsText) return [];
+  const blocks = detailsText.split(/\n\s*\n/).map((b) => b.trim()).filter((b) => b.length > 0);
   const items = [];
-  const lines = detailsText.split("\n");
-  let currentItemLines = [];
-  for (const line of lines) {
-    const isListItem = /^\s*-\s+/.test(line);
-    const isCardHeader = /^\s*>\s+/.test(line);
-    if ((isListItem || isCardHeader) && currentItemLines.length > 0) {
-      items.push(currentItemLines.join("\n").trim());
-      currentItemLines = [line];
-    } else {
-      if (line.trim().length > 0) {
-        currentItemLines.push(line);
+  for (const block of blocks) {
+    const lines = block.split("\n").map((l) => l.trimEnd()).filter((l) => l.length > 0);
+    if (lines.length === 0) continue;
+    const firstLine = lines[0].trim();
+    const isCardHeader = firstLine.startsWith(">") || /^\*[^*]+\*$/.test(firstLine) || /^\*[^*]+:\*$/.test(firstLine) || /^\*OS\s*#?\d+/i.test(firstLine);
+    const hasFieldBullets = lines.slice(1).some((l) => /^\s*(?:[-•]|└)\s+/.test(l));
+    if (isCardHeader && hasFieldBullets) {
+      items.push(block.trim());
+    } else if (lines.length > 1 && lines.every((l) => /^\s*(?:[-•]|└)\s+/.test(l))) {
+      for (const line of lines) {
+        if (line.trim()) items.push(line.trim());
       }
+    } else {
+      items.push(block.trim());
     }
-  }
-  if (currentItemLines.length > 0) {
-    items.push(currentItemLines.join("\n").trim());
   }
   return items;
 }
 function composeSemanticBalloons(input, options) {
-  const minBudget = options?.minBalloonChars ?? 700;
+  const minBudget = options?.minBalloonChars ?? 600;
   const maxBudget = options?.maxBalloonChars ?? 900;
   const maxBalloons = options?.maxBalloons ?? 3;
   const sections = parseSemanticSections(input);
   const directAnswer = sections.directAnswer ? sanitizeWhatsAppMarkdown(sections.directAnswer) : "";
   const resultReading = sections.resultReading ? sanitizeWhatsAppMarkdown(sections.resultReading) : "";
   const details = sections.details ? sanitizeWhatsAppMarkdown(sections.details) : "";
+  const incompleteness = sections.incompletenessDeclaration ? sanitizeWhatsAppMarkdown(sections.incompletenessDeclaration) : "";
   const sourcePeriod = sections.sourcePeriod ? sanitizeWhatsAppMarkdown(sections.sourcePeriod) : "";
-  const fullText = [directAnswer, resultReading, details, sourcePeriod].filter(Boolean).join("\n\n").trim();
-  if (fullText.length <= maxBudget) {
-    return [sanitizeWhatsAppMarkdown(fullText)];
+  const fullText = [directAnswer, resultReading, details, incompleteness, sourcePeriod].filter(Boolean).join("\n\n").trim();
+  if (fullText.length < 600 || fullText.length <= maxBudget) {
+    const singleBalloon = purgeDecorativeEmojis(sanitizeWhatsAppMarkdown(fullText), options);
+    return [singleBalloon];
   }
   const balloons = [];
   let currentBalloon = "";
@@ -257,7 +200,7 @@ function composeSemanticBalloons(input, options) {
         currentBalloon = item;
         continue;
       }
-      const separator = "\n";
+      const separator = item.includes("\n") || currentBalloon.includes("\n") ? "\n\n" : "\n";
       const projectedLength = currentBalloon.length + separator.length + item.length;
       if (projectedLength <= maxBudget) {
         currentBalloon += separator + item;
@@ -274,6 +217,12 @@ function composeSemanticBalloons(input, options) {
       }
     }
   }
+  if (incompleteness) {
+    if (!tryAppendToCurrent(incompleteness)) {
+      pushCurrentBalloon();
+      currentBalloon = incompleteness;
+    }
+  }
   if (sourcePeriod) {
     if (!tryAppendToCurrent(sourcePeriod)) {
       if (balloons.length < maxBalloons - 1) {
@@ -285,10 +234,113 @@ function composeSemanticBalloons(input, options) {
     }
   }
   pushCurrentBalloon();
-  return balloons.map((b) => sanitizeWhatsAppMarkdown(b)).filter((b) => b.length > 0);
+  const sanitizedBalloons = balloons.map((b) => purgeDecorativeEmojis(sanitizeWhatsAppMarkdown(b), options)).filter((b) => b.trim().length > 0);
+  return enforceAntiEmptyBalloons(sanitizedBalloons);
+}
+function composeSemanticBalloonsStructured(input, options) {
+  const balloons = composeSemanticBalloons(input, options);
+  const totalChars = balloons.reduce((sum, b) => sum + b.length, 0);
+  const EMOJI_REGEX = /(?:\p{Extended_Pictographic}|\p{Emoji_Presentation})/gu;
+  const emojisCount = balloons.reduce((count, b) => {
+    const m = b.match(EMOJI_REGEX);
+    return count + (m ? m.length : 0);
+  }, 0);
+  const isStructuredCard = balloons.some(
+    (b) => b.includes("> *") || /^\*[^*]+\*\n\s*-\s+\*/m.test(b) || b.includes("\n- *")
+  );
+  return {
+    balloons,
+    totalChars,
+    balloonCount: balloons.length,
+    emojisCount,
+    isStructuredCard,
+    sanitized: true
+  };
+}
+function composePartialSuccessBalloon(options) {
+  const { components, minBalloonChars, maxBalloonChars, maxBalloons } = options;
+  const composerOpts = {
+    minBalloonChars,
+    maxBalloonChars,
+    maxBalloons
+  };
+  const successful = components.filter((c) => c.status === "SUCCESS" || c.status === "PARTIAL" && (c.renderedContent || c.replyText));
+  const failed = components.filter((c) => c.status === "TIMEOUT" || c.status === "UNSUPPORTED" || c.status === "DENIED" || c.status === "PARTIAL" && !c.renderedContent && !c.replyText);
+  const sections = [];
+  for (const comp of successful) {
+    const text = comp.renderedContent || comp.replyText;
+    if (text && text.trim()) {
+      sections.push(text.trim());
+    }
+  }
+  for (const comp of failed) {
+    let notice = comp.unavailableNotice;
+    if (!notice) {
+      const isOs = (comp.componentId || "").toLowerCase().includes("os") || (comp.capabilityId || "").toLowerCase().includes("os");
+      if (comp.status === "TIMEOUT") {
+        notice = isOs ? "> *Aviso Operacional:* A listagem de ordens de servi\xE7o atingiu o tempo limite e n\xE3o p\xF4de ser carregada. O faturamento acima reflete a posi\xE7\xE3o oficial mais recente." : `> *Aviso Operacional:* A consulta ${comp.name || comp.componentId} atingiu o tempo limite e n\xE3o p\xF4de ser conclu\xEDda. Os demais dados refletem a posi\xE7\xE3o oficial dispon\xEDvel.`;
+      } else if (comp.status === "DENIED") {
+        notice = `> *Aviso Operacional:* A consulta ${comp.name || comp.componentId} foi bloqueada pelas pol\xEDticas de acesso da unidade.`;
+      } else {
+        notice = `> *Aviso Operacional:* A consulta ${comp.name || comp.componentId} n\xE3o est\xE1 dispon\xEDvel no momento (${comp.errorMessage || "capacidade n\xE3o suportada"}).`;
+      }
+    }
+    sections.push(notice);
+  }
+  const combinedText = sections.join("\n\n");
+  return composeSemanticBalloons(combinedText, composerOpts);
+}
+function formatDeterministicFinancialBalloon(extraction) {
+  const lojaNome = extraction.lojaNome || extraction.lojaSlug;
+  if (extraction.status === "SUCCESS") {
+    if (extraction.value === 0 && extraction.hasExplicitTotalZero) {
+      const replyText2 = `> *${lojaNome} \u2014 Vendas*
+Sem vendas registradas hoje na unidade ${lojaNome} at\xE9 o momento.`;
+      return {
+        replyText: sanitizeWhatsAppMarkdown(replyText2),
+        freshness: "FRESH",
+        execution: "SUCCESS",
+        isZeroConfirmed: true,
+        balloons: composeSemanticBalloons(replyText2)
+      };
+    }
+    const valFormatted = Number(extraction.value || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const replyText = `> *${lojaNome} \u2014 Vendas*
+- *Faturamento:* ${valFormatted}
+- *Posi\xE7\xE3o:* ${extraction.periodo || "hoje"}`;
+    return {
+      replyText: sanitizeWhatsAppMarkdown(replyText),
+      freshness: "FRESH",
+      execution: "SUCCESS",
+      isZeroConfirmed: false,
+      balloons: composeSemanticBalloons(replyText)
+    };
+  }
+  const lastValFormatted = extraction.lastKnownValidValue !== void 0 ? Number(extraction.lastKnownValidValue).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : null;
+  let notice = `> *Aviso Operacional:*
+A extra\xE7\xE3o de vendas de hoje para a unidade ${lojaNome} est\xE1 temporariamente indispon\xEDvel.`;
+  if (lastValFormatted && extraction.lastKnownValidDate) {
+    const horaStr = extraction.lastKnownValidHour ? ` \xE0s ${extraction.lastKnownValidHour}` : "";
+    notice += ` A \xFAltima posi\xE7\xE3o v\xE1lida registrada foi de ${lastValFormatted} em ${extraction.lastKnownValidDate}${horaStr}.`;
+  } else {
+    notice += ` A posi\xE7\xE3o anterior foi preservada com frescor STALE.`;
+  }
+  return {
+    replyText: sanitizeWhatsAppMarkdown(notice),
+    freshness: "STALE",
+    execution: "PARTIAL",
+    isZeroConfirmed: false,
+    balloons: composeSemanticBalloons(notice)
+  };
 }
 export {
+  composePartialSuccessBalloon,
   composeSemanticBalloons,
+  composeSemanticBalloonsStructured,
   convertMarkdownTablesToWhatsAppLists,
-  parseSemanticSections
+  formatCurrencyBRL,
+  formatDeterministicFinancialBalloon,
+  formatPercentBR,
+  parseSemanticSections,
+  splitIntoAtomicItems
 };

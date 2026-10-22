@@ -48,6 +48,7 @@ import {
   assertNoDoubleAsterisks
 } from './format_utils.js';
 import { resolveCaseContext } from './case_memory_reader.js';
+import { determineCanonicalOSStatus } from './db_repository.js';
 
 export function isProductionEnvironment(): boolean {
   return true;
@@ -85,7 +86,8 @@ export function resolveVehicleTarget(
   if (osId) {
     let query = `
       SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid,
-             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio
+             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio,
+             data_fim, raw_payload
       FROM ordens_servico
       WHERE os_id = ?
     `;
@@ -96,6 +98,19 @@ export function resolveVehicleTarget(
     }
     const row = db.prepare(query).get(...sqlParams) as any;
     if (row) {
+      let rawPayload: any = {};
+      if (row.raw_payload) {
+        try {
+          rawPayload = typeof row.raw_payload === 'string' ? JSON.parse(row.raw_payload) : row.raw_payload;
+        } catch {}
+      }
+      const canonical = determineCanonicalOSStatus(
+        row.status_grid,
+        row.data_fim || rawPayload.data_fim || rawPayload.previsao,
+        rawPayload.hora_fim,
+        rawPayload.finalizado_em || rawPayload.dt_fechamento,
+        row.is_aberta
+      );
       const vehicle: CandidateVehicle = {
         plate: row.placa || '',
         model: row.veiculo || 'Não informado',
@@ -109,8 +124,8 @@ export function resolveVehicleTarget(
         plate: row.placa || '',
         vehicleModel: row.veiculo || 'Não informado',
         clientName: row.cliente_nome || undefined,
-        statusGrid: row.status_grid || 'EM ANDAMENTO',
-        isOpen: Boolean(row.is_aberta),
+        statusGrid: canonical.statusExibicao,
+        isOpen: canonical.isEfetivamenteAberta,
         daysInYard: Number(row.dias_no_patio) || 0,
         totalAmount: Number(row.total_os) || 0,
         remainingBalance: Number(row.valor_restante) || 0,
@@ -131,7 +146,8 @@ export function resolveVehicleTarget(
   if (plate) {
     let query = `
       SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid,
-             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio
+             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio,
+             data_fim, raw_payload
       FROM ordens_servico
       WHERE REPLACE(UPPER(placa), '-', '') = ?
     `;
@@ -143,6 +159,19 @@ export function resolveVehicleTarget(
     query += ` ORDER BY is_aberta DESC, data_inicio DESC LIMIT 1`;
     const row = db.prepare(query).get(...sqlParams) as any;
     if (row) {
+      let rawPayload: any = {};
+      if (row.raw_payload) {
+        try {
+          rawPayload = typeof row.raw_payload === 'string' ? JSON.parse(row.raw_payload) : row.raw_payload;
+        } catch {}
+      }
+      const canonical = determineCanonicalOSStatus(
+        row.status_grid,
+        row.data_fim || rawPayload.data_fim || rawPayload.previsao,
+        rawPayload.hora_fim,
+        rawPayload.finalizado_em || rawPayload.dt_fechamento,
+        row.is_aberta
+      );
       const vehicle: CandidateVehicle = {
         plate: row.placa || plate,
         model: row.veiculo || 'Não informado',
@@ -156,8 +185,8 @@ export function resolveVehicleTarget(
         plate: row.placa || plate,
         vehicleModel: row.veiculo || 'Não informado',
         clientName: row.cliente_nome || undefined,
-        statusGrid: row.status_grid || 'EM ANDAMENTO',
-        isOpen: Boolean(row.is_aberta),
+        statusGrid: canonical.statusExibicao,
+        isOpen: canonical.isEfetivamenteAberta,
         daysInYard: Number(row.dias_no_patio) || 0,
         totalAmount: Number(row.total_os) || 0,
         remainingBalance: Number(row.valor_restante) || 0,
@@ -178,7 +207,8 @@ export function resolveVehicleTarget(
   if (model) {
     let query = `
       SELECT os_id, loja_slug, veiculo, placa, cliente_nome, status_grid,
-             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio
+             is_aberta, dias_no_patio, total_os, valor_restante, data_inicio,
+             data_fim, raw_payload
       FROM ordens_servico
       WHERE UPPER(veiculo) LIKE UPPER(?)
     `;
@@ -200,7 +230,7 @@ export function resolveVehicleTarget(
       };
     }
 
-    // Agrupa por veículo ?nico (placa distinta)
+    // Agrupa por veículo único (placa distinta)
     const distinctVehicles = new Map<string, any>();
     for (const r of rows) {
       const p = (r.placa || '').toUpperCase().trim();
@@ -223,7 +253,7 @@ export function resolveVehicleTarget(
       }));
 
       const candidateLines = candidates.map(c => 
-        `- *${c.model}* (${c.plate}) ? *${c.storeSlug}* (OS #${c.lastActiveOsId})`
+        `- *${c.model}* (${c.plate}) · *${c.storeSlug}* (OS #${c.lastActiveOsId})`
       ).join('\n');
 
       const clarificationPrompt = sanitizeWhatsAppMarkdown(
@@ -240,8 +270,21 @@ export function resolveVehicleTarget(
       };
     }
 
-    // Exatamente 1 veículo ?nico correspondente
+    // Exatamente 1 veículo único correspondente
     const r = uniqueCandidates[0];
+    let rawPayload: any = {};
+    if (r.raw_payload) {
+      try {
+        rawPayload = typeof r.raw_payload === 'string' ? JSON.parse(r.raw_payload) : r.raw_payload;
+      } catch {}
+    }
+    const canonical = determineCanonicalOSStatus(
+      r.status_grid,
+      r.data_fim || rawPayload.data_fim || rawPayload.previsao,
+      rawPayload.hora_fim,
+      rawPayload.finalizado_em || rawPayload.dt_fechamento,
+      r.is_aberta
+    );
     const vehicle: CandidateVehicle = {
       plate: r.placa || 'Sem Placa',
       model: r.veiculo || model,
@@ -255,8 +298,8 @@ export function resolveVehicleTarget(
       plate: r.placa || 'Sem Placa',
       vehicleModel: r.veiculo || model,
       clientName: r.cliente_nome || undefined,
-      statusGrid: r.status_grid || 'EM ANDAMENTO',
-      isOpen: Boolean(r.is_aberta),
+      statusGrid: canonical.statusExibicao,
+      isOpen: canonical.isEfetivamenteAberta,
       daysInYard: Number(r.dias_no_patio) || 0,
       totalAmount: Number(r.total_os) || 0,
       remainingBalance: Number(r.valor_restante) || 0,

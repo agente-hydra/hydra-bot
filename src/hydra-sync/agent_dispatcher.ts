@@ -33,7 +33,6 @@ import {
   composeOSConversationCard,
   isOSConversationQuery,
   composeExecutiveOSSummary,
-  composeOSInteractiveListPayload,
   composeOSServicesCard,
   composeOSPartsCard,
   composeOSPaymentsCard,
@@ -48,7 +47,6 @@ import {
   type AllowedOSModule,
   ALLOWED_OS_MODULES,
   OS_MODULE_ROW_ID_REGEX,
-  type EvoListPayload,
   translateInteractiveRowToPrompt
 } from './types/evo_interactive_contract.js';
 
@@ -233,7 +231,6 @@ export interface DispatcherOutput {
   telemetry: StageTelemetry;
   isFeedback: boolean;
   contract?: TurnContract;
-  interactiveList?: EvoListPayload;
 }
 
 function fmtMoeda(val: number): string {
@@ -852,9 +849,12 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   // Precedência estrita: consultas financeiras ou de métricas NUNCA são capturadas como veículo
   const isFinancialQuery = isExplicitFinancialQuery(textoLimpo);
 
-  // Resolução de anáfora de OS citada pelo bot no turno anterior imediato
-  let inferredOsId = prevOsId;
-  if (!inferredOsId && previousState?.lastResponseText) {
+  // Queries plurais de loja ("OSs do jabaquara", "ordens de jabaquara", "carros no pátio") NUNCA herdam contexto de veículo anterior
+  const isListStoreRequest = /\b(?:oss|ordens|carros\s+(?:no|em)\s+patio|veiculos\s+(?:no|em)\s+patio)\b/i.test(textoLimpo) && !osMatch && !plateMatch;
+
+  // Resolução de anáfora de OS citada pelo bot no turno anterior imediato (se não for listagem de loja)
+  let inferredOsId = isListStoreRequest ? undefined : prevOsId;
+  if (!inferredOsId && !isListStoreRequest && previousState?.lastResponseText) {
     const lastOsMatch = previousState.lastResponseText.match(/\b(?:os|ordem)\s*#?\s*(\d{1,6})\b/i);
     if (lastOsMatch) {
       inferredOsId = lastOsMatch[1];
@@ -876,16 +876,16 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   const opType: OperationType = isDelay ? 'DELAY_REASON' : 'VEHICLE_SITUATION';
 
   // R13: Se modelo não foi informado e não há contexto, JAMAIS fazer default para 'linea'
-  const currentModel = modelMatch ? modelMatch[1].toLowerCase() : (prevPending?.targetModel || prevVehicleModel);
-  const currentPlate = plateMatch ? plateMatch[1].toUpperCase().replace('-', '') : (prevPlaca);
-  const currentOsId = osMatch ? osMatch[1] : (prevOsId || inferredOsId);
+  const currentModel = isListStoreRequest ? undefined : (modelMatch ? modelMatch[1].toLowerCase() : (prevPending?.targetModel || prevVehicleModel));
+  const currentPlate = isListStoreRequest ? undefined : (plateMatch ? plateMatch[1].toUpperCase().replace('-', '') : (prevPlaca));
+  const currentOsId = isListStoreRequest ? undefined : (osMatch ? osMatch[1] : (prevOsId || inferredOsId));
   const currentStore = userProfile.persona === 'gerente' && userProfile.lojaSlug
     ? userProfile.lojaSlug
     : (currentStoreSlug || (modelMatch ? undefined : prevLojaSlug));
 
   const isOSConv = isOSConversationQuery(norm);
 
-  const isAnaphoraOSRequest = Boolean(
+  const isAnaphoraOSRequest = !isListStoreRequest && Boolean(
     (currentOsId || currentPlate || currentModel) && (
       isOSConv ||
       osModuleMatch ||
@@ -909,7 +909,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     )
   );
 
-  const isExplicitVehicleRequest = !isFinancialQuery && Boolean(
+  const isExplicitVehicleRequest = !isFinancialQuery && !isListStoreRequest && Boolean(
     modelMatch ||
     plateMatch ||
     osMatch ||
@@ -925,6 +925,15 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   const tRewriteStart = Date.now();
   const canonical = rewriteIntent(textoLimpo, previousState, { batch: input.batch, parts: input.parts, mediaEvidence: input.mediaEvidence });
   intentRewriteMs = Date.now() - tRewriteStart;
+
+  if (isListStoreRequest) {
+    canonical.osId = undefined;
+    canonical.veiculo = undefined;
+    canonical.placa = undefined;
+    if (currentStoreSlug && !canonical.lojaSlug) {
+      canonical.lojaSlug = currentStoreSlug;
+    }
+  }
 
   const activeProfile = userProfile || getUserProfile(db, phone);
 
@@ -1323,12 +1332,76 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
 
     const sysPrompt = loadSystemPrompt();
 
+    const HERMES_DIRECTIVES = `
+# GRAMÁTICA VISUAL UNIVERSAL DO HYDRA (HERMES 2.0):
+1. SUPER CABEÇALHO INSTITUCIONAL (RELATÓRIOS E DIAGNÓSTICOS):
+   Em relatórios de rede, diagnósticos de pátio ou análises executivas, comece no topo com:
+   *HYDRA | [Tema] | [Unidade ou Rede]*
+
+   *[DD/MM/AAAA] · [HH:mm]*
+
+2. TÍTULOS DE SEÇÃO COM BLOCKQUOTE (> *TÍTULO*):
+   Títulos de blocos temáticos devem usar SEMPRE a citação de bloco nativa com negrito:
+   > *Visão geral*
+   > *Situação e Atendimento*
+   > *Serviços Discriminados*
+   > *Formas de Pagamento e Parcelas*
+   > *Documentos e Checklists*
+   > *Ordens de serviço*
+   > *Gargalos de pátio*
+   > *Ponto crítico*
+   ⛔ PROIBIÇÃO ABSOLUTA: NUNCA coloque hífen (-), bullet (•) ou asterisco duplo (* *) antes de títulos de seção (PROIBIDO escrever "- *Visão geral*", "* *Visão geral*", etc.).
+
+3. NARRATIVA EXECUTIVA (PROSA LIMPA):
+   Parágrafo corrido sem marcadores, trazendo métricas consolidadas, percentuais e diagnóstico factual direto.
+
+4. LISTAS CHAVE-VALOR PADRONIZADAS (- *CHAVE:* VALOR):
+   - Use hífen simples '- ' no início da linha para propriedades e atributos:
+     - *Valor em serviço:* R$ 9.289,70
+     - *Saldo a receber:* R$ 8.289,70
+     - *Permanência:* 6 dias no pátio
+   - ⛔ PROIBIÇÃO DE MARCADOR DUPLO: NUNCA inicie linhas com '* *Chave:*'.
+   - ⛔ PROIBIÇÃO DE RETICÊNCIAS EM NOMES: NUNCA abrevie ou coloque reticências (...) em nomes de clientes, veículos ou lojas. Exiba SEMPRE o nome completo por extenso conforme retornado pela base/ferramenta.
+   - ⛔ PROIBIÇÃO DE CAMPOS VAZIOS: Nunca emita um campo sem valor (ex: '*Checklist de Entrada:*' em branco). Se não constar valor ou anexo, registre explicitamente: 'Não realizado / Pendente' ou 'Nenhum anexo registrado'.
+
+5. CARDS DE ENTIDADE / ORDENS DE SERVIÇO EM ÁRVORE INDIVISÍVEL (  └  ):
+   - O título da OS é SEMPRE em negrito contínuo na linha toda, sem hífens ou bullets no início:
+     *OS #XXXX — MODELO (PLACA)*
+     ⛔ PROIBIÇÃO DE NEGRITO PARCIAL: NUNCA coloque negrito apenas no número (PROIBIDO: '*OS #1129* — CORSA WIND').
+   - Os sub-itens usam OBRIGATORIAMENTE o caractere de joelho '  └ ' com dois espaços de recuo e rótulos explícitos:
+       └ Status: *[Status]* · *[X dias]* no pátio
+       └ Financeiro: Total *R$ X.XXX,XX* · Saldo: *[R$ X.XXX,XX ou Quitado]*
+       └ Operação: Resp: [Nome] · Cliente: [Nome Completo]
+   - ⛔ PROIBIÇÃO DE JOELHOS DESMEMBRADOS: NUNCA separe status e dias de pátio em linhas filhas sem rótulo (PROIBIDO escrever '└ *AGUARDANDO RETIRADA*' seguido de '└ *8 dias*').
+   - ⛔ PROIBIÇÃO DE CAMPOS INCOMPLETOS: NUNCA deixe 'Saldo:' vazio ou pontuação solta '·' no fim da linha.
+   - Separe SEMPRE cada OS com linha em branco (parágrafo duplo \\n\\n).
+
+6. REGRA CRÍTICA DE STATUS DA ORDEM DE SERVIÇO (DATA DE FINALIZAÇÃO):
+   - Se a OS possuir data ou hora de finalização preenchida (data_fim, hora_fim, finalizado_em) ou se o veículo foi entregue e faturado, o status DEVE ser reportado como *Finalizada / Entregue*, mesmo que um campo de texto legado do sistema diga 'ABERTO'.
+
+7. DIVISÃO SEMÂNTICA DE BALÕES (---BLOCK---):
+   - Em mensagens extensas (> 700 caracteres), utilize \\n\\n---BLOCK---\\n\\n entre grandes seções temáticas (> *Seção*) para que a resposta seja entregue em balões confortáveis e autocontidos no celular, sem quebrar seções ou cards ao meio.
+
+8. FOCO ESTRITO EM VEÍCULOS FÍSICOS NO PÁTIO (ORDENS EM ATENDIMENTO ATIVO):
+   - Ao relatar ordens de serviço de uma unidade ou pátio, liste com cards individuais APENAS os veículos físicos em atendimento ativo (is_aberta = 1 / no pátio).
+   - Ordens finalizadas do mês devem ser mencionadas apenas de forma consolidada e resumida (ex: 'Faturamento acumulado no mês: R$ 35.541,90 em 14 OSs faturadas').
+
+9. PROIBIÇÃO TOTAL DE MENUS E LISTAS NUMERADAS 1, 2, 3:
+   - ⛔ PROIBIDO criar listas numeradas tipo '1. ...', '2. ...'.
+   - ⛔ PROIBIDO criar seções tipo '*O que fazer agora*' simulando botões de URA.
+   - Encerre a resposta com a informação factual entregue de forma limpa e direta.
+
+10. PROIBIÇÕES ABSOLUTAS:
+   - ZERO duplo asterisco '**'. Use sempre '*texto*'.
+   - ZERO cabeçalhos CommonMark ('#', '##', '###').
+   - ZERO tabelas markdown (| col |) e ZERO pipes ('|') inline agrupando campos na mesma linha.
+   - ZERO listagens de 'Pendências de Baixa no ERP' em consultas de pátio operacional.`;
+
     // Contexto é mantido persistentemente pelo AGY CLI através do agy_conversation_id.
-    // Se a conversa já foi inicializada, enviamos o turno novo diretamente ao AGY.
-    // Se for o primeiro turno da sessão, anexamos as diretrizes operacionais e ferramentas.
+    // Injetamos a Gramática Visual Universal HERMES_DIRECTIVES em TODOS os turnos para blindar contra drift do LLM.
     let safePrompt: string;
     if (agyConvId) {
-      safePrompt = `${textoLimpo}\n\n(LEMBRETE DE FORMATAÇÃO HERMES: Em listagens de OSs ou veículos, use SEMPRE traços '----------------------------------------' para separar cada carro e abra cada um com '> *OS #XXXX — MODELO (PLACA)*'. Coloque cada dado em sua linha com bullets verticais. PROIBIDO usar pipes '|' inline agrupando dados na mesma linha.)`;
+      safePrompt = `${textoLimpo}\n\n${HERMES_DIRECTIVES}`;
     } else {
       safePrompt = `${sysPrompt}
 ${diarySection}${socioMemoriesBlock}
@@ -1350,30 +1423,7 @@ ${textoLimpo}
   * 'Veículos em Pátio' são exclusivamente veículos fisicamente na oficina em atendimento ativo (em torno de 1 a 6 por loja, total da rede em torno de 30 a 40 veículos).
   * NUNCA relate 'Pendências de Baixa no ERP' ou 'Divergência entre sistema e pátio' como gargalo operacional da oficina. Os gargalos operacionais são estritamente: (1) Retenção de Pátio (Aging > 5 dias com risco de atraso), (2) Exposição Financeira (Saldo em aberto sem sinal/pagamento), (3) Checklists de Entrada e Mecânico pendentes nos veículos em atendimento.
   * Na auditoria de checklists (getChecklistAudit), audite estritamente os veículos físicos em atendimento (~32 na rede), NUNCA mencione 179 ordens brutas do sistema.
-- FORMATO EXECUTIVO OFICIAL (PADRÃO HERMES / BOT DE ANÁLISE HYDRA):
-  * Cabeçalho de abertura: '*HYDRA | [Tema]*\n\n[Data] · [Hora]'.
-  * Títulos de seção do relatório: Em negrito simples '*Visão geral*', '*Gargalos de pátio*', '*Risco financeiro*', '*Compliance e vistorias*', '*O que fazer agora*'.
-  * Ponto Crítico: Use citação nativa '>' EXCLUSIVAMENTE abaixo de '*Ponto crítico*\n> [Frase do ponto crítico]'.
-  * CARDS DE ORDENS DE SERVIÇO (PADRÃO HERMES):
-    - Em listagens de OSs ou veículos, use SEMPRE traços '----------------------------------------' para separar cada carro.
-    - Abra cada card com '> *OS #XXXX — MODELO (PLACA)*' usando a setinha '>'.
-    - Cada campo deve vir em sua própria linha com bullets:
-      ----------------------------------------
-      > *OS #XXXX — MODELO (PLACA)*
-      - *Status:* Em Execução • *Pátio:* X dias
-      - *Cliente:* Nome do Cliente
-      - *Valor:* R$ X.XXX,XX (resta R$ X.XXX,XX)
-    - PROIBIÇÃO ABSOLUTA DE PIPES '|' inline juntando dados na mesma linha.
-  * POSIÇÃO DE PÁTIO POR UNIDADE E GARGALOS:
-    - Nunca agrupe múltiplos carros ou dados na mesma linha com pipes '|'.
-    - Use traços '----------------------------------------' e setinha '>' para destacar cada unidade:
-      ----------------------------------------
-      > *Rudge Ramos (6 veículos)*
-      - *Valor em serviço:* R$ 23.773,35
-      - *Saldo a receber:* R$ 11.879,54
-  * Ações finais: Em lista numerada: '*O que fazer agora*\n1. [Ação 1]\n2. [Ação 2]'.
-  * ESTRUTURA DOS BALÕES: O diagnóstico deve vir consolidado em no máximo 1 ou 2 balões elegantes (use '---BLOCK---' apenas se o texto for muito extenso). NUNCA envie um balão avulso por loja!
-  * ZERO 'Baixa ERP': Nunca mencione pendências de baixa no ERP em relatórios operacionais de gargalos.
+${HERMES_DIRECTIVES}
 - SEMPRE consulte suas ferramentas MCP antes de responder a fatos ou números operacionais.
 - Quando o operador falar de forma curta ou der sequência à conversa (ex: "em aberto por favor", "quais as travas?", "e em Santo André?"), consulte suas ferramentas MCP para detalhar o caso específico.
 - Responda em português com linguagem natural, direta e profissional no WhatsApp. Não use markdown tables nem asteriscos triplos.`;
@@ -1441,9 +1491,9 @@ ${textoLimpo}
         const os360Params: OS360CardParams = {
           osId: osDetail?.osId ?? resolution.activeOrder.osId,
           lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
-          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model,
-          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate,
-          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName,
+          vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model ?? 'Veículo',
+          vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate ?? 'Placa não informada',
+          clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName ?? 'Cliente não informado',
           clientPhone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
           clienteTelefone: osDetail?.clienteTelefone ?? resolution.activeOrder.customerPhone,
           responsavel: osDetail?.responsavel,
@@ -1474,7 +1524,7 @@ ${textoLimpo}
         else if (activeModule === 'pagamentos') replyText = composeOSPaymentsCard(os360Params);
         else if (activeModule === 'documentos') replyText = composeOSDocumentsCard(os360Params);
         else if (activeModule === 'historico') replyText = composeOSHistoryCard(os360Params);
-        else replyText = composeExecutiveOSSummary(os360Params);
+        else replyText = composeFullOS360Card(os360Params);
         toolsCalled = ['resolve_vehicle_target', 'get_os_details'];
       } else if (resolution.status === 'AMBIGUOUS_VEHICLE') {
         replyText = resolution.clarificationPrompt;
@@ -1504,11 +1554,17 @@ ${textoLimpo}
     }
   }
 
-  // 5. ISOLAMENTO DE SA?DA E PERSIST?NCIA ESTRUTURADA DE ESTADO
+  // 5. ISOLAMENTO DE SAÍDA E PERSISTÊNCIA ESTRUTURADA DE ESTADO
   const tFormatStart = Date.now();
   replyText = sanitizeWhatsAppMarkdown(replyText);
   const messages = splitIntoWhatsAppBlocks(replyText);
   formatMs = Date.now() - tFormatStart;
+
+  // Resolução de contexto de OS individual para persistência de turno
+  let targetOsId: string | undefined = canonical.osId;
+  if (!targetOsId && currentOsId) {
+    targetOsId = String(currentOsId);
+  }
 
   saveTurnState(db, {
     phone,
@@ -1516,7 +1572,7 @@ ${textoLimpo}
     lastIntent: canonical.intent,
     lojaSlug: canonical.lojaSlug,
     placa: canonical.placa,
-    osId: canonical.osId,
+    osId: canonical.osId || targetOsId,
     filters: {
       onlyOpen: canonical.onlyOpen,
       noDeposit: canonical.noDeposit,
@@ -1534,7 +1590,7 @@ ${textoLimpo}
 
   saveConversationMessage(db, phone, 'assistant', replyText, toolToRecord, paramsToRecord);
 
-  // Registro epis??dico no Di??rio de Bordo do Obsidian Vault (Hermes-Style)
+  // Registro episódico no Diário de Bordo do Obsidian Vault (Hermes-Style)
   appendConversationToDailyDiary(phone, textoLimpo, replyText, {
     turnId: canonical.turnId
   });

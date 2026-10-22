@@ -117,24 +117,201 @@ export function alignWhatsAppList(text: string): string {
 
   const lines = text.split('\n');
   const aligned: string[] = [];
+  let inOsBlock = false;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    const trimmed = line.trim();
 
     // Ignora linhas de bloco ou separadores
-    if (line.trim().startsWith('---BLOCK---') || /^[-*_]{3,}/.test(line.trim())) {
+    if (trimmed.startsWith('---BLOCK---') || /^[-*_]{3,}/.test(trimmed)) {
+      inOsBlock = false;
       aligned.push(line);
       continue;
     }
 
-    // Detecta item de lista (com marcador -, •, + ou * seguido OBRIGATORIAMENTE de espaço)
-    // Se começar com '*', só é item de lista se houver espaço após o asterisco (* item)
-    // Se não tiver espaço (*Negrito*), NÃO é marcador de lista!
+    if (trimmed === '') {
+      inOsBlock = false;
+      aligned.push(line);
+      continue;
+    }
+
+    // 0. Detecta cabeçalho de OS (mesmo com negrito parcial, blockquote ou sem asteriscos)
+    // Ex: "*OS #1129* — CORSA WIND (CYG2B02)", "> *OS #1129...", "OS #1129 — ..."
+    const osHeaderMatch = trimmed.match(/^>*\s*\*?(OS\s*#?\d+[^*:\n]*)\*?\s*—\s*\*?([A-Za-zÀ-ÿ0-9\s/—–-]+(?:\s*\([^)\n]+\))?)\*?$/i);
+    if (osHeaderMatch) {
+      inOsBlock = true;
+      const osNum = osHeaderMatch[1].replace(/[*_>]/g, '').trim();
+      const osDesc = osHeaderMatch[2].replace(/[*_]/g, '').trim();
+      aligned.push(`*${osNum} — ${osDesc}*`);
+      continue;
+    }
+
+    // 0.1. Detecta linhas que já iniciam com joelho (└) e aplica normalização/agregação determinística
+    const kneeMatch = line.match(/^(\s*)└\s*(.*)$/);
+    if (kneeMatch) {
+      inOsBlock = true;
+      let kneeBody = kneeMatch[2].trim();
+      // Remove marcadores residuais soltos no fim (ex: "└ Total da OS R$ 905,00 ·")
+      kneeBody = kneeBody.replace(/\s*[•·]\s*$/, '').trim();
+
+      // Caso 1: Joelho com Status isolado ("└ *AGUARDANDO RETIRADA*") e linha seguinte com dias ("└ *8 dias* no pátio")
+      const nextLine = (i + 1 < lines.length) ? lines[i + 1].trim() : '';
+      const nextKneeMatch = nextLine.match(/^└\s*(.*)$/);
+
+      if (nextKneeMatch) {
+        const nextKneeBody = nextKneeMatch[1].trim().replace(/\s*[•·]\s*$/, '').trim();
+        const diasMatch = nextKneeBody.match(/^(\*?\d+\s*dias[^*]*\*?)(?:\s+no\s+p[áa]tio)?/i);
+        const isStatusOnly = !/^(?:Status|Financeiro|Operação|Cliente|Resp|Total|Saldo):/i.test(kneeBody) &&
+                             !/\d+\s*dias/i.test(kneeBody) &&
+                             !/R\$/i.test(kneeBody);
+
+        if (isStatusOnly && diasMatch) {
+          const cleanStatus = kneeBody.replace(/^[*_]+|[*_]+$/g, '').trim();
+          const cleanDias = diasMatch[1].replace(/^[*_]+|[*_]+$/g, '').trim();
+          aligned.push(`  └ Status: *${cleanStatus}* · *${cleanDias}* no pátio`);
+          i++; // consome a próxima linha
+          continue;
+        }
+
+        // Caso 2: Joelho com Total ("└ *Total da OS* R$ 905,00") e linha seguinte com Saldo vazio ("└ *Saldo:*")
+        const isTotalLine = /Total(?:\s*da\s*OS)?/i.test(kneeBody) && /R\$/i.test(kneeBody);
+        const isSaldoEmpty = /^\*?Saldo(?::\*|\*:|:)?\s*(?:R\$\s*0(?:,00)?|-|—)?\s*$/i.test(nextKneeBody);
+        if (isTotalLine && isSaldoEmpty) {
+          const valMatch = kneeBody.match(/R\$\s*[\d.,]+/);
+          const totalVal = valMatch ? valMatch[0] : '';
+          aligned.push(`  └ Financeiro: Total *${totalVal}* · Saldo: *Quitado*`);
+          i++; // consome a próxima linha
+          continue;
+        }
+      }
+
+      // Caso 3: Linha de Status já existente com dias de pátio
+      const statusLineMatch = kneeBody.match(/^(?:\*Status\*:\s*|\*Status:\*\s*|Status:\s*)(.+?)(?:\s*[•·]\s*(?:(?:Pátio|Aging|Permanência):\s*)?(\*?\d+\s*dias[^\n]*|\*?[A-Za-zÀ-ÿ0-9\s*]+dias[^\n]*))?$/i);
+      if (statusLineMatch) {
+        const statusText = statusLineMatch[1].replace(/[*_]/g, '').trim();
+        let patioFormatted = '';
+        if (statusLineMatch[2]) {
+          const patioText = statusLineMatch[2].replace(/[*_]/g, '').trim();
+          const diasMatch = patioText.match(/(\d+)\s*dias?/i);
+          patioFormatted = diasMatch ? ` · *${diasMatch[1]} dias* no pátio` : ` · *${patioText}*`;
+        }
+        aligned.push(`  └ Status: *${statusText}*${patioFormatted}`);
+        continue;
+      }
+
+      // Caso 4: Linha Financeira
+      const finLineMatch = kneeBody.match(/^(?:\*Financeiro\*:\s*|\*Financeiro:\*\s*|Financeiro:\s*)(.+)$/i);
+      if (finLineMatch) {
+        let finBody = finLineMatch[1].trim();
+        finBody = finBody.replace(/Total(?:\s*:\s*|\s+)(?!\*)(R\$\s*[\d.,]+)/i, 'Total *$1*');
+        finBody = finBody.replace(/Saldo(?:\s*:\s*|\s+)(?!\*)(R\$\s*[\d.,]+|Quitado)/i, 'Saldo: *$1*');
+        aligned.push(`  └ Financeiro: ${finBody}`);
+        continue;
+      }
+
+      // Caso 5: Linha de Responsável ("└ *Resp:* ROGERIO")
+      const respMatch = kneeBody.match(/^(?:\*Resp\*:\s*|\*Resp:\*\s*|Resp:\s*)(.+)$/i);
+      if (respMatch) {
+        aligned.push(`  └ Operação: Resp: ${respMatch[1].trim()}`);
+        continue;
+      }
+
+      // Caso 6: Outras propriedades com joelho já existente
+      aligned.push(`  └ ${kneeBody}`);
+      continue;
+    }
+
+    // Detecta se a própria linha é cabeçalho de OS ou cabeçalho de seção (mesmo se vier com marcador ou joelho)
     const isBoldHeading = /^\s*\*([^*]+)\*(?:\s*)$/.test(line);
     const listMatch = !isBoldHeading ? line.match(/^(\s*)([-•+]|\*(?=\s))\s+(.*)$/) : null;
+
     if (listMatch) {
       const indent = listMatch[1];
       const rawContent = listMatch[3].trim();
+
+      // 1. Regra Anti-Bullet em Cabeçalho de OS (ex: "- OS #465...", "- *OS #465...*", "• OS 465...")
+      const isOsHeader = /^(?:>\s*)?(?:\*)?OS\s*#?\d+[^*:\n]*(?:\*)?$/i.test(rawContent);
+      if (isOsHeader) {
+        inOsBlock = true;
+        const cleanOsTitle = rawContent.replace(/^>\s*/, '').replace(/^\*+|\*+$/g, '').trim();
+        aligned.push(`*${cleanOsTitle}*`);
+        continue;
+      }
+
+      // 2. Regra Anti-Bullet em Títulos de Seção (ex: "- *Visão geral*", "- Ordens de serviço ativas", etc.)
+      const isSectionHeading =
+        /^(?:>\s*)?(?:\*)?(?:Visão geral|Ordens de serviço(?: ativas| em aberto)?|Gargalos(?: de pátio| operacionais)?|Ponto crítico|Risco financeiro|Compliance(?: e vistorias)?|Checklists|Posição operacional|Faturamento|Resumo executivo|Atenção)(?:\*)?:?$/i.test(rawContent) ||
+        /^\*([^*:\n]+)\*:?$/.test(rawContent);
+
+      if (isSectionHeading) {
+        inOsBlock = false;
+        const cleanHeading = rawContent.replace(/^>\s*/, '').replace(/^\*+|\*+$/g, '').replace(/:$/, '').trim();
+        aligned.push(`*${cleanHeading}*`);
+        continue;
+      }
+
+      // 3. Se estiver dentro de um bloco de OS e for uma propriedade (Status, Financeiro, Operação, etc.), converte para joelho (  └ )
+      const isOsProperty = /^(?:Status|Financeiro|Operação|Cliente|Pátio|Aging|Permanência|Valor|Total|Saldo|Resp|Responsável|Mecânico|Serviços|Peças|Checklist)/i.test(rawContent.replace(/^\*/, ''));
+      if (inOsBlock && isOsProperty) {
+        // Normalização específica para formato legado (ex: "Status: Finalizada • Pátio: 0 dias", "Valor: R$ 980,00 (resta R$ 0,00)", "Cliente: Nome")
+        const finMatch = rawContent.match(/^(?:\*Financeiro\*:\s*|\*Financeiro:\*\s*|Financeiro:\s*)(.+)$/i);
+        if (finMatch) {
+          let finBody = finMatch[1].trim();
+          finBody = finBody.replace(/Total(?:\s*:\s*|\s+)(?!\*)(R\$\s*[\d.,]+)/i, 'Total *$1*');
+          finBody = finBody.replace(/Saldo(?:\s*:\s*|\s+)(?!\*)(R\$\s*[\d.,]+|Quitado)/i, 'Saldo: *$1*');
+          aligned.push(`  └ Financeiro: ${finBody}`);
+          continue;
+        }
+
+        const opMatch = rawContent.match(/^(?:\*Operação\*:\s*|\*Operação:\*\s*|Operação:\s*)(.+)$/i);
+        if (opMatch) {
+          aligned.push(`  └ Operação: ${opMatch[1].trim()}`);
+          continue;
+        }
+
+        const valMatch = rawContent.match(/^(?:\*(?:Valor|Total)\*:\s*|\*(?:Valor|Total):\*\s*|(?:Valor|Total):\s*)([^()]+?)\s*\((?:resta|saldo:?)\s*([^)]+)\)/i);
+        if (valMatch) {
+          const totalVal = valMatch[1].replace(/[*_]/g, '').trim();
+          const saldoVal = valMatch[2].replace(/[*_]/g, '').trim();
+          const saldoFormatted = /^(?:R\$\s*0(?:,00)?|0)$/i.test(saldoVal) ? '*Quitado*' : `*${saldoVal}*`;
+          aligned.push(`  └ Financeiro: Total *${totalVal}* · Saldo: ${saldoFormatted}`);
+          continue;
+        }
+
+        const clientMatch = rawContent.match(/^(?:\*Cliente\*:\s*|\*Cliente:\*\s*|Cliente:\s*)(.+)$/i);
+        if (clientMatch) {
+          const clientName = clientMatch[1].replace(/[*_]/g, '').trim();
+          aligned.push(`  └ Operação: Cliente: ${clientName}`);
+          continue;
+        }
+
+        const statusMatch = rawContent.match(/^(?:\*Status\*:\s*|\*Status:\*\s*|Status:\s*)(.+?)(?:\s*[•·]\s*(?:(?:Pátio|Aging|Permanência):\s*)?(\d+\s*dias[^\n]*|[A-Za-zÀ-ÿ0-9\s]+dias[^\n]*))?$/i);
+        if (statusMatch) {
+          const statusText = statusMatch[1].replace(/[*_]/g, '').trim();
+          let patioFormatted = '';
+          if (statusMatch[2]) {
+            const patioText = statusMatch[2].replace(/[*_]/g, '').trim();
+            const diasMatch = patioText.match(/(\d+)\s*dias?/i);
+            if (diasMatch) {
+              patioFormatted = ` · *${diasMatch[1]} dias* no pátio`;
+            } else {
+              patioFormatted = ` · *${patioText}*`;
+            }
+          }
+          aligned.push(`  └ Status: *${statusText}*${patioFormatted}`);
+          continue;
+        }
+
+        let propContent = rawContent;
+        propContent = propContent.replace(/^\*([^*:\n]+)\*\s*:\s*/, '*$1:* ');
+        if (!propContent.startsWith('*')) {
+          propContent = propContent.replace(/^([A-Za-zÀ-ÖØ-öø-ÿ0-9\s/—–-]{2,30}):\s+(?!\*)/, (_m, key) => `*${key.trim()}:* `);
+        }
+        aligned.push(`  └ ${propContent}`);
+        continue;
+      }
+
       // Subnível se tiver 2 ou mais espaços de indentação
       const prefix = indent.length >= 2 ? '  - ' : '- ';
 
@@ -152,6 +329,17 @@ export function alignWhatsAppList(text: string): string {
 
       aligned.push(`${prefix}${formattedContent}`);
     } else {
+      // Linha não-lista: verifica se iniciou um card de OS puro (mesmo com > ou sem asteriscos)
+      const nonListOsMatch = trimmed.match(/^>*\s*\*?(OS\s*#?\d+[^*:\n]*)\*?$/i);
+      if (nonListOsMatch) {
+        inOsBlock = true;
+        aligned.push(`*${nonListOsMatch[1].trim()}*`);
+        continue;
+      } else if (/^\*OS\s*#?\d+/i.test(trimmed)) {
+        inOsBlock = true;
+      } else if (trimmed.startsWith('*') && trimmed.endsWith('*') && !trimmed.includes('—')) {
+        inOsBlock = false;
+      }
       aligned.push(line);
     }
   }
@@ -209,11 +397,17 @@ export function purgeDecorativeEmojis(
     return '';
   });
 
-  // Limpeza de espaços duplicados deixados pela remoção do emoji
+  // Limpeza de espaços duplicados deixados pela remoção do emoji, preservando rigorosamente a indentação da linha
   result = result
-    .replace(/[ \t]{2,}/g, ' ')
-    .replace(/^[ \t]+/gm, (m) => m) // preserva indentação
-    .replace(/ \n/g, '\n')
+    .split('\n')
+    .map(line => {
+      const match = line.match(/^(\s*)(.*)$/);
+      if (!match) return line;
+      const indent = match[1];
+      const content = match[2].replace(/[ \t]{2,}/g, ' ').trimEnd();
+      return `${indent}${content}`;
+    })
+    .join('\n')
     .trim();
 
   return result;
@@ -423,8 +617,10 @@ export function sanitizeWhatsAppMarkdown(raw: string): string {
   // 5. Converte itálico duplo (__) para itálico simples (_)
   text = text.replace(/__([^_\n]+?)__/g, '_$1_');
 
-  // 6. Normaliza marcadores de lista variados (•, +, ou * solto com espaço) para traço nativo (- )
+  // 6. Normaliza marcadores de lista variados (•, +, ou * solto com espaço, ou * * duplo) para traço nativo (- )
   text = text.replace(/^[\t ]*[•+]\s+/gm, '- ');
+  text = text.replace(/^[\t ]*\*[\t ]+\*(?=[A-Za-zÀ-ÿ0-9])/gm, '- *');
+  text = text.replace(/^[\t ]*\*[\t ]+\*\s+/gm, '- ');
   text = text.replace(/^[\t ]*\*\s+(?!\*)/gm, '- ');
 
   // 7. Garante que campos chave-valor em listas tenham a chave em negrito (- *Chave:* Valor)
@@ -432,8 +628,37 @@ export function sanitizeWhatsAppMarkdown(raw: string): string {
     return `${prefix}*${key.trim()}* `;
   });
 
+  // 7.05. Preenchimento de campos de checklist/documentos vazios (- *Chave:* sem valor)
+  text = text.replace(/^([\t ]*-\s+\*[^*:\n]+:\*)\s*$/gm, (_m, g1) => `${g1} Não informado / Pendente`);
+
+  // 7.1. Remove blockquotes de cabeçalhos de OS e garante negrito integral:
+  text = text.replace(/^[\t ]*>\s*\*?(OS\s*#?\d+[^*:\n]*)\*?/gim, '*$1*');
+  text = text.replace(/^[\t ]*\*?(OS\s*#?\d+[^*:\n]*)\*?\s*—\s*\*?([A-Za-zÀ-ÿ0-9\s/—–-]+(?:\s*\([^)\n]+\))?)\*?$/gm, '*$1 — $2*');
+
   // 8. Alinhamento visual e normalização de listas
   text = alignWhatsAppList(text);
+
+  // 8.01. Garante preenchimento de campos de checklist/documentos vazios após alinhamento
+  text = text.replace(/^([\t ]*-\s+\*[^*:\n]+:\*)\s*$/gm, (_m, g1) => `${g1} Não informado / Pendente`);
+
+  // 8.1. Expurgar seções de menu simulado "O que fazer agora", "Ações recomendadas", etc. e listas numeradas ("botões 1 2 3")
+  text = text.replace(/(?:^|\n)\*?(?:O que fazer agora|Ações recomendadas|Ações sugeridas|Próximos passos|Opções|Menu de opções)\*?[:\s]*[\s\S]*?(?=\n\n\*|$)/gi, '');
+  text = text.replace(/^\s*\d+\.\s+([^\n]+)$/gm, '- $1');
+
+  // 8.15. Remove separadores de traços excessivos imediatamente antes de cards de OS ou no fim do texto
+  text = text.replace(/(?:----------------------------------------\s*\n+)+(\*OS\s*#?\d+)/gi, '$1');
+  text = text.replace(/(?:----------------------------------------\s*)+$/gm, '');
+
+  // 8.2. Garante respiro visual (parágrafo duplo) antes de cada card de OS
+  text = text.replace(/([^\n])\n(\*OS\s*#?\d+)/gi, '$1\n\n$2');
+
+  // 8.3. Posiciona cabeçalho institucional *HYDRA | no topo absoluto se veio após algum bloco solto
+  const hydraHeaderMatch = text.match(/(?:^|\n)(\*HYDRA\s*\|[^\n]+(?:\n+[\d/·:\s]+)?)/i);
+  if (hydraHeaderMatch && hydraHeaderMatch.index !== undefined && hydraHeaderMatch.index > 0) {
+    const headerBlock = hydraHeaderMatch[1].trim();
+    const remainingText = (text.slice(0, hydraHeaderMatch.index) + '\n' + text.slice(hydraHeaderMatch.index + hydraHeaderMatch[0].length)).trim();
+    text = `${headerBlock}\n\n${remainingText}`;
+  }
 
   // 9. Blindagem estrita: limpeza de asteriscos e underscores duplos residuais (garantia zero **)
   while (text.includes('**')) {
@@ -472,6 +697,12 @@ export function reformatPipedLinesToHermesCards(text: string): string {
     const line = lines[i];
     const trimmed = line.trim();
 
+    // Ignora linha de cabeçalho institucional *HYDRA | ...*
+    if (/HYDRA\s*\|/i.test(trimmed)) {
+      output.push(line);
+      continue;
+    }
+
     // Rastreia seções de resumo ou pátio
     if (/Posi[çc][ãa]o\s+de\s+p[áa]tio/i.test(trimmed) || /Gargalos\s+de\s+reten[çc][ãa]o/i.test(trimmed)) {
       inStorePatioSection = true;
@@ -498,11 +729,13 @@ export function reformatPipedLinesToHermesCards(text: string): string {
         const patio = statusMatch[2].trim();
         const valor = statusMatch[3].trim();
 
-        output.push('----------------------------------------');
-        output.push(`> *OS #${osId} — ${model} (${plate})*`);
-        output.push(`- *Status:* ${status} • *Pátio:* ${patio}`);
-        output.push(`- *Cliente:* ${client}`);
-        output.push(`- *Valor:* ${valor}`);
+        output.push(`*OS #${osId} — ${model} (${plate})*`);
+        output.push(`  └ Status: *${status}* · *${patio}*`);
+        output.push(`  └ Financeiro: *${valor}*`);
+        if (client && client !== 'Não informado') {
+          output.push(`  └ Operação: Cliente: ${client}`);
+        }
+        output.push('');
         i++; // pula nextLine
         continue;
       }
@@ -520,11 +753,13 @@ export function reformatPipedLinesToHermesCards(text: string): string {
       const status = singleLineOsMatch[6].trim();
       const valor = singleLineOsMatch[7].trim();
 
-      output.push('----------------------------------------');
-      output.push(`> *OS #${osId} — ${model} (${plate})*`);
-      output.push(`- *Status:* ${status} • *Pátio:* ${patio}`);
-      output.push(`- *Cliente:* ${client}`);
-      output.push(`- *Valor:* ${valor}`);
+      output.push(`*OS #${osId} — ${model} (${plate})*`);
+      output.push(`  └ Status: *${status}* · *${patio}*`);
+      output.push(`  └ Financeiro: *${valor}*`);
+      if (client && client !== 'Não informado') {
+        output.push(`  └ Operação: Cliente: ${client}`);
+      }
+      output.push('');
       continue;
     }
 
@@ -680,6 +915,11 @@ export function isSectionHeader(text: string): boolean {
   const lines = trimmed.split('\n');
   const firstLine = lines[0].trim();
 
+  // 0. Cabeçalho de OS isolado (nunca pode ser órfão no final do balão)
+  if (/^\*OS\s*#?\d+[^*]*\*$/i.test(firstLine) || /^>\s*\*?OS\s*#?\d+/i.test(firstLine)) {
+    return lines.length === 1;
+  }
+
   // 1. Títulos numerados WhatsApp (> 1. Título, > *1. Título*, > 2. Título, etc.)
   if (/^>\s*(?:\*\d+\.|\d+\.|\*[0-9]+\*|[0-9]+\.\s+)/i.test(firstLine)) {
     return true;
@@ -789,6 +1029,27 @@ export function splitIntoWhatsAppBlocks(rawText: string, maxBlockLength: number 
 
       if (currentChunk) {
         groupedBlocks.push(currentChunk);
+      }
+
+      // REGRA C: Anti-Orphan Card Post-Processing
+      // Se qualquer balão termina com um cabeçalho órfão (ex: *OS #...* ou título de seção)
+      // sem os seus campos dependentes, move o cabeçalho para o início do próximo balão!
+      for (let k = 0; k < groupedBlocks.length - 1; k++) {
+        const bLines = groupedBlocks[k].trim().split('\n');
+        const lastLine = bLines[bLines.length - 1].trim();
+        const isTrailingTitle =
+          /^\*OS\s*#?\d+[^*]*\*$/i.test(lastLine) ||
+          /^>\s*\*?OS\s*#?\d+/i.test(lastLine) ||
+          isSectionHeader(lastLine);
+
+        if (isTrailingTitle && bLines.length > 1) {
+          bLines.pop();
+          if (bLines.length > 0 && /^[-*_]{3,}$/.test(bLines[bLines.length - 1].trim())) {
+            bLines.pop();
+          }
+          groupedBlocks[k] = bLines.join('\n').trim();
+          groupedBlocks[k + 1] = `${lastLine}\n\n${groupedBlocks[k + 1]}`.trim();
+        }
       }
 
       rawBlocks = groupedBlocks;
