@@ -9,6 +9,15 @@
 **Status:** MIGRADO PARA VPS LINUX EM 2026-10-08.
 **Regra aprendida:** O Agendador de Tarefas do Windows depende da máquina do usuário estar ligada e conectada, o que quebra relatórios matinais caso a máquina esteja suspensa. Foi 100% substituído por cron nativo na VPS.
 
+## [2026-10-22] — [Feature ID: hydra-rede-incident-2026-10-21-remediation-and-containment]
+**Contexto:** Remediação do incidente da Rede de 21/10/2026, contenção definitiva contra timeouts de reCAPTCHA/WAF e isolamento de processos na VPS.
+**Regra aprendida:**
+1. **Sessão Persistente & reCAPTCHA:** O portal da Rede ativou reCAPTCHA v2 e verificação Akamai. A solução definitiva utiliza storageState persistente (`data/storageState_rede.json`) com resolução automática do frame `#recaptcha-anchor` ou ponte remota segura (`rede_session_bridge.js`) para intervenção manual em caso de desafio de imagem.
+2. **Encadeamento de Release e Symlinks:** O script `run-hydra-hourly-finance.sh` depende de `tsx`. O symlink `/home/operacional/hydra/node_modules -> /home/operacional/hydra-deploy/current/node_modules` é obrigatório para evitar falha `MODULE_NOT_FOUND` de módulos compartilhados.
+3. **Limpeza de Scripts Ad-Hoc:** Scripts de teste e inspeção pontuais (`.cjs`) nunca devem permanecer na raiz do projeto; devem ser mantidos exclusivamente em `.tmp/` ou pastas de teste controladas.
+**Risco identificado:** Se o storageState expirar e o reCAPTCHA exigir resolução visual por imagens, o scraper headless pode reter o envio matinal.
+**Não fazer:** Nunca definir `headless: false` em ambiente Linux sem servidor X11; nunca modificar scripts em produção sem versionamento atômico.
+
 ## [2026-10-08] — [Infra: Automação Pátio & OS na VPS Linux (Crontab Encadeado)]
 **Contexto:** Migração completa da conciliação diária de Pátio & OS para a VPS Linux (`operacional@100.126.50.101`).
 **Regra aprendida:**
