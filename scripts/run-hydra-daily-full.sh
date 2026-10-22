@@ -3,11 +3,11 @@ set -euo pipefail
 
 mkdir -p /home/operacional/hydra-data/logs
 
-LOCK_FILE="/tmp/hydra-data-refresh.lock"
+LOCK_FILE="/tmp/hydra-deep-crawler.lock"
 exec 9>"$LOCK_FILE"
 
 if ! flock -n 9; then
-  echo "$(date --iso-8601=seconds) daily skipped: another data refresh is running (lock held at $LOCK_FILE)" >> /home/operacional/hydra-data/logs/daily-crawl.log
+  echo "$(date --iso-8601=seconds) daily skipped: another deep crawler is running (lock held at $LOCK_FILE)" >> /home/operacional/hydra-data/logs/daily-crawl.log
   exit 0
 fi
 

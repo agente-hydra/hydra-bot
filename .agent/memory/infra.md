@@ -9,6 +9,16 @@
 **Status:** MIGRADO PARA VPS LINUX EM 2026-10-08.
 **Regra aprendida:** O Agendador de Tarefas do Windows depende da máquina do usuário estar ligada e conectada, o que quebra relatórios matinais caso a máquina esteja suspensa. Foi 100% substituído por cron nativo na VPS.
 
+## [2026-10-22] — [Feature ID: fix-patio-stale-crawler-and-zero-balance]
+**Contexto:** Diagnóstico e recuperação da defasagem de 25h no Deep Crawler de Pátio que zerou os pagamentos D-1 (`PAGAMENTOS: "—"`) nas 10 lojas do ERP Oficina Inteligente e derrubou a Conciliação Pátio x Rede para 14%. Implementação de locks desacoplados e gate determinístico anti-vacuidade.
+**Regra aprendida:**
+1. **Desacoplamento de Locks do Crawler Diário:** `run-hydra-daily-full.sh` utiliza `/tmp/hydra-deep-crawler.lock`. O lock antigo `/tmp/hydra-data-refresh.lock` causava contenção com o worker de metas horárias (`run-hydra-hourly-finance.sh`), impedindo a conclusão dos crawls matinais.
+2. **Gate de Qualidade & Não-Vacuidade da Conciliação:** Função `validarQualidadeConciliacao` no `run_unified_morning_dispatch.js` bloqueia incondicionalmente o despacho à diretoria/financeiro caso a acurácia seja `< 20%` com receita > R$ 5.000 ou se 4+ lojas estiverem com pátio zerado, emitindo alerta prioritário para o Dev (`11996242812`).
+3. **Reconciliação Cirúrgica em Tempo Real:** O Deep Crawler detecta deltas de faturamento durante a execução do lote de 10 lojas e re-extrai cirurgicamente a loja divergente antes de consolidar `extracao_mes.json` e o banco SQLite.
+4. **Sucesso Operacional Validado:** Após reprocessamento, o Pátio subiu de R$ 0 para R$ 46.035,82 recebidos e a Conciliação Pátio x Rede alcançou 97,5% de acurácia global (22 transações casadas, R$ 38.755,74 conciliados e 9/10 lojas com 100%).
+**Risco identificado:** Execuções manuais do crawler sobrepondo horários de abertura de caixa no ERP podem encontrar faturamento flutuante caso não utilizem o double-check pós-crawl.
+**Não fazer:** Nunca liberar envio matinal para diretoria/financeiro sem validação de sanidade contra dados stale; nunca compartilhar o mesmo arquivo de lock entre processos com janelas de execução e finalidades distintas.
+
 ## [2026-10-22] — [Feature ID: hydra-rede-incident-2026-10-21-remediation-and-containment]
 **Contexto:** Remediação do incidente da Rede de 21/10/2026, contenção definitiva contra timeouts de reCAPTCHA/WAF e isolamento de processos na VPS.
 **Regra aprendida:**
