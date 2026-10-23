@@ -28,6 +28,18 @@
 **Risco identificado:** Se o storageState expirar e o reCAPTCHA exigir resolução visual por imagens, o scraper headless pode reter o envio matinal.
 **Não fazer:** Nunca definir `headless: false` em ambiente Linux sem servidor X11; nunca modificar scripts em produção sem versionamento atômico.
 
+## [2026-10-23] — [Bugfix: Correção de Datas D-1 na Rede, Novo Layout SPA e Conciliação Pátio x Rede]
+**Contexto:** O relatório matinal de Juros Rede e Conciliação do dia 23/10 falhou ao puxar dados do dia 21/10 em vez de 22/10, gerando conciliação com 0% de acurácia. Além disso, o portal Meu Rede atualizou o cabeçalho para um novo componente SPA (`header-bar` com drawer lateral).
+**Regra aprendida:**
+1. **Janela de Datas no Noturno e Matinal:** O `run_nightly_prep.js` e o `run_unified_morning_dispatch.js` devem sempre passar explicitamente `--data=${janela.dataInicioBR}` ao invocar `node src/index.js --build-only --now`. Sem `--data`, o `index.js` resolvia `new Date()` no dia D-1 (23:00) como ontem (21/10), gerando o arquivo errado que era então espelhado para a data de entrega matinal.
+2. **Espelhamento Canônico:** O arquivo gerado para a data contábil `Juros Rede - 22-10-2026.xlsx` deve ser espelhado como `Juros Rede - 23-10-2026.xlsx` para manter conformidade com o despachador matinal.
+3. **Suporte Dual ao Header Meu Rede:** O portal Rede possui 2 layouts ativos: o clássico (`#nav-config` / `a.changebrand`) e o novo (`header-bar`, `.c-header__button`, drawer lateral `#c-header-drawer` com `#main-button-change-establishment`). O automator Playwright (`src/scraper.js`) deve suportar ambos com detecção reativa e manter intacto o lightbox `.modalchangebrand`.
+4. **Filtro Estrito na Fila de Downloads:** A API `downloads/queue` da Rede pode retornar relatórios de recebimentos antigos. O scraper deve filtrar estritamente por `x.fileName.includes('Rel_Vendas')` para nunca ingerir planilhas corrompidas ou de outro tipo.
+5. **Quality Gate da Conciliação:** `run_unified_morning_dispatch.js` valida se a acurácia é consistente e se as 10 lojas foram processadas antes do envio silencioso ao Financeiro (`5511940667032`).
+**Não fazer:**
+- Nunca invocar `index.js` sem `--data` dentro de cron jobs que rodam antes da meia-noite (D-1 23:00).
+- Nunca permitir que relatórios parciais com 0 matches ou acurácia abaixo da tolerância sejam despachados para o canal da diretoria/financeiro.
+
 ## [2026-10-08] — [Infra: Automação Pátio & OS na VPS Linux (Crontab Encadeado)]
 **Contexto:** Migração completa da conciliação diária de Pátio & OS para a VPS Linux (`operacional@100.126.50.101`).
 **Regra aprendida:**
