@@ -28,6 +28,20 @@
 **Risco identificado:** Se o storageState expirar e o reCAPTCHA exigir resolução visual por imagens, o scraper headless pode reter o envio matinal.
 **Não fazer:** Nunca definir `headless: false` em ambiente Linux sem servidor X11; nunca modificar scripts em produção sem versionamento atômico.
 
+## [2026-10-23] — [Feature ID: 031-playwright-anti-flakiness-robustez-rede]
+**Contexto:** Refatoração e blindagem da infraestrutura de automação Playwright do portal Meu Rede (`hydra-rede`), eliminando flakiness e instabilidade com base nos 5 pilares estratégicos da Spec 031 e auditoria técnica de produção.
+**Regra aprendida:**
+1. **Fim dos Timeouts Estáticos & Auto-Waiting:** Banimento completo de `page.waitForTimeout()`. Toda interação sensível a hidratação de SPA (como a troca de estabelecimentos) utiliza `expectToPass` com `locator.or()` cobrindo o cabeçalho moderno (`header-bar` e drawer lateral `#c-header-drawer`) e clássico (`#nav-config` e `.c-header__button`), com auto-retry ativo de até 25s.
+2. **Reciclagem de Página por Loja:** Criar uma nova aba (`context.newPage()`) e fechar (`page.close()`) a cada iteração do loop de 10 lojas elimina o acúmulo de nós no DOM e vazamento de memória RAM, mantendo o consumo estável em ~190 MB (vs >1.2 GB anteriormente).
+3. **Playwright Tracing por Chunks:** O tracing é iniciado uma vez no contexto (`context.tracing.start({ screenshots: true, snapshots: true })`) e fatiado por loja com `context.tracing.startChunk({ title })`. No sucesso, `stopChunk()` é chamado sem argumentos para descartar o chunk em memória sem erro de tipagem; em exceções, `stopChunk({ path })` gera o `trace_${ec}_erro.zip` direcionado para auditoria.
+4. **Validação Intra-Lógica In-Flight (`src/intra_extraction_validator.js`):** Validação imediata do arquivo baixado em memória: zero-byte check, assinatura ZIP/XLSX (`PK\x03\x04`), **EC Identity Guard** (busca do EC nas primeiras 15 linhas) e **Anti-Duplicação Condicional** (hash SHA-256 ativado exclusivamente para arquivos com mais de 5 linhas e EC divergente, prevenindo falso-positivo em feriados e domingos).
+5. **Heartbeat Vespertino (19:15 PM) & Stale Data Gate (16h):** `src/run_evening_heartbeat.js` roda às 19:15 PM no crontab da VPS para pré-extrair as vendas consolidadas e testar preventivamente a sessão do portal. O Stale Data Gate em `patio_hydra_bot_adapter.js` foi aumentado de 12h para 16h para permitir que a carga das 19:15 passe tranquilamente no despacho matinal das 07:45/08:00 AM. Se o reCAPTCHA travar o login, um alerta imediato no WhatsApp do desenvolvedor é disparado pela instância `hydra`.
+6. **Contingência Local Windows Desktop (`scripts/run_local_emergency.bat`):** Permite extração rápida na máquina local do operador com Chrome visível (`headless: false`) e realiza **Sincronização Quádrupla via SCP** (`Juros*.xlsx`, `Conciliacao*.xlsx`, `logs/audit_*.json` e `data/state_*.json`), liberando o Audit Gate da VPS sem necessidade de reprocessamento.
+**Não fazer:**
+- Nunca usar `stopChunk({ path: null })` ou `{ force: true }` em elementos que sofrem re-renderização Angular.
+- Nunca aplicar trava de colisão de hash SHA-256 de forma cega em planilhas vazias ou sem dados.
+- Nunca usar instâncias de WhatsApp de gerentes de loja para disparos de alerta ou relatórios — APENAS `hydra` e `atendimento`.
+
 ## [2026-10-23] — [Bugfix: Correção de Datas D-1 na Rede, Novo Layout SPA e Conciliação Pátio x Rede]
 **Contexto:** O relatório matinal de Juros Rede e Conciliação do dia 23/10 falhou ao puxar dados do dia 21/10 em vez de 22/10, gerando conciliação com 0% de acurácia. Além disso, o portal Meu Rede atualizou o cabeçalho para um novo componente SPA (`header-bar` com drawer lateral).
 **Regra aprendida:**
