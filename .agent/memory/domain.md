@@ -4,6 +4,21 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-27] — [Feature ID: 033-robustez-definitiva-esteira-rede]
+**Contexto:** Eliminação definitiva das falhas estruturais na esteira noturna e matinal da Rede: lojas zeradas prematuras (caso Santo André com R$ 0,00 na Rede e R$ 7.481 no Pátio), queda de socket da instância WhatsApp na Evolution API às 08:00 AM, e contaminação indevida de transações de PIX da maquininha no relatório contábil de juros/taxas de cartão de crédito e débito.
+**Regra aprendida:**
+1. Cutoff Gate de Fechamento Operacional (19:30 BRT): Nenhuma extração da Rede para a data D pode ser aceita como fechamento definitivo se o seu `mtime` for anterior às 19:30 BRT do dia faturado. Arquivos intradiários gerados à tarde (ex: 14h) são parciais e NUNCA podem marcar a loja como `SUCCESS` na esteira noturna (23:00) ou matinal (D+1).
+2. Golden Gate das 06:00:00 AM (`run_morning_watchdog_0600.js`): A validação, auto-healing e prontidão operacional são formalmente antecipados para as 06:00 AM via cron (`0 6 * * 1-5`), garantindo 2 horas completas de folga antes do envio ao cliente (08:00 AM).
+3. Pre-Flight Watchdog WhatsApp & Auto-Healing: O orquestrador matinal deve sempre verificar o socket Baileys da instância emissora (`GET /instance/connectionState/hydra`) antes de disparar documentos. Se o estado for diferente de `open`, o auto-restart preventivo (`POST /instance/restart/hydra`) restabelece a conexão sem intervenção humana.
+4. Sanity Gate Cruzado (Pátio x Rede): Antes de consolidar a planilha matinal, o sistema cruza em O(1) as ordens de serviço faturadas em cartão de crédito/débito no ERP Pátio contra a Rede. Se uma loja teve movimentação no Pátio (>= R$ 500) e a Rede vier com R$ 0,00, o sistema detecta a anomalia factual e dispara reextração cirúrgica automática daquela unidade antes de liberar o despacho.
+5. Pureza Contábil e Expurgo Estrito de PIX: Transações de PIX na maquininha POS são capturadas para auditoria interna (`stats.totalPix`), mas são terminantemente excluídas do `Relatório de Juros` de cartão, preservando a exatidão das taxas MDR e das fórmulas de antecipação e repasse de juros.
+**Risco identificado:** Sessão Baileys sofrer desconexão física exigindo novo QR Code. Mitigado por alerta antecipado ao Dev às 06:05 AM (dando quase 2 horas para escaneamento antes das 08:00 AM).
+**Não fazer:**
+- Nunca considerar um arquivo de extrato da Rede como fechamento do dia se tiver sido baixado antes das 19:30 BRT.
+- Nunca misturar transações de PIX na planilha de juros e taxas de cartão de crédito.
+- Nunca disparar documentos via Evolution API sem pre-flight check do estado da instância.
+- Nunca prender variáveis de resposta de dispatch (`dispatchRes`) em escopos condicionais internos que gerem `ReferenceError` em blocos de tratamento de erro.
+
 ## [2026-10-09] — [Feature ID: hydra-crawler-payment-tab-and-closure-reconciliation]
 **Contexto:** Correção da discrepância financeira e de ciclo de vida de OSs no crawler (`os_deep_inspector.ts`, `deep-crawler.ts`, `db_repository.ts`), onde ordens faturadas/fechadas e quitadas (caso real OS #1856 Fusca Novo - Rei do Módulo, R$ 4.000 quitado via PIX) apareciam como "0% pago / R$ 4.000 pendente" devido à falta de ativação das abas AJAX do ASP.NET WebForms e reversão cega em checagem nominal.
 **Regra aprendida:**
@@ -54,6 +69,18 @@
 - Nunca omitir o saldo financeiro remanescente de uma OS mesmo se o cadastro de peças individuais vier vazio do ERP.
 - Nunca emitir respostas secas de 6 linhas quando houver histórico e projeção de atendimento disponíveis no Grafo.
 - Nunca enviar caracteres não-separáveis `\u00A0` ou asteriscos duplos `**` em mensagens WhatsApp.
+
+## [2026-10-23] — [Feature/Bug: Conciliação Pátio x Rede — Resolução Temporal de Crédito e Expurgo de Contas a Prazo]
+**Contexto:** Correção do descompasso entre o relatório automático `Conciliacao Patio x Rede` e a conferência manual financeira. O robô reportava R$ 0,00 de crédito recebido em D-1 e acumulava saldo fantasma de R$ 95.981,52, enquanto a conciliação manual apurava R$ 67.977,88 em aberto.
+**Regra aprendida:**
+1. Calendário Civil e Fins de Semana em Cartão de Crédito: Vencimentos de parcelas de crédito lançadas pelo ERP sofrem deslocamento de fim de semana (ex: 22/10 + 1 mês = 22/11 [domingo] -> joga para 23/11 [segunda]). Subtrair fixos 30 dias de 23/11 resulta em 24/10, fazendo o robô descartar a venda legítima como se fosse do futuro. A função `estimateTransactionDateBR` deve ancorar primariamente na data de fechamento real da OS (`data_fim`/`faturamento_data`) ou aplicar janela civil elástica de 26 a 36 dias para o primeiro vencimento.
+2. Contas a Prazo Corporativas ("PAGAMENTO EM CONTA"): Modalidades de pagamento faturado a prazo possuem vencimento financeiro semanas após a entrega do veículo. Esse vencimento futuro NÃO indica que a OS foi fechada ou paga no Dia D. OSs fechadas no passado (`data_fim < D-1`) com faturamento a prazo pendente devem ser limpas e expurgadas do pátio físico diário (`is_aberta === 0`).
+3. Proibição de Hardcoded IDs em Regras de Negócio: Regras temporárias chumbadas para IDs específicos (como `osNum === 1929 || osNum === 2489`) poluem indefinidamente conciliações futuras. Toda transição de estado deve ser estritamente determinística e baseada nos timestamps do ERP.
+4. Auto-Imunidade contra Resíduos de Ledgers Passados: Uma OS fechada antes de D-1 (`data_fim < D-1`) nunca deve ser reativada como saída de ontem (`wasInYardD1`) mesmo que uma execução corrompida anterior a tenha gravado como aberta.
+**Não fazer:**
+- Nunca usar `subDays(vencimento, 30)` rígido para cálculo de compras a crédito sem verificar a data de encerramento da OS ou finais de semana.
+- Nunca tratar vencimentos futuros de faturamento a prazo ("PAGAMENTO EM CONTA") como motivo para reativar OS já encerrada no pátio físico.
+- Nunca chumbar números de OS no código para contornar problemas diários.
 
 ## [2026-10-08] — [Feature ID: hydra-graph-agent-integration]
 **Contexto:** Integração das buscas do Hydra Agent ao Grafo de Atendimentos (CaseMemoryReader / Fast-Path e MCP Tool get_os_case_history) e gerenciador de presença contínua WhatsApp (PresenceHeartbeatKeeper).

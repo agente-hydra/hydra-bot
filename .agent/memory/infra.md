@@ -4,6 +4,15 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-27] — [Infra/Feature ID: 033-robustez-definitiva-esteira-rede]
+**Contexto:** Implementação do Golden Gate das 06:00 AM (`run_morning_watchdog_0600.js`), Cutoff Gate de fechamento operacional (19:30 BRT) e Watchdog com Auto-Healing de socket WhatsApp Baileys na Evolution API (`evo.tork.services`).
+**Regra aprendida:**
+1. **Golden Gate das 06:00 AM no Cron da VPS:** A verificação de prontidão dos 5 relatórios matinais não pode ser deixada para as 07:45 AM. O cron `0 6 * * 1-5 /usr/bin/node /home/operacional/hydra-rede/src/run_morning_watchdog_0600.js` executa às 06:00:00 AM, garantindo 2 horas completas de folga para auto-reparo e intervenção humana antes do envio das 08:00 AM.
+2. **Auto-Healing de Socket Baileys via API:** A instância `hydra` sofre desconexões transitórias durante a madrugada. A função `probeAndHealEvolutionInstance` testa `GET /instance/connectionState/hydra`; se o estado for `connecting` ou `close`, aciona imediatamente `POST /instance/restart/hydra`, reestabelecendo a sessão em ~6 segundos sem necessidade de novo QR Code.
+3. **Cutoff Gate de Snapshot (19:30 BRT):** A esteira noturna (23:00) e os retries da madrugada rejeitam qualquer download com `mtime < 19:30 BRT` do dia faturado, garantindo que coletas parciais da tarde não travem o cache de lojas fechadas.
+**Risco identificado:** A Evolution API ficar sem resposta HTTP por reinício de container Docker. Mitigado por timeout defensivo de 6000ms e retry em `probeAndHealEvolutionInstance`.
+**Não fazer:** Nunca depender do status retornado em `fetchInstances` (que lê do banco PostgreSQL estático) para aferir a conectividade real do WhatsApp; use sempre `/instance/connectionState/:name` que consulta a conexão Baileys ativa em memória.
+
 ## [2026-10-06] — [Infra: Agendador de Tarefas Hydra Pátio & OS (Windows Task Scheduler)]
 **Contexto:** Configuração inicial no Windows (DEPRECADO).
 **Status:** MIGRADO PARA VPS LINUX EM 2026-10-08.
@@ -41,6 +50,20 @@
 - Nunca usar `stopChunk({ path: null })` ou `{ force: true }` em elementos que sofrem re-renderização Angular.
 - Nunca aplicar trava de colisão de hash SHA-256 de forma cega em planilhas vazias ou sem dados.
 - Nunca usar instâncias de WhatsApp de gerentes de loja para disparos de alerta ou relatórios — APENAS `hydra` e `atendimento`.
+
+## [2026-10-23] — [Infra: Google Cloud Vertex AI OpenAI Bridge no DeskcommCRM]
+**Contexto:** Conexão corporativa direta da Service Account Google Cloud Vertex AI (`bot-iptv@bot-iptv-479618.iam.gserviceaccount.com`) ao DeskcommCRM (`https://desk.tork.services`) sem chaves de AI Studio / AIza.
+**Regra aprendida:**
+1. **Endpoint Global do Vertex AI:** Novos modelos Gemini como `gemini-3.5-flash-lite`, `gemini-3.5-flash` e `gemini-3.1-flash-lite` estão disponíveis sob a região `global` e endpoint `v1beta1` (`https://aiplatform.googleapis.com/v1beta1/...`), e não nos endpoints legados zonais `us-central1` nem sob `/v1/`.
+2. **Compatibilidade com LiteLLM:** No LiteLLM, para apontar para esses endpoints no Vertex AI mantendo autenticação nativa via Service Account JSON (`/app/service-account.json`), deve-se definir `api_base: https://aiplatform.googleapis.com/v1beta1/projects/<PROJECT_ID>/locations/global/publishers/google/models/<MODEL_NAME>`. O LiteLLM anexa automaticamente `:generateContent` ou `:streamGenerateContent?alt=sse` e injeta o Bearer token OAuth gerado pela Service Account.
+3. **Bridge Isolado:** O container LiteLLM roda em `/opt/deskcomm/vertex/` conectado internamente ao Traefik (`vertex.tork.services`) sem expor portas TCP no host, com autenticação master key `sk-tork-...`.
+4. **Sanitização de Tools/Schemas para Vertex AI:** O Google Vertex AI rejeita JSON Schemas que contenham campos não suportados como `exclusiveMinimum` ou listas de tipos como `type: ["string", "null"]` (no Vertex proto `type` não é repetido; exige `nullable: true`). O arquivo `/opt/deskcomm/vertex/common_utils.py` foi corrigido com a função `_sanitize_vertex_schema` e montado tanto em `/app/...` quanto em `/usr/lib/python3.13/site-packages/...` para sanitizar dinamicamente as 20+ tools MCP do CRM.
+5. **Preservação de Thought Signatures (Gemini 3.5):** No Gemini 3.5, tool calling em múltiplos turnos exige estritamente que o `thoughtSignature` gerado no Turno 1 seja reenviado no Turno 2 no bloco da chamada. Como clientes OpenAI padrão (como o DeskcommCRM) descartam metadados proprietários, o bridge em `vertex_and_google_ai_studio_gemini.py` captura `thoughtSignature` na saída do Turno 1 em `GLOBAL_THOUGHT_SIGNATURE_CACHE` e injeta automaticamente nas chamadas de volta para o Vertex AI no Turno 2, eliminando o erro `Function call is missing a thought_signature`.
+**Não fazer:**
+- Nunca enviar chamadas multi-turno com ferramentas para o Gemini 3.5 sem preservar/injetar o `thoughtSignature`.
+- Nunca deixar de sanitizar `exclusiveMinimum` ou listas de tipos em `tools` ao fazer bridge para o Vertex AI.
+- Nunca tentar usar endpoints `https://global-aiplatform.googleapis.com` (não existem para Vertex AI; deve ser `https://aiplatform.googleapis.com`).
+- Nunca usar modelos descontinuados (`gemini-1.5-flash` sem fixação de versão ou `gemini-2.0-flash-lite-preview-02-05`).
 
 ## [2026-10-23] — [Bugfix: Correção de Datas D-1 na Rede, Novo Layout SPA e Conciliação Pátio x Rede]
 **Contexto:** O relatório matinal de Juros Rede e Conciliação do dia 23/10 falhou ao puxar dados do dia 21/10 em vez de 22/10, gerando conciliação com 0% de acurácia. Além disso, o portal Meu Rede atualizou o cabeçalho para um novo componente SPA (`header-bar` com drawer lateral).
