@@ -104,3 +104,22 @@
 **Graphify:** Indexado com `--code-only` — 580 nós, 715 arestas, 85 comunidades em `graphify-out/graph.json`
 **GH CLI auth:** Token via `$env:GH_TOKEN` (ephemeral por sessão) — conta `mktfun` autenticada
 **Memória do projeto:** `.agent/memory/` criada em `projects/infinyx/`
+
+---
+
+## [2026-10-27] — [Infra: Cron Roteamento Gerentes & Trigger Horário Serviço Prestado na VPS]
+**Contexto:** Configuração dos agendamentos crontab na VPS Linux (`operacional@100.126.50.101`) para o despacho bi-semanal de CMV por gerente e a verificação anti-spam horária de serviço prestado para os sócios.
+**Regra aprendida:**
+1. **Crontab de Gerentes (Quarta e Sexta às 14:00 BRT):**
+   `0 14 * * 3,5 /usr/bin/node /home/operacional/hydra-rede/src/run_cmv_kpi_gerentes.js --mode=gerentes --immediate >> /home/operacional/hydra-data/logs/cmv-kpi-gerentes.log 2>&1`
+   - Dispara às quartas e sextas às 14:00 pontualmente.
+   - Percorre a tabela `hydra_store_managers` e envia relatório individual de cada gerente via instância `hydra` com verificação Baileys on-WhatsApp e delay de 2s.
+2. **Crontab de Serviço Prestado dos Sócios (Horário das 10h às 20h, Seg a Sex):**
+   `30 10-20 * * 1-5 /usr/bin/node /home/operacional/hydra-rede/src/run_cmv_kpi_gerentes.js --mode=socios-hourly --immediate >> /home/operacional/hydra-data/logs/servico-prestado-hourly.log 2>&1`
+   - Roda aos :30 de cada hora útil (15 minutos após o `hourly_finance_worker.ts` rodar aos :15 e ingerir os dados do ERP).
+   - Executa o gate anti-spam (`servico_prestado_antispam_gate.js`), mantendo silêncio salvo sob transição de estado ou horário de fechamento da tarde.
+3. **Persistência de Estado:**
+   - Estado salvo na tabela `hydra_servico_prestado_state` do SQLite `/home/operacional/hydra-data/hydra_ops.db`.
+**Não fazer:**
+- Nunca agendar a checagem no mesmo minuto (:15) do crawler financeiro para evitar race condition de leitura de banco.
+- Nunca rodar cron de gerentes sem flag `--immediate` ou sem log redirection.

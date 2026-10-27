@@ -384,3 +384,31 @@
 - NUNCA assumir índices fixos de colunas em planilhas geradas pelo ERP sem inspecionar a linha de cabeçalho.
 - NUNCA excluir arquivos Excel da pasta de crawls com menos de 48 horas de vida.
 - NUNCA enviar relatórios de contas a pagar para grupos do financeiro ou com textos no WhatsApp; o envio permanece exclusivo para `5511996242812` em lote silencioso.
+
+---
+
+## [2026-10-27] — [Feature ID: 037-roteamento-gerentes-cron-antispam-servico-prestado]
+**Contexto:** Implementação do roteamento determinístico de indicadores (Faturamento, Meta, CMV e % Serviço Prestado) para gerentes de loja (Quarta e Sexta às 14:00 BRT) e blindagem anti-spam/anti-flood para o alerta executivo de Mão de Obra/Serviço Prestado (< 45%) no grupo dos sócios.
+**Regra aprendida:**
+1. **Design Hermes 2.0 Oficial no WhatsApp:**
+   - Cabeçalho executivo em duas linhas: `*HYDRA | [Tema] | [Unidade ou Rede]*\n\n*[Data] · [Hora]*`
+   - Seções com blockquotes: `> *Nome da Seção*` (ativa borda verde/cinza no cliente WhatsApp).
+   - Listas em formato chave-valor com traço: `- *Campo:* Valor` (negrito exclusivo no rótulo até o dois-pontos).
+   - Sem pipes (`|`) inline nem listas numeradas `1.`, `2.`, `3.`. Sem footer slop gerado por IA.
+2. **Máquina de Estados Anti-Spam por Transição de Estado:**
+   - Como os scrapers horários rodam a cada 60 minutos, checar e alertar a cada hora inundaria o canal dos sócios.
+   - Criada tabela `hydra_servico_prestado_state` com hash determinístico (SHA-256) das lojas críticas ordenadas alfabeticamente.
+   - Gate de maturação: Silêncio total antes das 10:00 da manhã.
+   - Disparo prioritário imediato (`NOVA_LOJA_CRITICA`): acionado imediatamente se uma nova loja romper o piso de 45%, mesmo que dentro do cooldown.
+   - Cooldown de 3h e teto de no máximo 2 consolidados por dia (`PRIMEIRA_APURACAO` e `CONSOLIDADO_TARDE` a partir das 17:00).
+   - Silêncio absoluto se o conjunto de lojas críticas for idêntico ao último alerta (`BLOQUEADO_MESMO_ESTADO`).
+3. **Classificação Visual de CMV e Serviço Prestado:**
+   - CMV: Azul (`🔵`) $\le 21,99\%$, Verde (`🟢`) $22,00\% - 24,99\%$, Amarelo (`🟡`) $25,00\% - 26,99\%$, Laranja/Vermelho (`🔴`) $27,00\% - 29,99\%$, Crítico (`🚨`) $\ge 30,00\%$.
+   - Mão de obra / Serviço prestado: Verde (`🟢`) $\ge 45,0\%$, Vermelho (`🔴`) $< 45,0\%$.
+4. **Segurança Crítica de Remetente:** Trava programática inegociável: envios sempre e unicamente a partir da instância `hydra` em `evo.tork.services`. É estritamente proibido usar aparelhos/instâncias de gerentes.
+**Risco identificado:** Alteração manual no SQLite que remova `hydra_servico_prestado_state` pode redefinir o estado e causar um reenvio não intencional na próxima rodada horária. `ensureServicoPrestadoStateTable` garante idempotência do schema.
+**Não fazer:**
+- NUNCA enviar alertas a cada hora sem comparar hash de estado no SQLite.
+- NUNCA usar formatações com gradientes, pipes duplos ou listas numeradas em balões WhatsApp de gerentes/sócios.
+- NUNCA disparar mensagens antes das 10h da manhã para alertas de mão de obra (dados ainda em maturação).
+- NUNCA usar instâncias de WhatsApp de gerentes de loja para envio de relatórios.

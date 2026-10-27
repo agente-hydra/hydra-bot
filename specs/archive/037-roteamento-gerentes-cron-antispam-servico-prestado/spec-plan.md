@@ -1,0 +1,24 @@
+# Plano de Implementação — Spec 037: Roteamento Gerentes 14:00 & Anti-Spam de Serviço Prestado
+
+- [x] [DB] Criar tabela `hydra_servico_prestado_state` no SQLite (`hydra_ops.db`) com idempotência `IF NOT EXISTS` e índices por data de referência.
+- [x] [BACKEND] Implementar módulo `projects/hydra-rede/src/servico_prestado_antispam_gate.js`:
+  - [x] Função `gerarHashLojasCriticas(lojasAbaixo45)`
+  - [x] Função `avaliarDecisaoAntiSpam({ dadosAtuais, historicoHoje, horaAtual })` com regras de delta, cooldown 3h e teto 2/dia
+  - [x] Função `registrarDisparoAlerta({ dataReferencia, lojasAbaixo45, motivo, novasLojas, recuperadas })`
+- [x] [BACKEND] Refatorar `projects/hydra-rede/src/run_cmv_kpi_gerentes.js`:
+  - [x] Adicionar suporte a `--mode=gerentes`, `--mode=socios-hourly` e `--mode=all`
+  - [x] No modo `gerentes`: disparo individual determinístico via `hydra_store_managers` (instância remetente `hydra`)
+  - [x] No modo `socios-hourly`: aciona o gate anti-spam e só envia se houver transição de estado/evento válido
+- [x] [BACKEND] Atualizar `formatarAlertaSociosServicoPrestado` em `whatsapp_patio_dispatcher.js` para suportar badge contextual quando houver `NOVA_LOJA_CRITICA` (`⚠️ Nova unidade em alerta`).
+- [x] [TESTS] Criar suíte de testes dedicados em `projects/hydra-rede/src/test_servico_prestado_antispam.js`:
+  - [x] Teste 1: Estado estável com mesmo hash não gera reenvio (zero spam a cada hora)
+  - [x] Teste 2: Nova loja quebrando o piso gera disparo imediato (`NOVA_LOJA_CRITICA`)
+  - [x] Teste 3: Cooldown de 180 minutos bloqueia reenvios prematuros de variações decimais
+  - [x] Teste 4: Janela antes das 10h da manhã é retida para maturação de caixa
+  - [x] Teste 5: Janela da tarde (16h-18h) libera consolidado de fechamento (máx 2/dia)
+  - [x] Teste 6: Modo `--mode=gerentes` isola o envio apenas para os telefones dos gerentes
+- [x] [VPS] Sincronizar os novos módulos e alterações na VPS Linux (`operacional@100.126.50.101:/home/operacional/hydra-rede/src/`).
+- [x] [CRON] Atualizar crontab da VPS:
+  - [x] Ajustar horário dos gerentes de `30 14` para `0 14 * * 3,5`
+  - [x] Adicionar trigger horário anti-spam para os sócios às `30 10-20 * * 1-5`
+- [x] [VERIFICATION] Executar validação end-to-end com `--dry-run` e suíte de testes aprovada na VPS.
