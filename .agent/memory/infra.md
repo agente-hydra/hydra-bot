@@ -4,6 +4,15 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-10-27] — [Infra/Feature ID: 038-restauracao-watchdog-harness-agy-vps]
+**Contexto:** Recuperação do robô de auditoria de conduta dos gerentes (`watchdog-worker`) após travamento por `SyntaxError` de variável duplicada (`storeInfo`), drenagem de 134 conversas represadas na fila do Redis (`watchdog:scheduled_evals`), ampliação do timeout de execução do `agy` CLI headless no `ai_briefing.ts` (de 10s para 35s), e expurgo de drift no pipeline de auto-deploy `sync.py`.
+**Regra aprendida:**
+1. **Compilação Obrigatória Pré-Deploy (`node --check`):** Nunca aplicar alterações em serviços JS/TS no PM2 sem validação estática de sintaxe. Erros de escopo como redeclaração de `const` no mesmo bloco de função quebram o interpretador V8 na inicialização e entram em crash-loop infinito (mais de 117.000 reinicializações em poucas horas).
+2. **Latência de Bootstrap do AGY CLI Headless:** O runtime nativo do Antigravity CLI (`agy`) com leitura de regras, skills, autenticação OAuth e chamada de inferência LLM consome entre 10 e 15 segundos na VPS sob concorrência de CPU. Timeouts de `child_process.execFile` inferiores a 30s causam aborto sistemático com `SIGTERM` e forçam o sistema a registrar 0% de taxa de sucesso na telemetria. O timeout mínimo seguro em produção é de 35s.
+3. **Pureza de Árvore no `hydra-deploy`:** Arquivos temporários de backup (`.bak*`) gerados diretamente no diretório da release ativa quebram a validação SHA-256 do `sync.py` (`Manual changes block deploy`). Backups devem ser mantidos estritamente em `/tmp/` ou `.tmp/`.
+**Risco identificado:** Aumento da latência média de resposta em horários de pico se o modelo Gemini enfrentar degradação de infraestrutura do Google. Mitigado por fallback determinístico já integrado no `ai_briefing.ts`.
+**Não fazer:** Nunca definir timeouts de subprocesso do AGY CLI abaixo de 30 segundos em ambiente Linux headless; nunca deixar arquivos `.bak` na pasta da release ativa gerenciada por hash SHA-256.
+
 ## [2026-10-27] — [Infra/Feature ID: 033-robustez-definitiva-esteira-rede]
 **Contexto:** Implementação do Golden Gate das 06:00 AM (`run_morning_watchdog_0600.js`), Cutoff Gate de fechamento operacional (19:30 BRT) e Watchdog com Auto-Healing de socket WhatsApp Baileys na Evolution API (`evo.tork.services`).
 **Regra aprendida:**
