@@ -479,3 +479,25 @@
 - NUNCA responder à chamada da tool do Asaas omitindo o link de pagamento da mensagem.
 - NUNCA silenciar ou encerrar no vácuo após o aviso de pagamento do cliente.
 - NUNCA tentar dar `PATCH` em `ai_agent_versions` com status `published` (imutável).
+
+
+---
+
+## [2026-10-28] — [Feature ID: 046-hydra-rede-fix-modal-changebrand-e-falso-positivo-dom]
+**Contexto:** Correção da interceptação de ponteiro no seletor de estabelecimentos do Meu Rede e eliminação de falso-positivo de reprovação in-flight decorrente de divergência com o resumo visual da tela (`DOM_REDE`). Revalidação e consolidação com sucesso das 10 lojas credenciadas para a data 27/10/2026 com 376 fórmulas preservadas.
+**Regra aprendida:**
+1. **Detecção Resiliente de Modais Angular no Playwright:**
+   - `document.querySelector` retorna apenas o primeiro elemento no DOM (frequentemente um `.modal` com `height === 0`), ignorando modais abertos mais abaixo na árvore.
+   - Componentes Angular como `<modal-default>` e `.modalchangebrand` não possuem `display: block` próprio; sua visibilidade deve ser checada via `querySelectorAll` filtrando por nós filhos visíveis (`#child-`, `.modal-dialog`, bounding rect `width > 10 && height > 10`, `display !== 'none'`).
+   - Se o modal já estiver aberto, deve-se pular o clique de abertura no cabeçalho para evitar erro de pointer-events interception pelo backdrop.
+2. **Separação de Critério Estrito (Excel/EC) vs Aviso Informativo (DOM_REDE):**
+   - O portal Meu Rede não filtra por data na visualização da tela quando navega diretamente para `/i/relatorio/vendas/#/`, apresentando o total semanal acumulado (ex: 21/10 a 28/10), enquanto o processador do Excel aplica o corte diário de D-1 (27/10/2026).
+   - Divergências de Bruto, Líquido ou Qtd de transações originadas de `DOM_REDE` devem emitir apenas um `WARN` informativo no log e NUNCA reprovar a extração da loja.
+   - O critério inegociável de reprovação e `SUCCESS` é a integridade física do arquivo Excel baixado, a conferência do número de EC nas linhas internas do relatório e a ausência de contaminação/duplicação entre lojas.
+3. **Anti-Deleção Prematura de Arquivos Válidos:**
+   - Nunca executar `fs.unlinkSync` de um arquivo baixado se ele contiver linhas legítimas do EC esperado, mesmo se houver divergência com cards visuais de resumo.
+**Risco identificado:** Se o portal Meu Rede alterar classes CSS do modal (ex: descontinuar `#child-` ou `.modalchangebrand`), o detector `isModalEstabelecimentosAberto` precisará de novos seletores de fallback para não tentar clicar no cabeçalho encoberto.
+**Não fazer:**
+- NUNCA reprovar ou deletar um arquivo Excel cujo EC interno bate com a loja por divergência contra cards visuais de tela não filtrados.
+- NUNCA confiar em `document.querySelector` único para verificar visibilidade de modais dinâmicos do Angular/Bootstrap.
+- NUNCA usar fallback de planilhas de datas legadas na pasta `output/` ou no Desktop.

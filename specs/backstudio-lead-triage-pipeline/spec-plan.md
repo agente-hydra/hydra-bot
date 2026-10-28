@@ -1,0 +1,23 @@
+# Plano de Execução: Esteira Comercial, SPIN Selling e Asaas — Backstudio (David)
+
+- [x] **[PROMPT]** Formatar o novo `system_prompt` da Versão 8 do agente David:
+  - Inserir a calibração de persona do Argon: David, consultor comercial da Backstudio.
+  - Regra de balões curtos (`|`) e estritamente 1 pergunta por turno.
+  - Travas anti-slop e State Guardrails (demo pronta ≠ negociação; sem CPF/CNPJ antes do aceite).
+  - Framework SPIN Selling completo (Situação → Problema → Implicação → Necessidade/Solução).
+  - Ancoragem de R$ 2.500 a R$ 5.000 vs R$ 149/mês e R$ 998 anual em até 10x s/ juros (sem citar 2 meses grátis) + R$ 50 seções adicionais.
+  - Fechamento por Dupla Alternativa (*Assumptive Alternative Close*).
+  - Os 3 diálogos Few-Shot completos com simulação de chamadas de tools e respostas.
+- [x] **[TOOL]** Implementar a ferramenta MCP `Gerar_Cobranca_Asaas`:
+  - Registrar no catálogo `lib/mcp/tools/catalogo/comercio.ts` com categoria `write`, permissão `agent` e schema Zod (`nome`, `telefone`, `email`, `cpf_cnpj`, `plano`, `secoes_extras`).
+  - Implementar o handler em `lib/mcp/tools/comercio.ts` conectando ao endpoint de cobranças do Asaas (`/api/v1/payments` ou `/api/v1/subscriptions`) usando a `ASAAS_API_KEY` do ambiente/organização.
+  - Retornar o `invoice_url` oficial e `payment_id` para o agente enviar ao cliente.
+- [x] **[AGENT]** Criar o registro draft da **Versão 8** em `ai_agent_versions`:
+  - `agent_id`: `23346315-4feb-4ee4-8964-b523c852913e`
+  - `version_number`: `8`
+  - Incluir `Gerar_Cobranca_Asaas` na lista `tool_ids` juntamente com as 14 ferramentas comerciais ativas.
+  - `model`: `3.5-flash-lite`, `provider`: `custom`, `credential_id`: `0f9b97cd-1c78-4ecc-8203-41abe28c6afb`, `inbound_debounce_ms`: `2500`.
+- [x] **[PUBLISH]** Publicar atomicamente a Versão 8 via `public.fn_publish_ai_agent_version(...)`, promovendo a Versão 8 para `published` e arquivando a 7 como `superseded`.
+- [x] **[VERIFY]** Executar teste de carga e integração no container do worker (`deskcomm-worker-1`):
+  - Validar que `loadPublishedAgentConfig` carrega a Versão 8 completa com o novo prompt e ferramenta Asaas.
+  - Simular o turno de geração de cobrança confirmando que a tool executa e o link oficial é retornado.

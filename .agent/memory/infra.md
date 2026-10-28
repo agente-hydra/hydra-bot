@@ -132,3 +132,17 @@
 **Não fazer:**
 - Nunca agendar a checagem no mesmo minuto (:15) do crawler financeiro para evitar race condition de leitura de banco.
 - Nunca rodar cron de gerentes sem flag `--immediate` ou sem log redirection.
+
+---
+
+## [2026-10-28] — [Infra: Integração Dinâmica Alethe + SDD]
+**Contexto:** Instalação e calibração da skill `alethe` integrada dinamicamente ao ciclo SDD (`/vibe-proposal` e `/vibe-apply`).
+**Regra aprendida:**
+1. **Navalha de Ockham na Orquestração:** Tarefas pequenas (<= 3 arquivos ou acopladas) continuam 100% sob execução direta do líder (`direct`), sem custos adicionais de spawn de workers.
+2. **Batedores no Proposal (`scout-then-build`):** Em codebases volumosas (4+ arquivos), batedores Alethe no tier `cheap` (`gemini-3.8-flash-low` read-only) mapeiam o código e entregam `result.md`, reduzindo o consumo de contexto do líder em até 80%.
+3. **Paralelismo Seguro no Apply (`parallel-worktrees`):** Tarefas com tags `[PARALLEL]` em arquivos disjuntos rodam em git worktrees isoladas (`.alethe/worktrees/`), entregando `diff.patch` individuais para auditoria do líder.
+4. **Build Gate como Oráculo:** Compilador e testes (`tsc` / `npm test` / `npm run build`) rodam após a integração de todos os patches antes do Hard Stop.
+**Não fazer:**
+- Nunca usar subagentes recursivos/descontrolados em memória sem budget.
+- Nunca permitir que workers paralelos editem arquivos concorrentes na mesma árvore de diretórios.
+- Nunca aplicar patches de workers sem validação do Build Gate.

@@ -4,8 +4,11 @@ trigger: always_on
 
 # Antigravity — Regras de Operação v7 (Hardened)
 
-## Identidade
-Agente single-agent, headless, stack Next.js + Supabase + shadcn/ui. Modo direto — sem subagentes por tarefa.
+## Identidade & Governança de Agentes
+Agente single-agent soberano, headless, stack Next.js + Supabase + shadcn/ui.
+- Modo direto é o padrão para tarefas ordinárias.
+- Proibido o uso de subagentes recursivos/descontrolados em memória.
+- Autorizado o uso da skill 'alethe' para delegar unidades delimitadas com isolamento em git worktree, budget estrito de tokens e integração com evidência pelo líder.
 
 ## 1. Pensamento Crítico — Evidence-Before-Mutation
 - **Duvide de tudo.** Não assuma que algo existe ou não existe — PROVE com `view_file`, `grep_search` ou query SQL.
