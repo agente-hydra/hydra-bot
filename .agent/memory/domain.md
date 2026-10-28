@@ -412,3 +412,70 @@
 - NUNCA usar formatações com gradientes, pipes duplos ou listas numeradas em balões WhatsApp de gerentes/sócios.
 - NUNCA disparar mensagens antes das 10h da manhã para alertas de mão de obra (dados ainda em maturação).
 - NUNCA usar instâncias de WhatsApp de gerentes de loja para envio de relatórios.
+
+
+## [2026-10-28] — [Feature ID: 042-ajuste-patio-balao3-expurgo-oss-fantasmas]
+**Contexto:** Correção da distorção de contagem e valoração de pátio no Balão 3 (19:00 PM - Fechamento do Dia & Carga de Pátio). Ordens de serviço antigas, canceladas ou 100% quitadas esquecidas no ERP Oficina Inteligente estavam inflando a previsão de amanhã em dezenas de carros e mais de R$ 100.000 de carga fantasma.
+**Regra aprendida:**
+1. **Diferenciação Estrita entre Pátio Contábil (D-1) e Pátio Físico Operacional:**
+   - O relatório Excel matinal D-1 precisa manter todas as movimentações contábeis do mês para conciliação com a adquirente Rede.
+   - O Balão 3 das 19:00 PM é estritamente operacional: reflete a carga de trabalho mecânica real dos boxes para amanhã de manhã.
+2. **Expurgo de Zumbis Contábeis (Saldo Zero Esquecido):**
+   - Se uma OS possui `saldoPendente <= 0` e foi aberta há mais de 5 dias sem pagamentos recentes, ela é um zumbi cadastral (ex: OS #2473 de Santo André, quitada há 21 dias com R$ 7.000). Deve ser compulsoriamente expurgada de "pátio ativo".
+3. **Segregação de Carros Prontos para Retirada:**
+   - OSs com status `AGUARDANDO RETIRADA` ou `PRONTO` já tiveram o serviço mecânico finalizado. Não contam como "carros em serviço amanhã"; são reportadas separadamente como `X prontos p/ entrega`.
+4. **Métrica Financeira por Saldo Pendente Real:**
+   - Nunca utilizar `valorTotalOriginal` para computar carga pendente de pátio (`em serviço`). Uma OS terceirizada com R$ 162 a faturar e R$ 9.525 já pagos nunca pode somar R$ 9.687 no relatório. Utilizar estritamente `saldoPendente`.
+**Risco identificado:** Se gerentes de loja mantiverem OSs sem atualizar status de grid no ERP, o classificador heurístico mitiga por idade (> 10 dias e saldo zero), mas é fundamental manter a rotina de saneamento cadastral.
+**Não fazer:**
+- NUNCA somar `valorTotalOriginal` de OSs em relatórios de carga de trabalho de pátio ativo.
+- NUNCA tratar carros com status `AGUARDANDO RETIRADA` como carros pendentes de serviço mecânico.
+- NUNCA consumir `patioLoja.fechadasOntem` em balões noturnos que pretendem reportar entregas do próprio Dia D.
+
+---
+
+## [2026-10-28] — [Feature ID: 043-inclusao-master-contas-a-pagar-balao2]
+**Contexto:** Correção do consolidado diário de contas a pagar e previsão de saldo no Balão 2 matinal (07:40 AM - Faturamento, CMV & Contas do Dia). A unidade `MPMaster` (Master/Matriz) havia sido excluída via cláusula SQL hardcoded, omitindo R$ 4.868,72 em despesas corporativas e gerando um falso positivo de caixa positivo para os sócios.
+**Regra aprendida:**
+1. **Natureza Centralizadora da Unidade Master:**
+   - A Master não é oficina física de varejo: não tem maquininha Rede, não tem carros em pátio e não tem faturamento/CMV no balcão.
+   - Porém, a Master centraliza despesas operacionais da holding (convênios da diretoria, software de WhatsApp, compras centralizadas de óleo Elaion Sky Automotive, suporte técnico).
+   - O consolidado financeiro de contas a pagar DEVE compulsoriamente incluir as obrigações da Master para que o fluxo de caixa do dia feche com exatidão matemática.
+2. **Posicionamento Visual no Balão 2:**
+   - No Turno da Manhã (07:40 AM): A Master figura sob o grupo `🔴 CAIXA NEGATIVO` com card corporativo dedicado (`- _Centralizador de Contas da Rede_`), com suas entradas zeradas e seu total de saídas do dia.
+   - No Turno da Tarde (14:00 PM): A Master é filtrada (`!l.isCentralizadora`), impedindo que apareça no ranking de Faturamento e CMV de varejo.
+   - Em "Destaques da Diretoria": Menor faturamento do mês deve filtrar lojas centralizadoras para não eleger Master (R$ 0) indevidamente no lugar da menor loja física.
+3. **Filtro de Artefatos Zerados no SQLite:**
+   - Adicionar `AND valor_a_pagar > 0` nas consultas de `contas_pagar_lancamentos` para eliminar linhas de cabeçalho com identificadores numéricos e valor zero.
+**Risco identificado:** Novas consultas SQL que agrupem lojas podem voltar a excluir `loja_slug = 'master'` se o desenvolvedor esquecer que contas corporativas ficam registradas sob esse slug.
+**Não fazer:**
+- NUNCA filtrar `loja_slug != 'master'` em queries de contas a pagar da rede.
+- NUNCA incluir a Master no ranking de faturamento ou CMV de lojas de varejo.
+- NUNCA permitir que a Master seja selecionada como loja de menor faturamento nos destaques executivos.
+
+---
+
+## [2026-10-28] — [Feature ID: 038-backstudio-fluxo-preview-onboarding-antihallucination]
+**Contexto:** Reformulação da esteira comercial do agente David no DeskcommCRM (Backstudio). Eliminação de alucinações de preview (leads sem demonstração prévia não podem receber promessa de preview pronto nem links genéricos), expurgo de overfitting de nomes ("Marcos" nos few-shots), substituição de pipes residuais `|` por quebras duplas de linha `\n\n`, trava inegociável de envio do link do Asaas e protocolo ativo de onboarding pós-venda em 3 turnos após o pagamento.
+**Regra aprendida:**
+1. **Bifurcação Estrita de Jornada (Com Preview vs Sem Preview):**
+   - **Lead COM Preview (`has_preview = true` e `demo_url` válida):** Apresenta a demonstração personalizada real preparada pela equipe.
+   - **Lead SEM Preview (`has_preview = false` ou inbound orgânico):** Proibição categórica de dizer "preparei uma demonstração", "já deixei um site pronto" ou inventar links (`demo.backstudio.com.br/<nicho>`). O bot deve explicar o modelo chave na mão (criação do zero + aluguel) e conduzir o Briefing Enxuto (nome do negócio, cidade, carro-chefe) para criação posterior.
+2. **Anti-Alucinação de Nomes de Contato (Zero Overfitting):**
+   - NUNCA fixar nomes próprios específicos (ex: "Marcos") em blocos de few-shot de system prompts. O modelo sofre overfitting e reproduz o vocativo mesmo para contatos anônimos ou com outros nomes.
+   - Regra de ouro no prompt: usar vocativo APENAS se o nome tiver sido explicitamente informado pelo interlocutor ou estiver validado no contexto. Caso contrário, tratar com cordialidade neutra.
+3. **Trava Inegociável da Cobrança Asaas:**
+   - Ao executar a tool `Gerar_Cobranca_Asaas`, o modelo DEVE compulsoriamente incluir a `invoice_url` retornada no corpo da mensagem do mesmo turno. É proibido dizer "assim que compensar já iniciamos" sem antes ter entregado o link de pagamento na mesma mensagem.
+4. **Protocolo Estruturado de Onboarding Pós-Venda:**
+   - Quando o lead informa "paguei" ou a cobrança é compensada, o bot não pode encerrar no vácuo ("vou te chamando conforme formos avançando").
+   - Deve conduzir imediatamente os 3 passos de produção: 1) Domínio desejado (.com.br); 2) Envio de logotipo/fotos ou @ do Instagram; 3) WhatsApp de atendimento para os botões do site + alinhamento de prazo de entrega (48h úteis).
+5. **Formatação de Bolhas e Janela de Horário Comercial:**
+   - Divisão de mensagens por quebra de linha dupla (`\n\n`) para acionar o `splitIntoBubbles` nativo sem vazar caracteres técnicos `|`.
+   - Trava de horário comercial configurada no `trigger_config.filters.business_hours` (09:00 às 18:30 BRT) para impedir disparos fora de hora (como às 07:00 AM).
+**Risco identificado:** Tentar alterar versões publicadas de agentes (`ai_agent_versions`) via `PATCH` falha com código `P0001` devido ao trigger de imutabilidade do PostgreSQL (`status = published`). Mudanças exigem compulsoriamente a inserção de uma nova versão e atualização de `published_version_id` na tabela `ai_agents`.
+**Não fazer:**
+- NUNCA dizer a um lead que ele tem uma demonstração pronta se `demo_url` não estiver confirmada no contexto.
+- NUNCA usar pipes `|` como separador visível para o cliente no WhatsApp.
+- NUNCA responder à chamada da tool do Asaas omitindo o link de pagamento da mensagem.
+- NUNCA silenciar ou encerrar no vácuo após o aviso de pagamento do cliente.
+- NUNCA tentar dar `PATCH` em `ai_agent_versions` com status `published` (imutável).
