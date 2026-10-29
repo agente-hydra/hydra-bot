@@ -163,3 +163,29 @@
 - Nunca expor chaves de API da Evolution API para o frontend web.
 - Nunca chamar `/instance/connect` em paralelo para a mesma instância.
 - Nunca permitir envio de mensagens usando instâncias de gerentes.
+
+---
+
+## [2026-10-29] — [Feature ID: 052-reidomodulo-sla-triage-local-llm]
+**Contexto:** Notificação privada de reconexão do WhatsApp ao gerente da loja (`store.phoneCanonical`), implantação do SLA de 5 minutos do Rei do Módulo (com links `wa.me` e Chatwoot) e arquitetura de triagem semântica em 3 camadas: Camada 1 determinística com Regex Shield (descarte de cortesias/agradecimentos e captura direta de dúvidas), Camada 2 com SLM local Qwen 2.5 1.5B (GGUF Q4_K_M via `llama-server` na VPS) para casos ambíguos, e Camada 3 com Cloud Fallback.
+**Regra aprendida:**
+1. **Hierarquia de Triagem Semântica (Cascata):** Mais de 70% das mensagens de encerramento ("valeu", "show de bola", "obrigado", emojis) são capturadas deterministicamente pelo Regex Shield em <1ms com consumo zero de tokens. Mensagens ambíguas são submetidas à SLM local de 1.5B parâmetros consumindo apenas ~1.1GB de VRAM/RAM na VPS, eliminando custos de LLM em nuvem para conversas ordinárias.
+2. **Regex de Emojis e Fechamentos Compostos:** Validações de regex para cortesia devem tratar caracteres Unicode compostos e emojis com tom de pele (`\p{Extended_Pictographic}`) e sequências tokenizadas ("Ok Amanhã vou dar uma passada aí Obrigada") por meio de redução de tokens de cortesia.
+3. **Notificação Privada no Ciclo de Vida do Incidente:** Ao reconectar uma instância, além do aviso público no grupo oficial de TI, o gerente da loja deve receber confirmação privada do retorno operacional com tempo de downtime formatado.
+**Risco identificado:** Se o processo `llama-server` na VPS cair ou não for iniciado, o `slm_client.js` possui timeout de 3.000ms e aciona automaticamente a Camada 3 (Cloud Fallback), mas o serviço systemd `hydra-slm.service` deve ser mantido ativo na VPS.
+**Não fazer:**
+- NUNCA submeter mensagens triviais ("obrigado", "blz", emojis) para APIs pagas de LLM.
+- NUNCA enviar notificações de SLA sem ambos os links de acesso rápido (`wa.me` e Chatwoot).
+
+---
+
+## [2026-10-29] — [Feature ID: 053-central-sla-lead-recovery-routing]
+**Contexto:** Unificação do SLA da Central de Atendimento (`central_sla.js`) para o padrão de 5 minutos do Rei do Módulo com triagem por Regex Shield e links diretos (`wa.me` e Chatwoot), isolamento de escopo por `inbox_id` para evitar contaminação do número da Central com leads respondendo em lojas físicas, e resolução resiliente de `conversation_id` via API do Chatwoot evitando links truncados ou `undefined`.
+**Regra aprendida:**
+1. **Roteamento de Leads por Inbox de Origem:** No webhook do Chatwoot, respostas de leads originadas na Inbox 1 (`atendimento`) ou Inbox 16 (`central atendimento`) devem ser encaminhadas ao WhatsApp da Central (`5511996274141`). Respostas originadas nas lojas físicas (Inboxes 2 a 10) devem ser roteadas exclusivamente para o WhatsApp do gerente da respectiva loja (`store.phone`), eliminando notificações descontextualizadas na Central.
+2. **Resolução de IDs de Conversa Truncados:** Payloads de webhook do Chatwoot podem omitir `conversation.id` em certos eventos (ex: eventos planos ou `contact_inbox`). Implementar `resolveChatwootConversationId` com cascata de campos e consulta ativa de fallback via `GET /api/v1/accounts/1/conversations?q={phone}` garante que a URL do Chatwoot nunca seja exibida como `undefined`.
+3. **Migração para Fetch Nativo:** O Node 22+ possui `fetch` e `AbortSignal.timeout` integrados. Evitar dependências como `axios` em scripts e utilitários compartilhados previne falhas de `MODULE_NOT_FOUND` em ambientes headless.
+**Risco identificado:** Se novos inboxes de lojas forem cadastrados no Chatwoot sem atualização em `store_targets.json` / `store_router.js`, o roteamento adotará fallback para a Central com aviso explícito de loja externa.
+**Não fazer:**
+- NUNCA enviar notificações de recuperação de leads para a Central quando o lead estiver interagindo com a loja física.
+- NUNCA gerar links de atendimento do Chatwoot com valor `undefined`.
