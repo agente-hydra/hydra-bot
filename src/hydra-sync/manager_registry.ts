@@ -13,7 +13,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPJorgeBeretta',
     loja_nome: 'Jorge Beretta',
-    gerente_nome: 'Gerente Jorge Beretta',
+    gerente_nome: 'ERICK MICAEL FERREIRA SILVA',
     phone_canonical: '5511998874158',
     instance_evolution: 'Jorge Beretta',
     is_active: 1
@@ -21,7 +21,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPkennedy',
     loja_nome: 'Kennedy',
-    gerente_nome: 'Gerente Kennedy',
+    gerente_nome: 'PAULO HENRIQUE',
     phone_canonical: '5511984926600',
     instance_evolution: 'Kennedy',
     is_active: 1
@@ -29,7 +29,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPdompedro1',
     loja_nome: 'Dom Pedro I',
-    gerente_nome: 'Gerente Dom Pedro',
+    gerente_nome: 'MARCO ANTONIO PERRELLA',
     phone_canonical: '5511963717410',
     instance_evolution: 'Dom Pedro',
     is_active: 1
@@ -37,7 +37,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPrudge',
     loja_nome: 'Rudge Ramos',
-    gerente_nome: 'Gerente Rudge',
+    gerente_nome: 'LUCAS MORENO',
     phone_canonical: '5511947439443',
     instance_evolution: 'Rudge',
     is_active: 1
@@ -45,7 +45,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPJabaquara',
     loja_nome: 'Jabaquara',
-    gerente_nome: 'Gerente Jabaquara',
+    gerente_nome: 'VANESSA FRAVETTO',
     phone_canonical: '5511933733131',
     instance_evolution: 'Jabaquara',
     is_active: 1
@@ -53,7 +53,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPpiraporinha',
     loja_nome: 'Piraporinha',
-    gerente_nome: 'Gerente Piraporinha',
+    gerente_nome: 'ANDERSON DA SILVA',
     phone_canonical: '5511983012850',
     instance_evolution: 'Piraporinha',
     is_active: 1
@@ -61,7 +61,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPplanalto',
     loja_nome: 'Planalto',
-    gerente_nome: 'Gerente Planalto',
+    gerente_nome: 'ROBERTO AQUINO',
     phone_canonical: '5511984325302',
     instance_evolution: 'Planalto',
     is_active: 1
@@ -69,7 +69,7 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'ReiDoOleoMaua',
     loja_nome: 'Rei do Óleo Mauá',
-    gerente_nome: 'Gerente Mauá',
+    gerente_nome: 'MARCELO RIBEIRO',
     phone_canonical: '5511984324928',
     instance_evolution: 'Maua',
     is_active: 1
@@ -77,16 +77,16 @@ export const OFFICIAL_STORE_MANAGERS_SEED: StoreManagerRecord[] = [
   {
     loja_slug: 'MPSantoAndre',
     loja_nome: 'Santo André',
-    gerente_nome: 'Gerente Santo André',
-    phone_canonical: '5511917698769',
+    gerente_nome: 'ALESSANDRO TADINI NOVELLI',
+    phone_canonical: '5511918734422',
     instance_evolution: 'Carijós',
     is_active: 1
   },
   {
     loja_slug: 'ReiDoModulo',
     loja_nome: 'Rei do Módulo',
-    gerente_nome: 'Gerente Rei do Módulo',
-    phone_canonical: '5511917698769',
+    gerente_nome: 'Central Rei Do Módulo',
+    phone_canonical: '5511950614929',
     instance_evolution: 'REI DO MODULO',
     is_active: 1
   }
@@ -135,13 +135,17 @@ export function initManagerRegistrySchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_mgr_notif_loja ON hydra_manager_notifications(loja_slug, created_at);
   `);
 
-  // Seed idempotente preservando alteracoes existentes
+  // Seed idempotente atualizando registros de gerentes e instâncias
   const insertStmt = db.prepare(`
     INSERT INTO hydra_store_managers (loja_slug, loja_nome, gerente_nome, phone_canonical, instance_evolution, is_active)
     VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(loja_slug) DO UPDATE SET
       loja_nome = excluded.loja_nome,
-      instance_evolution = excluded.instance_evolution
+      gerente_nome = excluded.gerente_nome,
+      phone_canonical = excluded.phone_canonical,
+      instance_evolution = excluded.instance_evolution,
+      is_active = excluded.is_active,
+      updated_at = CURRENT_TIMESTAMP
   `);
 
   for (const m of OFFICIAL_STORE_MANAGERS_SEED) {

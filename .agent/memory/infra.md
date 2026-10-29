@@ -146,3 +146,20 @@
 - Nunca usar subagentes recursivos/descontrolados em memória sem budget.
 - Nunca permitir que workers paralelos editem arquivos concorrentes na mesma árvore de diretórios.
 - Nunca aplicar patches de workers sem validação do Build Gate.
+
+---
+
+## [2026-10-29] — [Feature ID: 051-hydra-rede-universal-qr-watchdog-resilience]
+**Contexto:** Implementação do Sistema Universal de Reconexão e Watchdog de WhatsApp para as 10 lojas da Rede Mecânica Popular, com Hub Central (`https://bot.tork.services/qr`), páginas individuais com auto-refresh a cada 12 segundos, proteção anti-stampede via Single-Flight Locking e cache in-memory de QR (TTL 9s), watchdog com pacing sequencial (2.5s jitter) e alertas automatizados de queda, reconexão e resumo matinal diário (07:30) no Grupo Oficial TI (`120363425738307789@g.us`).
+**Regra aprendida:**
+1. **Single-Flight & In-Memory QR Caching:** Múltiplas requisições simultâneas em `/instance/connect` na Evolution API / Baileys invalidam tokens em voo e criam loop infinito de desconexão. Coalescer promessas em voo e manter cache in-memory de 9s é mandatório para permitir auto-refresh em navegadores sem derrubar o Baileys.
+2. **Pacing e Flap Filter Sequencial:** Varrer instâncias concorrentemente causa picos de I/O e CPU na VPS. A varredura sequencial com espaçamento de `2.500ms ± 500ms jitter` estabiliza a carga em <12% de CPU e o flap filter de 30s impede falsos alarmes em blips transitórios de rede.
+3. **Trava Inviolável de Mensageria:** Qualquer notificação para gerentes ou grupos de TI DEVE usar estritamente a instância oficial `hydra` (`5511917837618`) ou `atendimento` — é expressamente proibido usar o número de qualquer gerente como remetente.
+4. **Idempotência de Grupo & Cooldown Privado:** Incidentes possuem cooldown de 15 min no privado do gerente (máx 3 avisos/incidente) e alerta único no grupo oficial de TI até que ocorra a reconexão.
+**Risco identificado:**
+- Mudança de porta ou reinicialização do Traefik sem carregar `/opt/tork-stack/traefik/dynamic_qr.yml` pode causar 404 em `bot.tork.services/qr`.
+- Se o banco de dados SQLite local não for limpo em execuções de testes unitários subsequentes, IDs de teste reutilizados podem falhar na asserção de primeiro aviso (sempre use IDs com sufixo `Date.now()`).
+**Não fazer:**
+- Nunca expor chaves de API da Evolution API para o frontend web.
+- Nunca chamar `/instance/connect` em paralelo para a mesma instância.
+- Nunca permitir envio de mensagens usando instâncias de gerentes.
