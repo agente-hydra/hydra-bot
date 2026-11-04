@@ -68,6 +68,7 @@ export interface CanonicalIntent {
   placa?: string;
   osId?: string;
   veiculo?: string;
+  motorTexto?: string;
   onlyOpen?: boolean;
   noDeposit?: boolean;
   serviceTerms?: string[];
@@ -1188,12 +1189,34 @@ export interface RewriteIntentOptions {
 }
 
 /**
+ * Normaliza erros comuns de digitação móvel e repetições de caracteres em consultas técnicas de oficina.
+ * Ex: "laampadas" -> "lampadas", "ree" -> "re", "coorrea" -> "correia", "pneuus" -> "pneus".
+ */
+export function normalizeMechanicalQueryText(raw: string): string {
+  if (!raw || typeof raw !== 'string') return '';
+  let text = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  text = text
+    .replace(/\bla+mpada(s)?\b/gi, 'lampada$1')
+    .replace(/\bla+nterna(s)?\b/gi, 'lanterna$1')
+    .replace(/\bree\b/gi, 're')
+    .replace(/\bcoo+rreia(s)?\b/gi, 'correia$1')
+    .replace(/\bpnee?uu?s\b/gi, 'pneus')
+    .replace(/\bba+teria(s)?\b/gi, 'bateria$1')
+    .replace(/\bpa+rtida(s)?\b/gi, 'partida$1')
+    .replace(/\barranque(s)?\b/gi, 'arranque$1')
+    .replace(/\bfa+ro+l(ois)?\b/gi, 'farol')
+    .replace(/\bra+diador(es)?\b/gi, 'radiador$1')
+    .replace(/\bbie+leta(s)?\b/gi, 'bieleta$1');
+  return text;
+}
+
+/**
  * Detecta se a consulta é direcionada ao Tempário Técnico Automotivo (Spec 054),
  * impedindo colisão com números de OS (ex: ano 2020) ou queries financeiras (CMV/Faturamento).
  */
 export function isTemparioTechnicalQuery(text: string): boolean {
   if (!text || typeof text !== 'string') return false;
-  const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  const norm = normalizeMechanicalQueryText(text).trim();
 
   // 1. Proibição: Se for consulta financeira explícita, NÃO é tempário
   const financialRegex = /\b(cmv|faturamento|lucro bruto|ticket medio|dre|contas a pagar|contas a receber|banco|fluxo de caixa|meta|atingimento|quanto falta)\b/;
@@ -1215,7 +1238,7 @@ export function isTemparioTechnicalQuery(text: string): boolean {
   // Padrões de tempo / horas + serviço mecânico
   const timeQueryPattern = /\b(quanto tempo|quantas horas|tempo de|tempo pra|tempo para|horas pra|horas para|horas de|tempo levado|duracao de|quanto cobrar|quanto fica|quanto custa|valor de mao de obra|valor da mao de obra|preco da mao de obra|orcamento de mao de obra|orcamento pra trocar|orcamento para trocar)\b/;
   const mechanicalActionPattern = /\b(trocar|troca|substituir|substituicao|desmontar|desmontagem|remover|remocao|instalar|instalacao|reparar|reparo|consertar|conserto|sangria|regular|regulagem|fazer)\b/;
-  const mechanicalComponentPattern = /\b(motor\s*de\s*partida|motor\s*de\s*arranque|arranque|automatico\s*de\s*partida|bendix|alternador|bateria|rele\s*de\s*partida|farol|radiador|arrefecimento|correia|dentada|banhada|bomba\s*de\s*combustivel|bomba\s*d'?agua|bomba|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|buchas|vela|velas|bobina|bobinas|cabo\s*de\s*vela|bico|bicos|injecao|turbina|oleo|filtro|suspensao|freio|freios|fluido\s*de\s*freio|cambio|parachoque|para-choque|bieleta|bieletas|barra\s*estabilizadora|estabilizadora|pivo|pivos|terminal|terminais|braco\s*axial|axial|caixa\s*de\s*direcao|bandeja|bandejas|balanca|balancas|braco\s*oscilante|homocinetica|junta\s*homocinetica|semieixo|semi-eixo|cubo|cubo\s*de\s*roda|rolamento|rolamentos|escapamento|catalisador|sonda\s*lambda|junta\s*do\s*cabecote|cabecote|tampa\s*de\s*valvulas|valvula|valvulas|termostatica|termostato|reservatorio|eletroventilador|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria|pneu|pneus)\b/i;
+  const mechanicalComponentPattern = /\b(motor\s*de\s*partida|motor\s*de\s*arranque|arranque|automatico\s*de\s*partida|bendix|alternador|bateria|rele\s*de\s*partida|farol|radiador|arrefecimento|correia|dentada|banhada|bomba\s*de\s*combustivel|bomba\s*d'?agua|bomba|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|buchas|vela|velas|bobina|bobinas|cabo\s*de\s*vela|bico|bicos|injecao|turbina|oleo|filtro|suspensao|freio|freios|fluido\s*de\s*freio|cambio|parachoque|para-choque|bieleta|bieletas|barra\s*estabilizadora|estabilizadora|pivo|pivos|terminal|terminais|braco\s*axial|axial|caixa\s*de\s*direcao|bandeja|bandejas|balanca|balancas|braco\s*oscilante|homocinetica|junta\s*homocinetica|semieixo|semi-eixo|cubo|cubo\s*de\s*roda|rolamento|rolamentos|escapamento|catalisador|sonda\s*lambda|junta\s*do\s*cabecote|cabecote|tampa\s*de\s*valvulas|valvula|valvulas|termostatica|termostato|reservatorio|eletroventilador|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria|pneu|pneus|lampada|lampadas|lanterna|lanternas|luz|luzes|iluminacao|farolete|pisca|piscas|seta|setas|soquete|soquetes|luz\s*de\s*freio|luz\s*de\s*re|luz\s*de\s*placa|drl|luz\s*diurna|bloco\s*optico)\b/i;
   const laborPattern = /\b(mao de obra|servico|servicos)\b/;
 
   // Caso A: "tempo/horas/preço" + ("troca/substituição" OU componente mecânico OU "mao de obra")
@@ -1350,7 +1373,7 @@ export function extractAdaptiveTemparioQuery(rawText: string): AdaptiveTemparioE
   }
 
   const clean = rawText.trim();
-  const norm = clean.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const norm = normalizeMechanicalQueryText(clean);
 
   // 1. Placa (Mercosul ou antiga)
   const plateMatch = clean.match(/\b([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})\b/i);
@@ -1446,7 +1469,20 @@ export function extractAdaptiveTemparioQuery(rawText: string): AdaptiveTemparioE
     { token: 'geometria', label: 'alinhamento' },
     { token: 'balanceamento', label: 'balanceamento' },
     { token: 'cambagem', label: 'cambagem' },
-    { token: 'sangria', label: 'sangria_freio' }
+    { token: 'sangria', label: 'sangria_freio' },
+    { token: 'lampada', label: 'lampada' },
+    { token: 'lampadas', label: 'lampada' },
+    { token: 'lanterna', label: 'lanterna' },
+    { token: 'lanternas', label: 'lanterna' },
+    { token: 'luz de freio', label: 'luz_freio' },
+    { token: 'luz de re', label: 'luz_re' },
+    { token: 'luz de placa', label: 'luz_placa' },
+    { token: 'pisca', label: 'seta_direcional' },
+    { token: 'seta', label: 'seta_direcional' },
+    { token: 'soquete', label: 'soquete' },
+    { token: 'drl', label: 'drl' },
+    { token: 'farolete', label: 'lanterna' },
+    { token: 'iluminacao', label: 'iluminacao' }
   ];
 
   const componentesSet = new Set<string>();
@@ -1476,7 +1512,7 @@ export function extractAdaptiveTemparioQuery(rawText: string): AdaptiveTemparioE
     let residual = norm;
     residual = residual
       .replace(/\b(quanto tempo|quantas horas|tempo de|tempo pra|tempo para|horas pra|horas para|horas de|valor de mao de obra|valor da mao de obra|preco da mao de obra|orcamento de|orcamento pra|orcamento para|troca|trocar|substituir|substituicao|desmontar|remover|instalar|fazer|reparo|manutencao|revisao)\b/g, ' ')
-      .replace(/\b(motor de partida|motor de arranque|arranque|farol|radiador|arrefecimento|correia|dentada|banhada|bomba|d'?agua|combustivel|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|vela|bobina|bico|turbina|alternador|bateria|oleo|filtro|suspensao|freio|cambio|parachoque|para-choque|bieleta|estabilizadora|pivo|terminal|bandeja|homocinetica|semieixo|cubo|rolamento|cabecote|termostatica|termostato|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria)\b/g, ' ')
+      .replace(/\b(motor de partida|motor de arranque|arranque|farol|radiador|arrefecimento|correia|dentada|banhada|bomba|d'?agua|combustivel|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|vela|bobina|bico|turbina|alternador|bateria|oleo|filtro|suspensao|freio|cambio|parachoque|para-choque|bieleta|estabilizadora|pivo|terminal|bandeja|homocinetica|semieixo|cubo|rolamento|cabecote|termostatica|termostato|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria|lampada|lampadas|lanterna|lanternas|luz|luzes|iluminacao|farolete|pisca|seta|soquete|drl)\b/g, ' ')
       .replace(/\b(dianteiro|dianteira|diranteiro|traseiro|traseira|direito|direita|esquerdo|esquerda|lado|completo|par|jogo|kit)\b/g, ' ')
       .replace(/\b(19[89]\d|20[0-2]\d|2030)\b/g, ' ')
       .replace(/\b(1\.0|1\.4|1\.6|1\.8|2\.0|tsi|turbo|flex|16v|8v|vtec)\b/g, ' ')
@@ -1510,17 +1546,33 @@ export function extractAdaptiveTemparioQuery(rawText: string): AdaptiveTemparioE
  * de uma consulta técnica de tempário, mantendo compatibilidade com pipelines legados.
  */
 export function extractTemparioEntitiesFromText(rawText: string): ExtractedTemparioEntities {
-  const adaptive = extractAdaptiveTemparioQuery(rawText);
-  let serviceTerms = [...adaptive.componentes];
-  if (serviceTerms.length === 0) {
-    // Limpa placa e quebras de linha da frase bruta caso seja um serviço livre não catalogado
-    const cleanedPhrase = rawText
-      .replace(/\b[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}\b/gi, ' ')
-      .replace(/\b(?:os|ordem)[_\s]*#?\s*\d{1,8}\b/gi, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    serviceTerms = [cleanedPhrase || rawText.trim()];
+  const normalizedRaw = normalizeMechanicalQueryText(rawText);
+  const adaptive = extractAdaptiveTemparioQuery(normalizedRaw);
+
+  // Limpa placa, OS, veículo, ano e motorização para extrair a ação/termo de serviço limpo
+  let cleanedPhrase = normalizedRaw
+    .replace(/\b[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}\b/gi, ' ')
+    .replace(/\b(?:os|ordem)[_\s]*#?\s*\d{1,8}\b/gi, ' ');
+  if (adaptive.veiculo) {
+    cleanedPhrase = cleanedPhrase.replace(new RegExp(`\\b${adaptive.veiculo}\\b`, 'gi'), ' ');
   }
+  if (adaptive.ano) {
+    cleanedPhrase = cleanedPhrase.replace(new RegExp(`\\b${adaptive.ano}\\b`, 'g'), ' ');
+  }
+  if (adaptive.motor) {
+    cleanedPhrase = cleanedPhrase.replace(new RegExp(`\\b${adaptive.motor}\\b`, 'gi'), ' ');
+  }
+  cleanedPhrase = cleanedPhrase.replace(/\s+/g, ' ').trim();
+
+  let serviceTerms: string[];
+  if (cleanedPhrase && cleanedPhrase.length >= 3) {
+    serviceTerms = [cleanedPhrase];
+  } else if (adaptive.componentes.length > 0) {
+    serviceTerms = [...adaptive.componentes];
+  } else {
+    serviceTerms = [rawText.trim()];
+  }
+
   return {
     veiculo: adaptive.veiculo,
     motorTexto: adaptive.motor,
@@ -2930,18 +2982,14 @@ function _rewriteIntentCore(
       turnId: tId,
       timestamp: new Date().toISOString(),
       decision: 'execute',
-      operation: 'os_conversation',
+      operation: 'os_conversation' as any,
       entities: {
         osId: targetOs,
         placa: targetPlaca,
         veiculo: explicitVeiculo,
         loja: lojaResolution.loja
       },
-      filters: {
-        osId: targetOs,
-        placa: targetPlaca,
-        veiculo: explicitVeiculo
-      },
+      filters: {},
       turnRelation: {
         type: isContinuation ? 'continue' : 'new_query',
         inheritedFilters: [],
@@ -2951,7 +2999,7 @@ function _rewriteIntentCore(
       ambiguity: { isAmbiguous: false },
       canonicalQuestion,
       plan: {
-        operation: 'os_conversation',
+        operation: 'os_conversation' as any,
         entities: {
           osId: targetOs,
           placa: targetPlaca,

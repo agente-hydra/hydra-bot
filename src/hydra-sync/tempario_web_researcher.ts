@@ -416,7 +416,102 @@ function buildAutomotiveSubsystemBenchmark(
     };
   }
 
-  // 5. FAROL / ILUMINAÇÃO
+  // 5.0 LÂMPADAS, ILUMINAÇÃO RÁPIDA E SINALIZAÇÃO EXTERNA (LANTERNA / FAROL / SETA / FREIO / RÉ / PLACA)
+  const isBulbOrSignal =
+    sLower.includes('lampada') ||
+    sLower.includes('laampada') ||
+    sLower.includes('luz de freio') ||
+    sLower.includes('luz de re') ||
+    sLower.includes('luz de placa') ||
+    sLower.includes('pisca') ||
+    sLower.includes('seta') ||
+    sLower.includes('soquete') ||
+    sLower.includes('drl') ||
+    (sLower.includes('lanterna') && !sLower.includes('parachoque') && !sLower.includes('para-choque') && !sLower.includes('bloco'));
+
+  if (isBulbOrSignal) {
+    const isTraseira = sLower.includes('traseir') || sLower.includes('re') || sLower.includes('placa') || sLower.includes('lanterna') || sLower.includes('freio');
+    const isDianteira = sLower.includes('dianteir') || sLower.includes('farol') || sLower.includes('milha') || sLower.includes('neblina') || sLower.includes('drl');
+
+    let tituloFormatado = 'Substituição de Lâmpadas de Iluminação e Sinalização';
+    if (isTraseira && !isDianteira) {
+      tituloFormatado = 'Substituição de Lâmpadas das Lanternas Traseiras (Sinalização)';
+    } else if (isDianteira && !isTraseira) {
+      tituloFormatado = 'Substituição de Lâmpadas do Bloco Óptico Dianteiro (Sinalização)';
+    }
+
+    const totalH = 0.40; // 24 minutos (tempo de bancada rápida padrão da rede)
+    return {
+      tituloFormatado,
+      tempoBaseHoras: totalH,
+      etapas: [
+        {
+          ordem: 1,
+          codigoEtapa: 'IL-1101',
+          titulo: isTraseira
+            ? 'Acesso e soltura dos fixadores da carcaça óptica traseira'
+            : 'Abertura do capô e remoção das tampas de vedação do farol dianteiro',
+          descricaoTecnica: isTraseira
+            ? 'Abrir tampa traseira, remover forração de acabamento lateral ou parafusos Torx/10mm do batente da lanterna.'
+            : 'Acessar compartimento do motor, afastar chicotes periféricos e remover tampas emborrachadas de vedação contra poeira e umidade.',
+          faseExecucao: 'DESMONTAGEM',
+          tempoHoras: 0.10,
+          ferramentas: ['Chave Torx T20 / canhão 10mm', 'Espátulas de nylon para acabamentos'],
+          torqueEspecificado: '3 Nm nos parafusos de fixação'
+        },
+        {
+          ordem: 2,
+          codigoEtapa: 'IL-1102',
+          titulo: isTraseira
+            ? 'Desencaixe dos pinos-guia de pressão e desconexão do chicote elétrico'
+            : 'Desconexão do soquete multipino e soltura da presilha de retenção do bulbo',
+          descricaoTecnica: isTraseira
+            ? 'Puxar o conjunto da lanterna em linha reta para liberar os pinos de retenção e destravar o plugue multipino.'
+            : 'Destravar conector elétrico da lâmpada e soltar mola/grampo de arame de fixação da base de assentamento.',
+          faseExecucao: 'ACESSO',
+          tempoHoras: 0.10,
+          ferramentas: ['Espátula plástica para alavanca controlada'],
+          torqueEspecificado: 'Destravamento manual sem torção'
+        },
+        {
+          ordem: 3,
+          codigoEtapa: 'IL-1103',
+          titulo: 'Substituição das lâmpadas e inspeção dos soquetes de contato',
+          descricaoTecnica: 'Remover lâmpadas avariadas, inspecionar terminais contra oxidação/aquecimento e instalar lâmpadas novas correspondentes com luvas limpas.',
+          faseExecucao: 'EXECUCAO',
+          tempoHoras: 0.12,
+          ferramentas: ['Luvas de proteção para manuseio de bulbos', 'Lixa fina / limpa-contato para soquetes'],
+          torqueEspecificado: 'Encaixe com trava de baioneta / pressão'
+        },
+        {
+          ordem: 4,
+          codigoEtapa: 'IL-1104',
+          titulo: 'Remontagem, aperto controlado e teste funcional de iluminação e sinalização',
+          descricaoTecnica: 'Reconectar chicote, assentar proteções e guias, apertar fixadores e testar funções de lanterna, freio, pisca, ré ou facho baixo.',
+          faseExecucao: 'FINALIZACAO',
+          tempoHoras: 0.08,
+          ferramentas: ['Ponta de prova 12V / Multímetro', 'Chave Torx T20'],
+          torqueEspecificado: '3 Nm no aperto final da carcaça'
+        }
+      ],
+      ferramentasPadrao: [
+        'Jogo de chaves Torx T20 e canhão 10mm',
+        'Espátulas de nylon para acabamentos plásticos',
+        'Multímetro digital ou ponta de prova 12V',
+        'Luvas de proteção para manuseio de lâmpadas halógenas/LED'
+      ],
+      pecasPadrao: [
+        { nomePeca: 'Lâmpadas automotivas 12V (P21W / W21W / W5W / H7 conforme aplicação da montadora)', quantidade: 2, unidade: 'UN', obrigatoria: true },
+        { nomePeca: 'Presilhas plásticas de pressão da carcaça', quantidade: 2, unidade: 'UN', obrigatoria: false }
+      ],
+      torquesPadrao: [
+        'Parafusos de fixação à carroceria: 2,5 a 3,5 Nm',
+        'Pinos-guia de retenção: Assentamento manual sob pressão'
+      ]
+    };
+  }
+
+  // 5. FAROL / ILUMINAÇÃO COMPLETO
   if (sLower.includes('farol') || sLower.includes('optico') || sLower.includes('lanterna')) {
     const totalH = extractedWebHours && extractedWebHours >= 0.5 && extractedWebHours <= 2.5 ? extractedWebHours : 1.00;
     return {

@@ -1,0 +1,14 @@
+{
+  "specId": "068-tempario-iluminacao-typo-resilience",
+  "owned": [
+    "specs/068-tempario-iluminacao-typo-resilience/design.md",
+    "specs/068-tempario-iluminacao-typo-resilience/proposal.md",
+    "specs/068-tempario-iluminacao-typo-resilience/spec-plan.md",
+    "src/hydra-sync/intent_rewriter.ts",
+    "src/hydra-sync/tempario_hybrid_coordinator.ts",
+    "src/hydra-sync/tempario_web_researcher.ts",
+    "src/hydra-sync/tests/test_harness_spec068_lighting_and_typo.ts"
+  ],
+  "shared": [],
+  "baselineDirty": []
+}

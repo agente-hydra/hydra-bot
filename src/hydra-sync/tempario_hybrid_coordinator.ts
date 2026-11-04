@@ -311,8 +311,8 @@ export class TemparioHybridCoordinator {
       .sort()
       .join('|') || 'default';
 
-    const persona = (input.securityContext.persona || 'socio').toLowerCase();
-    const store = (input.securityContext.authorizedLojaSlug || input.securityContext.authorizedStore || input.targetLojaSlug || 'rede').toLowerCase();
+    const persona = (input.securityContext?.persona || 'socio').toLowerCase();
+    const store = (input.securityContext?.authorizedLojaSlug || input.securityContext?.authorizedStore || input.targetLojaSlug || 'rede').toLowerCase();
     const genId = input.generationId || 0;
 
     return `hydra:tempario:v1:${vSlug}:${ano}:${mSlug}:${sortedServices}:${persona}:${store}:${genId}`;
