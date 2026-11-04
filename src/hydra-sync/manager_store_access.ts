@@ -144,7 +144,7 @@ export function executeManagerStoreQuery(
   if (!STORE_NAMES[storeSlug] || isOutsideManagerStore(message, storeSlug)) return denied();
   if (intent.needsClarification || (intent.contract?.decision && intent.contract.decision !== 'execute')) return unsupported();
   const requested = intent.subQueries?.length ? intent.subQueries : [intent];
-  const allowedIntents = new Set(['financial_alerts', 'store_overview', 'store_cmv', 'store_areas', 'list_os', 'os_detail', 'aging_cars']);
+  const allowedIntents = new Set(['financial_alerts', 'store_overview', 'store_cmv', 'store_areas', 'list_os', 'os_detail', 'aging_cars', 'TEMPARIO_TEMPO_SERVICO']);
   if (requested.some(q => !allowedIntents.has(q.intent))) return unsupported();
   if (intent.lojaSlug && intent.lojaSlug.toLowerCase() !== storeSlug.toLowerCase()) return denied();
   if ((intent as any).targetLojaSlug && (intent as any).targetLojaSlug.toLowerCase() !== storeSlug.toLowerCase()) return denied();

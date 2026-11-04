@@ -37,6 +37,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { initSemanticGlossary } from './semantic_glossary.js';
 import { ensureCaseAnalysisTables } from './real_analysis_repository.js';
+import { ensureTemparioTables, ensureTemparioVectorTable } from './tempario_graph_repository.js';
 import * as crypto from 'crypto';
 import { createRequire } from 'module';
 
@@ -693,6 +694,13 @@ export function initSchema(db: Database.Database): void {
     ensureCaseAnalysisTables(db);
   } catch (err: any) {
     console.warn('[CASE_ANALYSIS_SCHEMA] Falha ao inicializar tabelas de analise e grafo:', err?.message || err);
+  }
+
+  try {
+    ensureTemparioTables(db);
+    ensureTemparioVectorTable(db);
+  } catch (err: any) {
+    console.warn('[TEMPARIO_SCHEMA] Falha ao inicializar tabelas de tempario:', err?.message || err);
   }
 }
 
@@ -4402,7 +4410,7 @@ export interface OSDetailComplete {
   historicoAtualizadoPor?: string;
 }
 
-function isServiceItem(item: any): boolean {
+export function isServiceItem(item: any): boolean {
   if (item.tipo && item.tipo.toLowerCase().includes('servi')) return true;
   if (item.tipo && (item.tipo.toLowerCase().includes('peca') || item.tipo.toLowerCase().includes('prod'))) return false;
   if (item.grupo && item.grupo.toLowerCase().includes('servi')) return true;
@@ -5021,3 +5029,15 @@ export {
   setAgyConversationId,
   clearAgyConversationId
 } from './turn_context_repository.js';
+
+export { ensureCaseAnalysisTables as initCaseGraphSchema } from './real_analysis_repository.js';
+export {
+  ensureTemparioTables,
+  ensureTemparioVectorTable,
+  seedCanonicalTemparioCatalog,
+  resolveDeduplicatedServiceChain,
+  getTemparioOperationsByIds,
+  findTemparioVehicles,
+  findTemparioEngine,
+  getTemparioEvidenceSources
+} from './tempario_graph_repository.js';

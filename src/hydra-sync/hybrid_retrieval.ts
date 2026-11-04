@@ -656,3 +656,28 @@ export function formatSemanticSearchResult(options: {
   return `${prefix}${lines.join('\n')}`;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADAPTADOR DE RECUPERAÇÃO DE PROCEDIMENTOS DE TEMPÁRIO (SPEC 054)
+// ─────────────────────────────────────────────────────────────────────────────
+
+import {
+  searchTemparioHybridRRF,
+  type TemparioHybridSearchResult,
+  type TemparioSearchFilters
+} from './tempario_vector.js';
+
+export type { TemparioHybridSearchResult, TemparioSearchFilters };
+
+/**
+ * Adaptador de fusão RRF para consultas de tempário, mantendo compatibilidade
+ * total com a esteira de recuperação operacional híbrida existente.
+ */
+export async function retrieveTemparioProcedures(
+  db: Database.Database,
+  queryText: string,
+  filters: TemparioSearchFilters = {}
+): Promise<TemparioHybridSearchResult[]> {
+  return searchTemparioHybridRRF(db, queryText, filters);
+}
+
+

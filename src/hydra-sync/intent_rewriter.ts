@@ -49,6 +49,10 @@ import type {
   RequiredComponentType,
   ComponentExecutionStatus
 } from './types/language_contract.js';
+import type {
+  AdaptiveTemparioExtraction,
+  TemparioDetailChoice
+} from './types/tempario_contract.js';
 
 export interface CanonicalIntent {
   turnId: string;
@@ -973,19 +977,20 @@ function verificarForaDeEscopo(norm: string): { fora: boolean; motivo?: string }
  * Verifica se a solicitação exige capacidades administrativas não suportadas
  */
 function verificarCapacidadeIndisponivel(rawText: string, norm: string): { indisponivel: boolean; motivo?: string; mensagem?: string } {
-  const temUrl = /https?:\/\/[^\s]+/i.test(rawText) || norm.includes('chat.tork.services');
-  const pedeTicketExterno = (norm.includes('ticket') || norm.includes('chamado')) && (norm.includes('externo') || norm.includes('chatwoot') || norm.includes('tork.services')) && /\b(ver|olhar|acessar|abrir)\b/i.test(norm) && !norm.includes('nao e') && !norm.includes('nao estou');
-  if (temUrl || pedeTicketExterno) {
+  // URLs arbitrárias genéricas não seguras (que não sejam chat.tork.services)
+  const isChatwoot = /chat\.tork\.services/i.test(rawText) || norm.includes('chatwoot') || norm.includes('chat.tork.services');
+  const temUrlNaoChatwoot = /https?:\/\/[^\s]+/i.test(rawText) && !isChatwoot;
+  if (temUrlNaoChatwoot) {
     return {
       indisponivel: true,
-      motivo: 'Visualização de links externos e conversas diretas do Chatwoot',
-      mensagem: 'Não tenho acesso à leitura de links externos ou histórico direto do Chatwoot. Por favor, me informe a placa do veículo, o número da OS ou a oficina que você deseja consultar.'
+      motivo: 'Navegação em páginas externas genéricas não autorizadas',
+      mensagem: 'Não realizo navegação em links externos genéricos. Posso consultar conversas do Chatwoot, ordens de serviço, veículos e relatórios operacionais.'
     };
   }
 
   const capacidades = [
-    { termos: ['emitir nota', 'emitir nf', 'gerar nota fiscal'], motivo: 'Emiss?o fiscal direta n?o suportada via bot' },
-    { termos: ['demitir', 'contratar funcionario', 'admitir'], motivo: 'Gest?o de RH restrita' },
+    { termos: ['emitir nota', 'emitir nf', 'gerar nota fiscal'], motivo: 'Emissão fiscal direta não suportada via bot' },
+    { termos: ['demitir', 'contratar funcionario', 'admitir'], motivo: 'Gestão de RH restrita' },
     { termos: ['comprar peca', 'fazer pedido no fornecedor'], motivo: 'Compras externas devem ser realizadas pelo sistema web' }
   ];
 
@@ -1103,6 +1108,9 @@ function finalizeCanonicalIntent(
   } else if (res.intent === 'conversation_correction') {
     metric = 'conversation_correction';
     table = 'hydra_turns';
+  } else if (res.intent === 'os_conversation') {
+    metric = 'os_conversation';
+    table = 'hydra_case_graph_projections';
   }
 
   const scope: QueryScope = res.scope || (res.lojaSlug ? 'store' : 'network');
@@ -1176,6 +1184,350 @@ export interface RewriteIntentOptions {
     persona?: 'socio' | 'gerente';
     authorizedPhones?: readonly string[];
     userAuthorizedStore?: string;
+  };
+}
+
+/**
+ * Detecta se a consulta é direcionada ao Tempário Técnico Automotivo (Spec 054),
+ * impedindo colisão com números de OS (ex: ano 2020) ou queries financeiras (CMV/Faturamento).
+ */
+export function isTemparioTechnicalQuery(text: string): boolean {
+  if (!text || typeof text !== 'string') return false;
+  const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  // 1. Proibição: Se for consulta financeira explícita, NÃO é tempário
+  const financialRegex = /\b(cmv|faturamento|lucro bruto|ticket medio|dre|contas a pagar|contas a receber|banco|fluxo de caixa|meta|atingimento|quanto falta)\b/;
+  if (financialRegex.test(norm)) {
+    return false;
+  }
+
+  // 2. Proibição: Se for menção explícita a número de OS (ex: "OS 1916", "OS #1234", "detalhes da os", "status da os")
+  if (/\b(os|ordem de servico)\s*(?:#|numero|nº|no)?\s*\d{3,8}\b/.test(norm) || /\bdetalhes da os\b/.test(norm) || /\bstatus da os\b/.test(norm)) {
+    return false;
+  }
+
+  // 3. Padrões característicos de tempário / tempos técnicos de oficina
+  const temparioKeywords = /\b(tempario|tempo tabelado|tabela de tempo|tabela de mao de obra|tempo padrao|horas padrao|horas tabeladas|grafo de acesso|sub-operacoes|suboperacoes)\b/;
+  if (temparioKeywords.test(norm)) {
+    return true;
+  }
+
+  // Padrões de tempo / horas + serviço mecânico
+  const timeQueryPattern = /\b(quanto tempo|quantas horas|tempo de|tempo pra|tempo para|horas pra|horas para|horas de|tempo levado|duracao de|quanto cobrar|quanto fica|quanto custa|valor de mao de obra|valor da mao de obra|preco da mao de obra|orcamento de mao de obra|orcamento pra trocar|orcamento para trocar)\b/;
+  const mechanicalActionPattern = /\b(trocar|troca|substituir|substituicao|desmontar|desmontagem|remover|remocao|instalar|instalacao|reparar|reparo|consertar|conserto|sangria|regular|regulagem|fazer)\b/;
+  const mechanicalComponentPattern = /\b(motor\s*de\s*partida|motor\s*de\s*arranque|arranque|automatico\s*de\s*partida|bendix|alternador|bateria|rele\s*de\s*partida|farol|radiador|arrefecimento|correia|dentada|banhada|bomba\s*de\s*combustivel|bomba\s*d'?agua|bomba|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|buchas|vela|velas|bobina|bobinas|cabo\s*de\s*vela|bico|bicos|injecao|turbina|oleo|filtro|suspensao|freio|freios|fluido\s*de\s*freio|cambio|parachoque|para-choque|bieleta|bieletas|barra\s*estabilizadora|estabilizadora|pivo|pivos|terminal|terminais|braco\s*axial|axial|caixa\s*de\s*direcao|bandeja|bandejas|balanca|balancas|braco\s*oscilante|homocinetica|junta\s*homocinetica|semieixo|semi-eixo|cubo|cubo\s*de\s*roda|rolamento|rolamentos|escapamento|catalisador|sonda\s*lambda|junta\s*do\s*cabecote|cabecote|tampa\s*de\s*valvulas|valvula|valvulas|termostatica|termostato|reservatorio|eletroventilador|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria|pneu|pneus)\b/i;
+  const laborPattern = /\b(mao de obra|servico|servicos)\b/;
+
+  // Caso A: "tempo/horas/preço" + ("troca/substituição" OU componente mecânico OU "mao de obra")
+  if (timeQueryPattern.test(norm) && (mechanicalActionPattern.test(norm) || mechanicalComponentPattern.test(norm) || laborPattern.test(norm))) {
+    return true;
+  }
+
+  // Caso B: "mão de obra" + componente mecânico ou veículo (ex: "mao de obra pra trocar farol do golf 2020")
+  if (laborPattern.test(norm) && (mechanicalActionPattern.test(norm) || mechanicalComponentPattern.test(norm))) {
+    return true;
+  }
+
+  // Caso C (Spec 063): Sintaxe direta e telegráfica de oficina: Ação mecânica + Componente mecânico (ex: "troca farol dianteiro corsa 2010", "trocar correia dentada onix")
+  if (mechanicalActionPattern.test(norm) && mechanicalComponentPattern.test(norm)) {
+    return true;
+  }
+
+  // Caso D (Spec 065): [PLACA VÁLIDA] + [AÇÃO MECÂNICA OU COMPONENTE MECÂNICO] (ex: "FCK2E73 \n\ntroca da bieleta dianteira direita")
+  const plateMatch = norm.match(/\b([a-z]{3}[0-9][a-z0-9][0-9]{2}|[a-z]{3}[0-9]{4})\b/i);
+  if (plateMatch && (mechanicalActionPattern.test(norm) || mechanicalComponentPattern.test(norm))) {
+    const isPastOsHistory = /\b(o que foi feito|o que ja foi feito|historico|itens da os|servicos feitos|ja trocou|quando trocou)\b/i.test(norm);
+    if (!isPastOsHistory) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Detecta se a mensagem do usuário é uma escolha de detalhamento (1, 2, 3, 4, peças, ferramentas, etc.)
+ * para um contexto pendente de tempário (Spec 063 Progressive Disclosure).
+ */
+export function detectTemparioDetailChoice(text: string): TemparioDetailChoice | null {
+  if (!text || typeof text !== 'string') return null;
+  const norm = text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+  // Opção 1: Peças
+  if (norm === '1' || norm === '1.' || norm === '1)' || /\b(peca|pecas|quais pecas|lista de pecas|materiais|componentes|quais pecas precisa|manda as pecas|manda pecas|ver pecas)\b/.test(norm) || /\bpe[\?c]as?\b/.test(norm)) {
+    return 'PECAS';
+  }
+
+  // Opção 2: Ferramentas e Torques
+  if (norm === '2' || norm === '2.' || norm === '2)' || /\b(ferramenta|ferramentas|torque|torques|quais ferramentas|chaves|especiais|bancada|aperto|manda as ferramentas|ver ferramentas)\b/.test(norm)) {
+    return 'FERRAMENTAS';
+  }
+
+  // Opção 3: Passo a Passo / Sequência de Montagem
+  if (norm === '3' || norm === '3.' || norm === '3)' || /\b(passo|passos|passo a passo|etapas|sequencia|ordem|como trocar|montagem|desmontagem|como desmontar|procedimento|ver passos)\b/.test(norm)) {
+    return 'PASSOS';
+  }
+
+  // Opção 4: Tudo / Completo
+  if (norm === '4' || norm === '4.' || norm === '4)' || /\b(tudo|completo|todos|tudo completo|relatorio completo|relatorio integral|manda tudo|ver tudo)\b/.test(norm)) {
+    return 'COMPLETO';
+  }
+
+  return null;
+}
+
+/**
+ * Detecta se a mensagem é uma consulta cadastral direta de placa de veículo (Spec 064).
+ * Ex: "FOE6I25", "placa FOE6I25", "consulta placa EWB4J21", "qual o carro da placa ABC1234".
+ *
+ * Não intercepta perguntas de tempário (ex: "tempo pra trocar correia da placa ABC1234")
+ * nem perguntas de status/situação de OS no ERP (ex: "como está a OS da placa ABC1234").
+ */
+export function isDirectPlateQuery(text: string): { isPlateQuery: boolean; placa?: string } {
+  if (!text || typeof text !== 'string') return { isPlateQuery: false };
+
+  const clean = text.trim();
+  const norm = clean.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // Guarda 1: Se for consulta técnica de tempário, não é consulta cadastral pura
+  if (isTemparioTechnicalQuery(clean)) {
+    return { isPlateQuery: false };
+  }
+
+  // Guarda 2: Se perguntar sobre situação/status da OS no sistema, segue fluxo de OS
+  if (/\b(status|situacao|como esta|como ta|ordem de servico|os\b|orcamento|valor restante|saldo|quanto falta|quando fica pronto|previsao)\b/i.test(norm)) {
+    return { isPlateQuery: false };
+  }
+
+  // 1. Caso A: Mensagem contendo exclusivamente a placa (ou "placa: XYZ")
+  const exactMatch = clean.match(/^(?:placa[\s:]*)?([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})$/i);
+  if (exactMatch) {
+    const rawPlate = exactMatch[1].toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const isMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(rawPlate);
+    const isAntigo = /^[A-Z]{3}[0-9]{4}$/.test(rawPlate);
+    if (isMercosul || isAntigo) {
+      return { isPlateQuery: true, placa: rawPlate };
+    }
+  }
+
+  // 2. Caso B: Mensagem expressa de consulta veicular / ficha de placa
+  const asksPlateLookup = /\b(consulta|consultar|consulte|puxa|puxar|busca|buscar|pesquisa|pesquisar|qual o carro|qual carro|que carro|de quem e|dados da placa|ficha da placa|veiculo da placa|carro da placa)\b/i.test(norm);
+  if (asksPlateLookup) {
+    const plateMatch = clean.match(/\b([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})\b/i);
+    if (plateMatch) {
+      const rawPlate = plateMatch[1].toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const isMercosul = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/.test(rawPlate);
+      const isAntigo = /^[A-Z]{3}[0-9]{4}$/.test(rawPlate);
+      if (isMercosul || isAntigo) {
+        return { isPlateQuery: true, placa: rawPlate };
+      }
+    }
+  }
+
+  return { isPlateQuery: false };
+}
+
+export interface ExtractedTemparioEntities {
+  readonly veiculo?: string;
+  readonly motorTexto?: string;
+  readonly ano?: number;
+  readonly placa?: string;
+  readonly osId?: string;
+  readonly serviceTerms: readonly string[];
+}
+
+/**
+ * Extração Adaptativa Aberta de Consulta de Tempário (Spec 063).
+ * Identifica sintaticamente Ação, Componentes, Ano, Motor, Placa e Modelo Livre sem engessamento em listas fechadas.
+ */
+export function extractAdaptiveTemparioQuery(rawText: string): AdaptiveTemparioExtraction {
+  if (!rawText || typeof rawText !== 'string') {
+    return {
+      isTemparioQuery: false,
+      componentes: [],
+      promptOriginal: ''
+    };
+  }
+
+  const clean = rawText.trim();
+  const norm = clean.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+  // 1. Placa (Mercosul ou antiga)
+  const plateMatch = clean.match(/\b([A-Z]{3}-?[0-9][A-Z0-9][0-9]{2})\b/i);
+  const placa = plateMatch ? plateMatch[1].toUpperCase().replace('-', '') : undefined;
+
+  // 2. OS ID se houver
+  const osMatch = clean.match(/\b(?:os|ordem)[_\s]*#?\s*(\d{1,8})\b/i);
+  const osId = osMatch ? osMatch[1] : undefined;
+
+  // 3. Ano (1980 - 2030)
+  const anoMatch = norm.match(/\b(19[89]\d|20[0-2]\d|2030)\b/);
+  const ano = anoMatch ? parseInt(anoMatch[1], 10) : undefined;
+
+  // 4. Motorização
+  let motor: string | undefined;
+  const motorPatterns = [
+    /\b(1\.4\s*tsi)\b/i,
+    /\b(1\.0\s*turbo)\b/i,
+    /\b(1\.2\s*turbo)\b/i,
+    /\b(1\.3\s*turbo)\b/i,
+    /\b(1\.0\s*tsi)\b/i,
+    /\b(2\.0\s*i-vtec)\b/i,
+    /\b(t270)\b/i,
+    /\b(ea211)\b/i,
+    /\b(1\.4\s*turbo)\b/i,
+    /\b(1\.6\s*16v|1\.6\s*8v|1\.6)\b/i,
+    /\b(1\.8\s*16v|1\.8)\b/i,
+    /\b(2\.0\s*16v|2\.0)\b/i,
+    /\b(1\.0\s*3cil|1\.0\s*12v|1\.0)\b/i
+  ];
+  for (const mp of motorPatterns) {
+    const mm = clean.match(mp);
+    if (mm) {
+      motor = mm[1].trim();
+      break;
+    }
+  }
+
+  // 5. Componentes mecânicos e elétricos
+  const recognizedComponents: Array<{ token: string; label: string }> = [
+    { token: 'motor de partida', label: 'motor de partida' },
+    { token: 'motor de arranque', label: 'motor de partida' },
+    { token: 'arranque', label: 'motor de partida' },
+    { token: 'automatico de partida', label: 'motor de partida' },
+    { token: 'farol', label: 'farol' },
+    { token: 'radiador', label: 'radiador' },
+    { token: 'arrefecimento', label: 'radiador' },
+    { token: 'correia', label: 'correia' },
+    { token: 'bomba de combustivel', label: 'bomba de combustivel' },
+    { token: 'bomba', label: 'bomba' },
+    { token: 'embreagem', label: 'embreagem' },
+    { token: 'retentor', label: 'retentor' },
+    { token: 'volante', label: 'volante' },
+    { token: 'pastilha', label: 'pastilha' },
+    { token: 'disco', label: 'disco' },
+    { token: 'amortecedor', label: 'amortecedor' },
+    { token: 'coxim', label: 'coxim' },
+    { token: 'batente', label: 'batente' },
+    { token: 'bucha', label: 'bucha' },
+    { token: 'vela', label: 'vela' },
+    { token: 'bobina', label: 'bobina' },
+    { token: 'bico', label: 'bico' },
+    { token: 'turbina', label: 'turbina' },
+    { token: 'alternador', label: 'alternador' },
+    { token: 'bateria', label: 'bateria' },
+    { token: 'oleo', label: 'oleo' },
+    { token: 'filtro', label: 'filtro' },
+    { token: 'suspensao', label: 'suspensao' },
+    { token: 'freio', label: 'freio' },
+    { token: 'cambio', label: 'cambio' },
+    { token: 'parachoque', label: 'parachoque' },
+    { token: 'para-choque', label: 'parachoque' },
+    { token: 'bieleta', label: 'bieleta' },
+    { token: 'barra estabilizadora', label: 'barra_estabilizadora' },
+    { token: 'estabilizadora', label: 'barra_estabilizadora' },
+    { token: 'pivo', label: 'pivo' },
+    { token: 'terminal', label: 'terminal_direcao' },
+    { token: 'axial', label: 'terminal_direcao' },
+    { token: 'caixa de direcao', label: 'caixa de direcao' },
+    { token: 'bandeja', label: 'bandeja_suspensao' },
+    { token: 'balanca', label: 'bandeja_suspensao' },
+    { token: 'homocinetica', label: 'junta_homocinetica' },
+    { token: 'semieixo', label: 'semieixo' },
+    { token: 'cubo', label: 'cubo_roda' },
+    { token: 'rolamento', label: 'rolamento_roda' },
+    { token: 'junta do cabecote', label: 'junta do cabecote' },
+    { token: 'cabecote', label: 'cabecote' },
+    { token: 'termostato', label: 'valvula_termostatica' },
+    { token: 'termostatica', label: 'valvula_termostatica' },
+    { token: 'ventoinha', label: 'eletroventilador' },
+    { token: 'eletroventilador', label: 'eletroventilador' },
+    { token: 'alinhamento', label: 'alinhamento' },
+    { token: 'geometria', label: 'alinhamento' },
+    { token: 'balanceamento', label: 'balanceamento' },
+    { token: 'cambagem', label: 'cambagem' },
+    { token: 'sangria', label: 'sangria_freio' }
+  ];
+
+  const componentesSet = new Set<string>();
+  for (const comp of recognizedComponents) {
+    if (norm.includes(comp.token)) {
+      componentesSet.add(comp.label);
+    }
+  }
+  const componentes = Array.from(componentesSet);
+
+  // 6. Ação mecânica
+  let acaoMecanica: string | undefined;
+  const actionMatch = norm.match(/\b(trocar|troca|substituir|substituicao|desmontar|remover|instalar|reparar|reparo|consertar|regulagem|fazer)\b/);
+  if (actionMatch) {
+    acaoMecanica = actionMatch[1];
+  }
+
+  // 7. Extração Adaptativa Aberta de Veículo
+  // Passo 7A: Primeiro tenta catálogo amplo nacional de modelos comuns (normaliza maiúsculas/hífen)
+  const KNOWN_MODELS_REGEX = /\b(golf|onix\s*plus|onix|civic|corolla|renegade|compass|tracker|hb20|creta|kicks|polo|virtus|t-cross|nivus|strada|toro|argo|mobi|s10|hilux|ranger|cruze|fit|city|hr-v|yaris|etios|c3|c4|sandero|duster|logan|kwid|palio|siena|uno|punto|linea|bravo|fox|voyage|amarok|fusca|up|corsa|celta|prisma|spin|cobalt|gol|saveiro|parati|santana|fiesta|ka|ecosport|clio|captur|206|207|208|307|308|tucson|i30|sportage|cerato|tiggo\s*8|tiggo\s*7\s*pro|tiggo\s*7|tiggo\s*5x|tiggo|haval\s*h6|haval|dolphin|song\s*plus|byd)\b/i;
+  const textWithoutPlate = clean.replace(/\b[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}\b/gi, ' ');
+  const knownMatch = textWithoutPlate.match(KNOWN_MODELS_REGEX);
+  let veiculo: string | undefined = knownMatch ? knownMatch[1].trim() : undefined;
+
+  // Passo 7B: Se não bateu no catálogo de referência, usa extração residual inteligente
+  if (!veiculo && !placa) {
+    let residual = norm;
+    residual = residual
+      .replace(/\b(quanto tempo|quantas horas|tempo de|tempo pra|tempo para|horas pra|horas para|horas de|valor de mao de obra|valor da mao de obra|preco da mao de obra|orcamento de|orcamento pra|orcamento para|troca|trocar|substituir|substituicao|desmontar|remover|instalar|fazer|reparo|manutencao|revisao)\b/g, ' ')
+      .replace(/\b(motor de partida|motor de arranque|arranque|farol|radiador|arrefecimento|correia|dentada|banhada|bomba|d'?agua|combustivel|embreagem|retentor|volante|pastilha|disco|amortecedor|coxim|batente|bucha|vela|bobina|bico|turbina|alternador|bateria|oleo|filtro|suspensao|freio|cambio|parachoque|para-choque|bieleta|estabilizadora|pivo|terminal|bandeja|homocinetica|semieixo|cubo|rolamento|cabecote|termostatica|termostato|ventoinha|alinhamento|geometria|balanceamento|cambagem|sangria)\b/g, ' ')
+      .replace(/\b(dianteiro|dianteira|diranteiro|traseiro|traseira|direito|direita|esquerdo|esquerda|lado|completo|par|jogo|kit)\b/g, ' ')
+      .replace(/\b(19[89]\d|20[0-2]\d|2030)\b/g, ' ')
+      .replace(/\b(1\.0|1\.4|1\.6|1\.8|2\.0|tsi|turbo|flex|16v|8v|vtec)\b/g, ' ')
+      .replace(/\b(de|do|da|dos|das|no|na|nos|nas|em|e|ou|um|uma|pra|para|com|sem|por|que|se|o|a|os|as)\b/g, ' ')
+      .replace(/[^\w\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (residual.length >= 2) {
+      veiculo = residual.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+  }
+
+  const isTemparioQuery = isTemparioTechnicalQuery(clean) || (componentes.length > 0 && (Boolean(veiculo) || Boolean(placa)));
+
+  return {
+    isTemparioQuery,
+    veiculo,
+    motor,
+    ano,
+    placa,
+    osId,
+    componentes,
+    acaoMecanica,
+    promptOriginal: clean
+  };
+}
+
+/**
+ * Extrai entidades estruturadas (veículo, motor, ano, placa, OS e componentes individuais)
+ * de uma consulta técnica de tempário, mantendo compatibilidade com pipelines legados.
+ */
+export function extractTemparioEntitiesFromText(rawText: string): ExtractedTemparioEntities {
+  const adaptive = extractAdaptiveTemparioQuery(rawText);
+  let serviceTerms = [...adaptive.componentes];
+  if (serviceTerms.length === 0) {
+    // Limpa placa e quebras de linha da frase bruta caso seja um serviço livre não catalogado
+    const cleanedPhrase = rawText
+      .replace(/\b[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}\b/gi, ' ')
+      .replace(/\b(?:os|ordem)[_\s]*#?\s*\d{1,8}\b/gi, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    serviceTerms = [cleanedPhrase || rawText.trim()];
+  }
+  return {
+    veiculo: adaptive.veiculo,
+    motorTexto: adaptive.motor,
+    ano: adaptive.ano,
+    placa: adaptive.placa,
+    osId: adaptive.osId,
+    serviceTerms
   };
 }
 
@@ -1384,6 +1736,55 @@ function _rewriteIntentCore(
         contract
       });
     }
+  }
+
+  // 2.8.9 Tempário Técnico Automotivo (Spec 054 / 061 / 062)
+  if (isTemparioTechnicalQuery(norm)) {
+    const extracted = extractTemparioEntitiesFromText(textoLimpo);
+    const { veiculo, motorTexto, ano, placa, osId, serviceTerms } = extracted;
+
+    const canonicalQuestion = `Consultar tempário técnico automotivo e tempo de mão de obra para ${veiculo || placa || 'veículo'}${ano ? ` ${ano}` : ''}.`;
+    const contract: TurnContract = {
+      version: CONVERSATION_CONTRACT_VERSION,
+      turnId: tId,
+      timestamp: new Date().toISOString(),
+      decision: 'execute',
+      operation: 'general_query',
+      entities: {
+        veiculo: veiculo || undefined,
+        placa: placa || undefined,
+        osId: osId || undefined
+      },
+      filters: {},
+      turnRelation: {
+        type: 'new_query',
+        inheritedFilters: [],
+        overriddenFilters: [],
+        removedFilters: []
+      },
+      ambiguity: { isAmbiguous: false },
+      canonicalQuestion,
+      plan: {
+        operation: 'general_query',
+        entities: {},
+        filters: {}
+      }
+    };
+
+    return finalizeCanonicalIntent({
+      turnId: tId,
+      canonicalQuestion,
+      intent: 'TEMPARIO_TEMPO_SERVICO',
+      operation: 'TEMPARIO_TEMPO_SERVICO',
+      operationType: 'general_query' as any,
+      veiculo,
+      vehicleModel: veiculo,
+      placa,
+      osId,
+      motorTexto,
+      serviceTerms: serviceTerms.length > 0 ? [...serviceTerms] : [textoLimpo],
+      contract
+    });
   }
 
   // 2.9. Intenções Meta-Operacionais (Runtime Diagnostics, Conversation History, Memory Preference)
@@ -2488,6 +2889,87 @@ function _rewriteIntentCore(
       placa: explicitPlaca,
       lojaSlug: explicitLoja,
       onlyOpen: mencionaAberta ? true : undefined,
+      contract
+    };
+  }
+
+  // 5.4.1. Consulta de Atendimento / Conversas no Chatwoot / Grafo da OS (Spec 059)
+  const isChatwootOrConvQuery =
+    norm.includes('chatwoot') ||
+    norm.includes('chat.tork.services') ||
+    norm.includes('conversa') ||
+    norm.includes('conversas') ||
+    norm.includes('atendimento') ||
+    norm.includes('ticket') ||
+    norm.includes('chamado') ||
+    norm.includes('o que o cliente falou') ||
+    norm.includes('o que o cliente disse') ||
+    norm.includes('o que falaram') ||
+    norm.includes('falou no chat') ||
+    norm.includes('disse no chat') ||
+    (norm.includes('chat') && (norm.includes('cliente') || norm.includes('os') || norm.includes('placa') || norm.includes('loja'))) ||
+    ((norm.includes('raio x') || norm.includes('raio-x') || norm.includes('grafo')) && (norm.includes('atendimento') || norm.includes('conversa') || explicitOSId != null));
+
+  if (isChatwootOrConvQuery) {
+    const targetOs = explicitOSId || previousState?.osId;
+    const targetPlaca = explicitPlaca || previousState?.placa;
+    const targetLoja = explicitLoja || previousState?.lojaSlug;
+    const lojaTexto = comporTextoLoja(targetLoja);
+
+    let canonicalQuestion = 'Consultar conversas e tickets de atendimento no Chatwoot.';
+    if (targetOs) {
+      canonicalQuestion = `Consultar conversas de atendimento e histórico da OS #${targetOs}${lojaTexto}.`;
+    } else if (targetPlaca) {
+      canonicalQuestion = `Consultar conversas de atendimento para o veículo de placa ${targetPlaca}${lojaTexto}.`;
+    } else if (explicitVeiculo) {
+      canonicalQuestion = `Consultar conversas de atendimento do veículo ${explicitVeiculo}${lojaTexto}.`;
+    }
+
+    const contract: TurnContract = {
+      version: CONVERSATION_CONTRACT_VERSION,
+      turnId: tId,
+      timestamp: new Date().toISOString(),
+      decision: 'execute',
+      operation: 'os_conversation',
+      entities: {
+        osId: targetOs,
+        placa: targetPlaca,
+        veiculo: explicitVeiculo,
+        loja: lojaResolution.loja
+      },
+      filters: {
+        osId: targetOs,
+        placa: targetPlaca,
+        veiculo: explicitVeiculo
+      },
+      turnRelation: {
+        type: isContinuation ? 'continue' : 'new_query',
+        inheritedFilters: [],
+        overriddenFilters: [],
+        removedFilters: []
+      },
+      ambiguity: { isAmbiguous: false },
+      canonicalQuestion,
+      plan: {
+        operation: 'os_conversation',
+        entities: {
+          osId: targetOs,
+          placa: targetPlaca,
+          veiculo: explicitVeiculo,
+          loja: lojaResolution.loja
+        },
+        filters: {}
+      }
+    };
+
+    return {
+      turnId: tId,
+      canonicalQuestion,
+      intent: 'os_conversation',
+      osId: targetOs,
+      placa: targetPlaca,
+      veiculo: explicitVeiculo,
+      lojaSlug: targetLoja,
       contract
     };
   }

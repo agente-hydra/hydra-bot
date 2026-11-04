@@ -14,7 +14,18 @@ import {
   type SecurityContext,
   SecurityAccessDeniedError
 } from './types/conversation_context_contract.js';
-import { getOSDetails, type OSDetailComplete, determineCanonicalOSStatus } from './db_repository.js';
+import {
+  getOSDetails,
+  type OSDetailComplete,
+  determineCanonicalOSStatus,
+  parseBrDateToIso,
+  isServiceItem
+} from './db_repository.js';
+import { EvidencePolicyManager } from './evidence_policy_manager.js';
+import type {
+  YardRealTimeComparison,
+  StoreYardServiceSample
+} from './types/tempario_contract.js';
 export { getOSDetails, type OSDetailComplete };
 
 /**
@@ -677,4 +688,304 @@ export class OperationalDataRepository implements IOperationalDataRepository {
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// TEMPARIO: HISTÓRICO FACTUAL DE TEMPO REAL DE PÁTIO (SPEC 054)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface YardHistoricalQueryOptions {
+  readonly serviceTerms: readonly string[];
+  readonly vehicleModel?: string;
+  readonly tempoTabeladoHoras?: number;
+  readonly securityContext: SecurityContext;
+  readonly targetLojaSlug?: string;
+  readonly limit?: number;
+}
+
+/**
+ * Consulta métricas factuais históricas de execução de serviços e permanência em pátio
+ * nas ordens de serviço validadas do ERP, cruzando com evidências de gargalos.
+ *
+ * Regras estritas:
+ * 1. Isolamento de Segurança: Gerentes consultam estritamente sua própria loja (SecurityAccessDeniedError).
+ * 2. Expurgo MPMaster: Unidade MPMaster nunca entra em médias operacionais.
+ * 3. Normalização de Datas: Usa data_inicio_iso/data_fim_iso (ou parseBrDateToIso). Proibido julianday() cego.
+ * 4. Anti-Alucinação: Gargalos de demora só constam se validados via EvidencePolicyManager.
+ */
+export function getYardHistoricalServiceMetrics(
+  db: Database.Database,
+  options: YardHistoricalQueryOptions
+): YardRealTimeComparison {
+  const {
+    securityContext,
+    targetLojaSlug,
+    serviceTerms,
+    vehicleModel,
+    tempoTabeladoHoras,
+    limit = 100
+  } = options;
+
+  const persona = (securityContext.persona || '').toLowerCase();
+  const isManager = persona === 'gerente';
+  const managerLoja = (securityContext.authorizedLojaSlug || securityContext.authorizedStore || '').toLowerCase();
+
+  // 1. Validação de isolamento estrito de segurança (R04)
+  if (isManager) {
+    if (!managerLoja) {
+      throw new SecurityAccessDeniedError('Gerente sem loja autorizada informada no SecurityContext.');
+    }
+    if (targetLojaSlug && targetLojaSlug.toLowerCase() !== managerLoja) {
+      throw new SecurityAccessDeniedError(
+        `CROSS_STORE_FORBIDDEN: Gerente da unidade '${managerLoja}' não possui autorização para consultar dados da unidade '${targetLojaSlug}'.`
+      );
+    }
+  }
+
+  const effectiveLoja = isManager ? managerLoja : (targetLojaSlug ? targetLojaSlug.toLowerCase() : null);
+  const escopoAplicado: 'REDE_10_LOJAS' | 'LOJA_ISOLADA' = (isManager || targetLojaSlug) ? 'LOJA_ISOLADA' : 'REDE_10_LOJAS';
+
+  // 2. Consulta de ordens de serviço elegíveis
+  ensureOrdensServicoTable(db);
+
+  let sql = `
+    SELECT os_id, loja_slug, status_grid, is_aberta, data_inicio, data_fim,
+           data_inicio_iso, data_fim_iso, dias_no_patio, veiculo, raw_payload
+    FROM ordens_servico
+    WHERE (qualidade_dado = 'VALIDADO' OR qualidade_dado IS NULL)
+      AND LOWER(loja_slug) != 'mpmaster'
+  `;
+  const params: Array<string | number> = [];
+
+  if (effectiveLoja) {
+    sql += ` AND LOWER(loja_slug) = ?`;
+    params.push(effectiveLoja);
+  }
+
+  if (vehicleModel && vehicleModel.trim()) {
+    sql += ` AND LOWER(veiculo) LIKE ?`;
+    params.push(`%${vehicleModel.trim().toLowerCase()}%`);
+  }
+
+  sql += ` ORDER BY COALESCE(data_inicio_iso, data_inicio) DESC, os_id DESC LIMIT ?`;
+  params.push(limit * 3);
+
+  const rawRows = db.prepare(sql).all(...params) as Array<{
+    os_id: string;
+    loja_slug: string;
+    status_grid: string | null;
+    is_aberta: number;
+    data_inicio: string | null;
+    data_fim: string | null;
+    data_inicio_iso: string | null;
+    data_fim_iso: string | null;
+    dias_no_patio: number | null;
+    veiculo: string | null;
+    raw_payload: string | null;
+  }>;
+
+  // 3. Filtrar em memória por itens de serviço que casem com os termos
+  const normalizedTerms = (serviceTerms || []).map(t =>
+    t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim()
+  ).filter(t => t.length > 0);
+
+  const matchedRows: Array<{
+    os_id: string;
+    loja_slug: string;
+    status_grid: string | null;
+    executionHours: number | null;
+    daysInYard: number;
+  }> = [];
+
+  for (const row of rawRows) {
+    let matchesService = normalizedTerms.length === 0;
+
+    if (!matchesService && row.raw_payload) {
+      try {
+        const payload = JSON.parse(row.raw_payload) as {
+          servicos?: Array<{ descricao?: string; nome?: string }>;
+          itens?: Array<{ descricao?: string; nome?: string; tipo?: string; grupo?: string }>;
+        };
+
+        const itemTexts: string[] = [];
+
+        if (Array.isArray(payload.servicos)) {
+          for (const s of payload.servicos) {
+            const desc = (s.descricao || s.nome || '')
+              .toLowerCase()
+              .normalize('NFD')
+              .replace(/[\u0300-\u036f]/g, '');
+            if (desc) itemTexts.push(desc);
+          }
+        }
+
+        if (Array.isArray(payload.itens)) {
+          for (const it of payload.itens) {
+            if (isServiceItem(it)) {
+              const desc = (it.descricao || it.nome || '')
+                .toLowerCase()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '');
+              if (desc) itemTexts.push(desc);
+            }
+          }
+        }
+
+        matchesService = normalizedTerms.some(term =>
+          itemTexts.some(itDesc => itDesc.includes(term))
+        );
+      } catch {
+        // Fallback silencioso se o JSON estiver corrompido
+      }
+    }
+
+    if (matchesService) {
+      // 4. Calcular tempo de execução em horas a partir de datas normalizadas
+      let executionHours: number | null = null;
+      const iniIso = row.data_inicio_iso || parseBrDateToIso(row.data_inicio);
+      const fimIso = row.data_fim_iso || parseBrDateToIso(row.data_fim);
+
+      if (iniIso && fimIso) {
+        const iniMs = new Date(iniIso).getTime();
+        const fimMs = new Date(fimIso).getTime();
+        if (!isNaN(iniMs) && !isNaN(fimMs) && fimMs >= iniMs) {
+          const diffHours = (fimMs - iniMs) / (1000 * 60 * 60);
+          // Filtra durações anômalas (menos de 6 min ou mais de 30 dias ininterruptos)
+          if (diffHours >= 0.1 && diffHours <= 720) {
+            executionHours = Math.round(diffHours * 100) / 100;
+          }
+        }
+      }
+
+      matchedRows.push({
+        os_id: row.os_id,
+        loja_slug: row.loja_slug,
+        status_grid: row.status_grid,
+        executionHours,
+        daysInYard: Number(row.dias_no_patio) || 0
+      });
+
+      if (matchedRows.length >= limit) break;
+    }
+  }
+
+  // 5. Cruzar com evidências de gargalos em hydra_afirmacoes_analisadas
+  const gargalosSet = new Set<string>();
+  const targetOsIds = matchedRows.map(r => r.os_id);
+
+  if (targetOsIds.length > 0) {
+    try {
+      const placeholders = targetOsIds.slice(0, 50).map(() => '?').join(',');
+      const delayRows = db.prepare(`
+        SELECT target_os_id, delay_cause_reported, author_role, author_name, raw_excerpt
+        FROM hydra_afirmacoes_analisadas
+        WHERE target_os_id IN (${placeholders})
+          AND delay_cause_reported IS NOT NULL
+          AND TRIM(delay_cause_reported) != ''
+      `).all(...targetOsIds.slice(0, 50)) as Array<{
+        target_os_id: number;
+        delay_cause_reported: string;
+        author_role?: string;
+        author_name?: string;
+        raw_excerpt?: string;
+      }>;
+
+      for (const d of delayRows) {
+        const evalResult = EvidencePolicyManager.evaluateDelayCause(
+          'FINALIZADA',
+          d.delay_cause_reported,
+          d.author_role,
+          d.author_name,
+          d.raw_excerpt
+        );
+        if (evalResult.hasValidEvidence) {
+          gargalosSet.add(evalResult.statement);
+        }
+      }
+    } catch {
+      // Tabela de afirmações pode não estar instanciada em cenários isolados
+    }
+  }
+
+  // 6. Agregações estatísticas
+  const validHours = matchedRows
+    .map(r => r.executionHours)
+    .filter((h): h is number => h !== null);
+
+  const tempoMedioExecucaoHoras = validHours.length > 0
+    ? Math.round((validHours.reduce((acc, h) => acc + h, 0) / validHours.length) * 100) / 100
+    : null;
+
+  const tempoMedioExecucaoMinutos = tempoMedioExecucaoHoras !== null
+    ? Math.round(tempoMedioExecucaoHoras * 60)
+    : null;
+
+  let medianaExecucaoHoras: number | null = null;
+  if (validHours.length > 0) {
+    const sorted = [...validHours].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    medianaExecucaoHoras = sorted.length % 2 !== 0
+      ? sorted[mid]
+      : Math.round(((sorted[mid - 1] + sorted[mid]) / 2) * 100) / 100;
+  }
+
+  const validDays = matchedRows.map(r => r.daysInYard);
+  const leadTimeMedioPatioDias = validDays.length > 0
+    ? Math.round((validDays.reduce((acc, d) => acc + d, 0) / validDays.length) * 10) / 10
+    : null;
+
+  let desvioContraTabeladoPct: number | null = null;
+  if (tempoTabeladoHoras && tempoTabeladoHoras > 0 && tempoMedioExecucaoHoras !== null) {
+    desvioContraTabeladoPct = Math.round(((tempoMedioExecucaoHoras - tempoTabeladoHoras) / tempoTabeladoHoras) * 1000) / 10;
+  }
+
+  // Distribuição por loja
+  const storeMap = new Map<string, { totalHours: number; countHours: number; totalDays: number; countAll: number }>();
+  for (const r of matchedRows) {
+    const entry = storeMap.get(r.loja_slug) || { totalHours: 0, countHours: 0, totalDays: 0, countAll: 0 };
+    entry.countAll++;
+    entry.totalDays += r.daysInYard;
+    if (r.executionHours !== null) {
+      entry.totalHours += r.executionHours;
+      entry.countHours++;
+    }
+    storeMap.set(r.loja_slug, entry);
+  }
+
+  const distribuicaoPorLoja: StoreYardServiceSample[] = [];
+  for (const [slug, data] of storeMap.entries()) {
+    distribuicaoPorLoja.push({
+      lojaSlug: slug,
+      qtdOsEncerradas: data.countAll,
+      tempoMedioExecucaoHoras: data.countHours > 0
+        ? Math.round((data.totalHours / data.countHours) * 100) / 100
+        : 0,
+      leadTimeMedioPatioDias: data.countAll > 0
+        ? Math.round((data.totalDays / data.countAll) * 10) / 10
+        : 0
+    });
+  }
+
+  const totalOsAnalisadas = matchedRows.length;
+  const temHistoricoRede = totalOsAnalisadas > 0;
+
+  const declaracaoLimitacaoFactual = temHistoricoRede
+    ? `Média baseada em ${totalOsAnalisadas} ordens de serviço do ERP com apontamento técnico registrado.`
+    : 'Nenhum registro histórico de encerramento para este serviço localizado no ERP da rede.';
+
+  return {
+    temHistoricoRede,
+    escopoAplicado,
+    lojaFiltroSlug: effectiveLoja || undefined,
+    totalOsAnalisadas,
+    tempoMedioExecucaoHoras,
+    tempoMedioExecucaoMinutos,
+    medianaExecucaoHoras,
+    leadTimeMedioPatioDias,
+    desvioContraTabeladoPct,
+    gargalosFatuaisComprovados: Array.from(gargalosSet),
+    declaracaoLimitacaoFactual,
+    distribuicaoPorLoja
+  };
+}
+
 

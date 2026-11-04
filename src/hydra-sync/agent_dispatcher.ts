@@ -56,6 +56,12 @@ export function parseOSModuleIntent(
 ): { osId?: string; module?: AllowedOSModule } | null {
   const clean = text.trim();
 
+  // Guarda Anti-Colisão (Spec 054): Perguntas técnicas de tempário/mão de obra
+  // contendo anos (ex: 2020) NÃO devem ser interpretadas como OS #2020.
+  if (isTemparioTechnicalQuery(clean)) {
+    return null;
+  }
+
   // 1. Comando exato de rowId vindo de clique em lista (ex: "os_18503_servicos")
   const rowMatch = clean.match(OS_MODULE_ROW_ID_REGEX);
   if (rowMatch) {
@@ -96,6 +102,9 @@ import {
   getLatestTurnState,
   saveTurnState,
   isReplayMessage,
+  saveTemparioPendingContext,
+  getTemparioPendingContext,
+  clearTemparioPendingContext,
   type TurnState
 } from './turn_context_repository.js';
 
@@ -103,8 +112,23 @@ import {
   rewriteIntent,
   type CanonicalIntent,
   STORE_ALIASES,
-  normalizarTexto
+  normalizarTexto,
+  isTemparioTechnicalQuery,
+  extractTemparioEntitiesFromText,
+  extractAdaptiveTemparioQuery,
+  detectTemparioDetailChoice,
+  isDirectPlateQuery
 } from './intent_rewriter.js';
+import { TemparioHybridCoordinator, resolveVehicleFromPlateOrOs } from './tempario_hybrid_coordinator.js';
+import { lookupVehiclePlate, upsertManualPlateCache, getLastPlateDiagnostic } from './apibrasil_plate_client.js';
+import { resolveVehicleBrandAndModel } from './tempario_web_researcher.js';
+import {
+  composeTemparioHermesBalloon,
+  composeTemparioExecutiveBalloon,
+  composeTemparioDetailBalloon,
+  composeUnresolvedPlateTemparioBalloon,
+  composePlateVehicleBalloon
+} from './balloon_composer.js';
 
 import {
   executeOperationalQuery
@@ -399,6 +423,256 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
           executionDbMs: 0,
           llmMs: 0,
           formatMs: 0,
+          totalMs
+        },
+        isFeedback: false
+      };
+    }
+  }
+
+  // 0.2 INTERCEPTAÇÃO DE ESCOLHA DE DETALHAMENTO DE TEMPÁRIO (Spec 063: Progressive Disclosure)
+  const temparioDetailChoice = detectTemparioDetailChoice(textoLimpo);
+  if (temparioDetailChoice) {
+    const pendingTempario = getTemparioPendingContext(db, phone);
+    if (pendingTempario && pendingTempario.queryResponse) {
+      const detailBalloons = composeTemparioDetailBalloon(temparioDetailChoice, pendingTempario.queryResponse);
+      const combinedReply = detailBalloons.join('\n\n---BLOCK---\n\n');
+      const sanitized = validateAndSanitizePublicResponse(combinedReply);
+      const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+      const totalMs = Date.now() - startTime;
+
+      saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'detalhe_tempario_hibrido', null);
+      if (rawMessageId) {
+        markMessageCompleted(db, rawMessageId, {
+          messages,
+          replyText: sanitized.cleanText,
+          toolsCalled: ['detalhe_tempario_hibrido'],
+          motorUsed: 'FALLBACK_API',
+          latenciaMs: totalMs
+        });
+      }
+
+      insertAgentInteractionLog(db, {
+        phone,
+        conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+        message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+        pergunta: textoLimpo,
+        tools_chamadas: ['detalhe_tempario_hibrido'],
+        resposta_gerada: sanitized.cleanText,
+        latencia_ms: totalMs,
+        motor_utilizado: 'FALLBACK_API',
+        erro: null
+      });
+
+      return {
+        messages,
+        replyText: sanitized.cleanText,
+        toolsCalled: ['detalhe_tempario_hibrido'],
+        motor: 'FALLBACK_API',
+        latenciaMs: totalMs,
+        telemetry: {
+          queueWaitMs,
+          intentRewriteMs: 0,
+          executionDbMs: 1,
+          llmMs: 0,
+          formatMs: 1,
+          totalMs
+        },
+        isFeedback: false
+      };
+    }
+  }
+
+  // 0.2.1 INTERCEPTAÇÃO DE VÍNCULO DE VEÍCULO PARA PLACA PENDENTE (Spec 066 / 067: Conversational Plate Binding)
+  const pendingPlateCtx = getTemparioPendingContext(db, phone);
+  if (
+    pendingPlateCtx &&
+    (pendingPlateCtx.tipo === 'TEMPARIO_AWAITING_VEHICLE_FOR_PLATE' ||
+      (pendingPlateCtx.tipo === 'TEMPARIO_DISCLOSURE' && Boolean(pendingPlateCtx.placa) && Boolean(pendingPlateCtx.queryResponse?.isEstimativaReferencia))) &&
+    pendingPlateCtx.placa &&
+    pendingPlateCtx.servicos &&
+    pendingPlateCtx.servicos.length > 0 &&
+    !textoLimpo.startsWith('/') &&
+    !isDirectPlateQuery(textoLimpo).isPlateQuery
+  ) {
+    const extractedFollowUp = extractTemparioEntitiesFromText(textoLimpo);
+    const candidateVehicleRaw = extractedFollowUp.veiculo || textoLimpo.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
+    const resolvedIdentity = resolveVehicleBrandAndModel(
+      candidateVehicleRaw,
+      extractedFollowUp.ano,
+      extractedFollowUp.motorTexto
+    );
+
+    // Verifica se a resposta realmente representa um veículo válido (e não uma pergunta financeira avulsa)
+    const isFinancialAbort = /\b(faturamento|receita|caixa|ranking|ticket|meta|loja|unidade)\b/i.test(normalizarTexto(textoLimpo));
+    if (!isFinancialAbort && isValidVehicleForPersistence(resolvedIdentity.marca, resolvedIdentity.modelo)) {
+      const tDbStart = Date.now();
+      upsertManualPlateCache(db, {
+        placa: pendingPlateCtx.placa,
+        marca: resolvedIdentity.marca,
+        modelo: resolvedIdentity.modelo,
+        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+        motor: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao
+      });
+
+      const persona = activeProfile.persona || 'socio';
+      const storeSlug = activeProfile.persona === 'gerente' ? activeProfile.lojaSlug : undefined;
+      const fullVehicleLabel = `${resolvedIdentity.marca} ${resolvedIdentity.modelo}`.trim();
+      const coordinator = new TemparioHybridCoordinator(db);
+
+      const queryResp = await coordinator.coordinateQuery({
+        rawQuery: `${fullVehicleLabel} ${extractedFollowUp.ano || ''} ${pendingPlateCtx.servicos.join(' ')}`.trim(),
+        veiculoMarcaModelo: fullVehicleLabel,
+        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+        motorTexto: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao,
+        placa: pendingPlateCtx.placa,
+        servicosSolicitados: pendingPlateCtx.servicos,
+        securityContext: {
+          persona: persona as any,
+          authorizedLojaSlug: storeSlug,
+          authorizedStore: storeSlug
+        },
+        targetLojaSlug: storeSlug
+      });
+
+      const executionDbMsLocal = Date.now() - tDbStart;
+      const rawBalloons = composeTemparioExecutiveBalloon(queryResp);
+      const combinedReply = rawBalloons.join('\n\n---BLOCK---\n\n');
+      const sanitized = validateAndSanitizePublicResponse(combinedReply);
+      const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+      const totalMs = Date.now() - startTime;
+
+      saveTemparioPendingContext(db, phone, {
+        tipo: 'TEMPARIO_DISCLOSURE',
+        veiculo: queryResp.veiculoIdentificado || fullVehicleLabel,
+        motor: extractedFollowUp.motorTexto || resolvedIdentity.motorPadrao,
+        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+        placa: pendingPlateCtx.placa,
+        servicos: pendingPlateCtx.servicos,
+        queryResponse: queryResp,
+        createdAt: new Date().toISOString()
+      });
+
+      saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consultar_tempario_hibrido', null);
+      if (rawMessageId) {
+        markMessageCompleted(db, rawMessageId, {
+          messages,
+          replyText: sanitized.cleanText,
+          toolsCalled: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
+          motorUsed: 'FALLBACK_API',
+          latenciaMs: totalMs
+        });
+      }
+
+      insertAgentInteractionLog(db, {
+        phone,
+        conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+        message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+        pergunta: textoLimpo,
+        tools_chamadas: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
+        resposta_gerada: sanitized.cleanText,
+        latencia_ms: totalMs,
+        motor_utilizado: 'FALLBACK_API',
+        erro: null
+      });
+
+      return {
+        messages,
+        replyText: sanitized.cleanText,
+        toolsCalled: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
+        motor: 'FALLBACK_API',
+        latenciaMs: totalMs,
+        telemetry: {
+          queueWaitMs,
+          intentRewriteMs: 0,
+          executionDbMs: executionDbMsLocal,
+          llmMs: 0,
+          formatMs: 1,
+          totalMs
+        },
+        isFeedback: false
+      };
+    }
+  }
+
+  // 0.3 INTERCEPTAÇÃO DETERMINÍSTICA DE CONSULTA DE PLACA (Spec 064: APIBrasil & Cache SQLite)
+  const directPlateCheck = isDirectPlateQuery(textoLimpo);
+  if (directPlateCheck.isPlateQuery && directPlateCheck.placa) {
+    const plateRecord = await lookupVehiclePlate(db, directPlateCheck.placa);
+    const totalMs = Date.now() - startTime;
+
+    if (plateRecord) {
+      const plateBalloons = composePlateVehicleBalloon(plateRecord);
+      const combinedReply = plateBalloons.join('\n\n---BLOCK---\n\n');
+      const sanitized = validateAndSanitizePublicResponse(combinedReply);
+      const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+
+      saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consulta_placa_veicular', null);
+      if (rawMessageId) {
+        markMessageCompleted(db, rawMessageId, {
+          messages,
+          replyText: sanitized.cleanText,
+          toolsCalled: ['consulta_placa_veicular'],
+          motorUsed: 'FALLBACK_API',
+          latenciaMs: totalMs
+        });
+      }
+
+      insertAgentInteractionLog(db, {
+        phone,
+        conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+        message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+        pergunta: textoLimpo,
+        tools_chamadas: ['consulta_placa_veicular'],
+        resposta_gerada: sanitized.cleanText,
+        latencia_ms: totalMs,
+        motor_utilizado: 'FALLBACK_API',
+        erro: null
+      });
+
+      return {
+        messages,
+        replyText: sanitized.cleanText,
+        toolsCalled: ['consulta_placa_veicular'],
+        motor: 'FALLBACK_API',
+        latenciaMs: totalMs,
+        telemetry: {
+          queueWaitMs,
+          intentRewriteMs: 0,
+          executionDbMs: 1,
+          llmMs: 0,
+          formatMs: 1,
+          totalMs
+        },
+        isFeedback: false
+      };
+    } else {
+      const fallbackMsg = `> *Consulta Veicular*\n- Não foi possível localizar dados cadastrais para a placa *${directPlateCheck.placa}* na base nacional ou histórico da rede.\n- Verifique se a placa foi informada corretamente.`;
+      const messages = [fallbackMsg];
+
+      saveConversationMessage(db, phone, 'assistant', fallbackMsg, 'consulta_placa_veicular', null);
+      if (rawMessageId) {
+        markMessageCompleted(db, rawMessageId, {
+          messages,
+          replyText: fallbackMsg,
+          toolsCalled: ['consulta_placa_veicular'],
+          motorUsed: 'FALLBACK_API',
+          latenciaMs: totalMs
+        });
+      }
+
+      return {
+        messages,
+        replyText: fallbackMsg,
+        toolsCalled: ['consulta_placa_veicular'],
+        motor: 'FALLBACK_API',
+        latenciaMs: totalMs,
+        telemetry: {
+          queueWaitMs,
+          intentRewriteMs: 0,
+          executionDbMs: 1,
+          llmMs: 0,
+          formatMs: 1,
           totalMs
         },
         isFeedback: false
@@ -1209,6 +1483,260 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         queueWaitMs,
         intentRewriteMs,
         executionDbMs: 0,
+        llmMs: 0,
+        formatMs: 0,
+        totalMs
+      },
+      isFeedback: false,
+      contract: canonical.contract
+    };
+  }
+
+  // 3.0.4 TEMPÁRIO TÉCNICO HÍBRIDO AUTOMOTIVO (Spec 054 / 061 / 062 Fast-Path)
+  if (canonical.intent === 'TEMPARIO_TEMPO_SERVICO' || canonical.contract?.operation === 'TEMPARIO_TEMPO_SERVICO' || isTemparioTechnicalQuery(textoLimpo)) {
+    const tDbStart = Date.now();
+    const coordinator = new TemparioHybridCoordinator(db);
+
+    const extracted = extractTemparioEntitiesFromText(textoLimpo);
+    let targetVeiculo = canonical.veiculo || canonical.vehicleModel || extracted.veiculo;
+    let targetMotor = (canonical as any).motorTexto || extracted.motorTexto;
+    let targetAno = canonical.contract?.entities?.ano as number | undefined || extracted.ano;
+    const targetPlaca = canonical.placa || extracted.placa;
+    const targetOsId = canonical.osId || extracted.osId;
+    const serviceTerms = (canonical.serviceTerms && canonical.serviceTerms.length > 0)
+      ? canonical.serviceTerms
+      : extracted.serviceTerms;
+
+    const persona = activeProfile.persona || 'socio';
+    const storeSlug = activeProfile.persona === 'gerente' ? activeProfile.lojaSlug : (canonical.lojaSlug || undefined);
+
+    // Se veículo veio genérico ou ausente, tenta resolver via Placa ou OS no banco
+    if (!targetVeiculo || !isValidVehicleForPersistence(undefined, targetVeiculo)) {
+      if (targetPlaca || targetOsId) {
+        const resolved = await resolveVehicleFromPlateOrOs(db, {
+          placa: targetPlaca,
+          osId: targetOsId,
+          restrictLojaSlug: storeSlug
+        });
+        if (resolved && resolved.veiculo && isValidVehicleForPersistence(undefined, resolved.veiculo)) {
+          targetVeiculo = resolved.veiculo;
+          if (!targetAno && resolved.ano) {
+            targetAno = resolved.ano;
+          }
+          if (!targetMotor && resolved.motor) {
+            targetMotor = resolved.motor;
+          }
+        }
+      }
+    }
+
+    // Spec 067: Se uma placa foi informada mas não consta no ERP nem na base externa (e o usuário não disse o modelo na frase),
+    // NUNCA deixar o operador no vácuo sem preço. Entrega de imediato a Estimativa de Referência (Linha Passeio Padrão)
+    // a R$ 270,00/h com as 4 opções ativas e convite claro para refinar o modelo.
+    if (targetPlaca && (!targetVeiculo || !isValidVehicleForPersistence(undefined, targetVeiculo))) {
+      const effectiveServices = serviceTerms.length > 0
+        ? serviceTerms
+        : [textoLimpo.replace(new RegExp(targetPlaca, 'ig'), '').trim()].filter(Boolean);
+
+      const lastAudit = getLastPlateDiagnostic(targetPlaca);
+      let diagNotice = 'Placa sem histórico de OS no ERP da rede';
+      if (lastAudit?.status === 'APIBRASIL_INSUFFICIENT_BALANCE') {
+        diagNotice = 'Placa sem histórico no ERP (APIBrasil: conta sem saldo para busca automática — recarregue em app.apibrasil.io)';
+      } else if (lastAudit?.status === 'APIBRASIL_NO_ACTIVE_PLAN') {
+        diagNotice = 'Placa sem histórico no ERP (APIBrasil: conta sem plano ativo de veículos — ative em app.apibrasil.io)';
+      } else if (lastAudit?.status === 'APIBRASIL_NOT_FOUND') {
+        diagNotice = 'Placa sem histórico no ERP e não localizada no cadastro externo';
+      }
+
+      const queryResp = await coordinator.coordinateQuery({
+        rawQuery: `${effectiveServices.join(' ')} linha passeio`,
+        veiculoMarcaModelo: 'Linha Passeio (Referência Padrão)',
+        ano: targetAno,
+        motorTexto: targetMotor,
+        placa: targetPlaca,
+        servicosSolicitados: effectiveServices,
+        securityContext: {
+          persona: persona as any,
+          authorizedLojaSlug: storeSlug,
+          authorizedStore: storeSlug
+        },
+        targetLojaSlug: storeSlug,
+        turnId: canonical.turnId
+      });
+
+      const enrichedQueryResp = {
+        ...queryResp,
+        isEstimativaReferencia: true,
+        diagnosticoPlaca: diagNotice
+      };
+
+      executionDbMs = Date.now() - tDbStart;
+
+      const normUserQuery = normalizarTexto(textoLimpo);
+      const asksPecasDirectly = /\b(peca|pecas|com pecas|incluindo pecas)\b/i.test(normUserQuery);
+      const asksFerramentasDirectly = /\b(ferramenta|ferramentas|com ferramentas|ferramental)\b/i.test(normUserQuery);
+      const asksPassosDirectly = /\b(passo a passo|procedimento|passos|como fazer|como trocar)\b/i.test(normUserQuery);
+
+      const rawBalloons = composeTemparioExecutiveBalloon(enrichedQueryResp, {
+        placaConsultada: targetPlaca,
+        includePecasDirectly: asksPecasDirectly,
+        includeFerramentasDirectly: asksFerramentasDirectly,
+        includePassosDirectly: asksPassosDirectly
+      });
+      const combinedReply = rawBalloons.join('\n\n---BLOCK---\n\n');
+      const sanitized = validateAndSanitizePublicResponse(combinedReply);
+      const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+      const totalMs = Date.now() - startTime;
+
+      saveTemparioPendingContext(db, phone, {
+        tipo: 'TEMPARIO_DISCLOSURE',
+        veiculo: 'Linha Passeio (Referência Padrão)',
+        placa: targetPlaca,
+        ano: targetAno,
+        motor: targetMotor,
+        servicos: effectiveServices,
+        queryResponse: enrichedQueryResp,
+        createdAt: new Date().toISOString()
+      });
+
+      saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consultar_tempario_hibrido', null);
+      if (rawMessageId) {
+        markMessageCompleted(db, rawMessageId, {
+          messages,
+          replyText: sanitized.cleanText,
+          toolsCalled: ['consultar_tempario_hibrido'],
+          motorUsed: 'FALLBACK_API',
+          latenciaMs: totalMs
+        });
+      }
+
+      insertAgentInteractionLog(db, {
+        phone,
+        conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+        message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+        pergunta: textoLimpo,
+        tools_chamadas: ['consultar_tempario_hibrido'],
+        resposta_gerada: sanitized.cleanText,
+        latencia_ms: totalMs,
+        motor_utilizado: 'FALLBACK_API',
+        erro: null
+      });
+
+      return {
+        messages,
+        replyText: sanitized.cleanText,
+        toolsCalled: ['consultar_tempario_hibrido'],
+        motor: 'FALLBACK_API',
+        latenciaMs: totalMs,
+        telemetry: {
+          queueWaitMs,
+          intentRewriteMs,
+          executionDbMs,
+          llmMs: 0,
+          formatMs: 1,
+          totalMs
+        },
+        isFeedback: false
+      };
+    }
+
+    const queryResp = await coordinator.coordinateQuery({
+      rawQuery: textoLimpo,
+      veiculoMarcaModelo: targetVeiculo || 'Veículo',
+      ano: targetAno,
+      motorTexto: targetMotor,
+      placa: targetPlaca,
+      osId: targetOsId,
+      servicosSolicitados: serviceTerms.length > 0 ? serviceTerms : [textoLimpo],
+      securityContext: {
+        persona: persona as any,
+        authorizedLojaSlug: storeSlug,
+        authorizedStore: storeSlug
+      },
+      targetLojaSlug: storeSlug,
+      turnId: canonical.turnId
+    });
+
+    executionDbMs = Date.now() - tDbStart;
+
+    const normUserQuery = normalizarTexto(textoLimpo);
+    const asksPecasDirectly = /\b(peca|pecas|com pecas|incluindo pecas)\b/i.test(normUserQuery);
+    const asksFerramentasDirectly = /\b(ferramenta|ferramentas|com ferramentas|ferramental)\b/i.test(normUserQuery);
+    const asksPassosDirectly = /\b(passo a passo|procedimento|passos|como fazer|como trocar)\b/i.test(normUserQuery);
+
+    const rawBalloons = composeTemparioExecutiveBalloon(queryResp, {
+      includePecasDirectly: asksPecasDirectly,
+      includeFerramentasDirectly: asksFerramentasDirectly,
+      includePassosDirectly: asksPassosDirectly
+    });
+    const combinedReply = rawBalloons.join('\n\n---BLOCK---\n\n');
+    const sanitized = validateAndSanitizePublicResponse(combinedReply);
+    const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+    const totalMs = Date.now() - startTime;
+
+    saveTemparioPendingContext(db, phone, {
+      tipo: 'TEMPARIO_DISCLOSURE',
+      veiculo: targetVeiculo || queryResp.veiculoIdentificado || 'Veículo',
+      motor: targetMotor,
+      ano: targetAno,
+      placa: targetPlaca,
+      servicos: serviceTerms.length > 0 ? serviceTerms : [textoLimpo],
+      queryResponse: queryResp,
+      createdAt: new Date().toISOString()
+    });
+
+    saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consultar_tempario_hibrido', null);
+    saveTurnState(db, {
+      phone,
+      lastTurnId: canonical.turnId,
+      lastIntent: 'TEMPARIO_TEMPO_SERVICO',
+      lojaSlug: storeSlug,
+      filters: {
+        veiculo: targetVeiculo,
+        motor: targetMotor,
+        servicos: serviceTerms
+      },
+      lastContract: canonical.contract,
+      lastMessageId: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+      lastResponseText: sanitized.cleanText,
+      updatedAt: new Date().toISOString()
+    });
+
+    if (rawMessageId) {
+      markMessageCompleted(db, rawMessageId, {
+        messages,
+        replyText: sanitized.cleanText,
+        toolsCalled: ['consultar_tempario_hibrido'],
+        motorUsed: 'FALLBACK_API',
+        latenciaMs: totalMs
+      });
+    }
+
+    insertAgentInteractionLog(db, {
+      phone,
+      conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+      message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+      pergunta: textoLimpo,
+      tools_chamadas: ['consultar_tempario_hibrido'],
+      resposta_gerada: sanitized.cleanText,
+      latencia_ms: totalMs,
+      motor_utilizado: 'FALLBACK_API'
+    });
+
+    appendConversationToDailyDiary(phone, textoLimpo, sanitized.cleanText, {
+      turnId: canonical.turnId
+    });
+
+    return {
+      messages,
+      replyText: sanitized.cleanText,
+      toolsCalled: ['consultar_tempario_hibrido'],
+      motor: 'FALLBACK_API',
+      latenciaMs: totalMs,
+      telemetry: {
+        queueWaitMs,
+        intentRewriteMs,
+        executionDbMs,
         llmMs: 0,
         formatMs: 0,
         totalMs

@@ -4,6 +4,36 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-11-04] — [Feature ID: 067-diagnostico-apibrasil-e-estimativa-imediata]
+**Contexto:** Resolução definitiva do vácuo de orçamento e bloqueio conversacional quando uma placa automotiva não é encontrada no ERP nem na base externa APIBrasil (devido a saldo zerado na conta do usuário ou placa sem histórico). Implementação do Tempário de Referência Imediato (Linha Passeio Padrão a R$ 270,00/h com as 4 opções de detalhamento técnico), diagnóstico transparente do status de cota/plano da APIBrasil Gateway V2, e preservação de refinamento posterior do veículo sem perda de contexto.
+**Regra aprendida:**
+1. Zero Vácuo Orçamentário de Oficina: Em ambiente de balcão e WhatsApp, mecânicos e gestores não podem ser deixados em um beco sem saída ("Qual o modelo e ano?") sem receber previamente a referência de horas técnicas e valores. O sistema deve emitir imediatamente a estimativa paramétrica de Linha Passeio Padrão (ex: motor de partida a 1,10h = R$ 297,00) com faixa de tolerância e etapas do grafo de acesso.
+2. Diagnóstico Transparente de Gateway Veicular: Códigos HTTP da APIBrasil como 402 ("Saldo insuficiente") e 404 ("Plano ativo não encontrado") não devem gerar erros genéricos nem silenciar o bot. Eles são traduzidos em avisos objetivos e educados no balão executivo, orientando a recarga em `app.apibrasil.io` enquanto a operação prossegue com a referência padrão.
+3. Progressive Disclosure Preservado com Estimativa de Referência: Mesmo quando o veículo é baseado na estimativa padrão de passeio, as 4 opções de detalhamento (1: Peças, 2: Ferramentas e Torques, 3: Passo a passo, 4: Completo) permanecem 100% ativas no contexto pendente (`TEMPARIO_DISCLOSURE`), permitindo que o mecânico consulte torques e ferramentas sem travas.
+4. Auto-Vinculação Conversacional Assíncrona no Turno 2: Se o usuário responde em seguida com modelo e ano (ex: "Palio 1.0 2012"), o interceptador de contexto atualiza o cache L1 da placa em SQLite WAL e emite imediatamente o balão executivo refinado e calibrado para o veículo real.
+**Risco identificado:** A APIBrasil alterar os schemas das mensagens de erro ou mudar endpoints de consulta de saldo. Mitigado por mapeamento tolerante a falhas e fallback estruturado para `/api/v2/consulta/veiculos/credits` e `/api/v2/vehicles/dados`.
+**Não fazer:**
+- Nunca responder com pergunta pura bloqueante de modelo/ano sem entregar previamente a estimativa imediata de mão de obra.
+- Nunca fabricar nomes de modelos ou montadoras fantasmas no banco de dados para representar veículos não cadastrados.
+- Nunca deixar de auditar o status diagnóstico da consulta externa de placa.
+- Nunca usar taxas de mão de obra divergentes da taxa oficial da rede (R$ 270,00/h).
+- Nunca enviar mensagens através de instâncias de gerentes de loja.
+
+
+## [2026-11-04] — [Feature ID: 064-api-brasil-placa-lookup]
+**Contexto:** Implementação de consulta veicular direta por placa no WhatsApp e enriquecimento automático de contexto para o Tempário Técnico Híbrido, substituindo o scraping legado do ERP Oficina Inteligente pela APIBrasil Gateway V2 com política L1/L2/L3 de preservação de cota gratuita e balões nativos no design system Hermes V2.
+**Regra aprendida:**
+1. Estratégia de Caching em Três Níveis (L1 -> L2 -> L3): Cada placa veicular é consultada externamente na APIBrasil no máximo uma única vez. A verificação prioritária ocorre em L1 na tabela SQLite WAL local `placa_lookup_cache` (< 2ms). Em caso de cache miss, o sistema busca em L2 nas ordens de serviço históricas da rede (`ordens_servico`), promovendo automaticamente os dados para o cache L1. Apenas em cache miss total ocorre a chamada externa em L3 à APIBrasil com persistência atômica imediata.
+2. Integração Transparente com Tempário Técnico: Quando o usuário envia uma consulta de tempário citando apenas a placa (ex: "quanto tempo e valor de mao de obra pra trocar farol e radiador da placa GOL7F14"), o orquestrador `tempario_hybrid_coordinator` resolve de forma assíncrona o modelo, ano e motorização do carro via `lookupVehiclePlate`, alimentando diretamente o Fast-Path tabelado da Rede (R$ 270,00/h) sem exigir OS prévia no pátio.
+3. Isolamento Sintático de Intenções: A detecção de consultas cadastrais de placa ("placa ABC1234", "consulta placa XYZ") via `isDirectPlateQuery` isola estritamente comandos de consulta simples de mensagens operacionais complexas de tempário ou situação de OS, evitando falsos-positivos e garantindo despacho em < 15ms.
+4. Progressive Disclosure no Tempário: Respostas de tempário técnico dividem-se em card inicial executivo (tempo líquido, valor em R$ a 270/h, peças e opções numeradas) e cards detalhados sob demanda (1: Peças, 2: Ferramentas e Torques, 3: Passo a passo, 4: Completo), mantendo legibilidade operacional no WhatsApp.
+**Risco identificado:** Exaustão de cota na APIBrasil quando não houver plano ativo. Mitigado por fallback resiliente de tokens e auto-persistência permanente no SQLite WAL local.
+**Não fazer:**
+- Nunca consultar a API externa de placas se a placa já constar em `placa_lookup_cache` ou no histórico de ordens de serviço.
+- Nunca calcular valores de mão de obra de tempário com taxas divergentes do padrão estrito da rede (R$ 270,00/h).
+- Nunca disparar mensagens pelo WhatsApp com remetente de gerentes de loja.
+
+
 ## [2026-10-27] — [Feature ID: 033-robustez-definitiva-esteira-rede]
 **Contexto:** Eliminação definitiva das falhas estruturais na esteira noturna e matinal da Rede: lojas zeradas prematuras (caso Santo André com R$ 0,00 na Rede e R$ 7.481 no Pátio), queda de socket da instância WhatsApp na Evolution API às 08:00 AM, e contaminação indevida de transações de PIX da maquininha no relatório contábil de juros/taxas de cartão de crédito e débito.
 **Regra aprendida:**

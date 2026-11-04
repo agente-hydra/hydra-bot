@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { OsConversationGraphLinker } from './os_conversation_graph_linker.js';
 import type { CanonicalIntent } from './intent_rewriter.js';
 import {
   retrieveOperationalData,
@@ -49,6 +50,8 @@ import {
   queryConversationHistory,
   formatConversationHistoryReply
 } from './conversation_history_service.js';
+import { TemparioHybridCoordinator } from './tempario_hybrid_coordinator.js';
+import { composeTemparioHermesBalloon } from './balloon_composer.js';
 
 export interface OperationalExecutionResult {
   source: string;
@@ -947,6 +950,70 @@ async function _executeOperationalQueryCore(
     };
   }
 
+  // 1.0.2 Consulta de Conversas / Atendimento / Grafo da OS (Spec 059)
+  if (intent.intent === 'os_conversation' || intent.contract?.operation === 'os_conversation') {
+    const linker = new OsConversationGraphLinker(db);
+    const osId = intent.osId ? Number(intent.osId) : undefined;
+    const placa = intent.placa ? intent.placa.trim().toUpperCase() : undefined;
+    const storeSlug = intent.lojaSlug;
+
+    let replyText = '';
+    const toolsCalled: string[] = ['graph_case_query'];
+
+    if (osId) {
+      const caseView = storeSlug ? linker.getOsCaseGraphView(storeSlug, osId) : null;
+      const linkedConvs = linker.findLinkedConversationsForOs(storeSlug || '%', osId);
+
+      const header = `> *Raio-X de Atendimento — OS #${osId}${storeSlug ? ` (${storeSlug})` : ''}*`;
+      const lines: string[] = [header];
+
+      if (caseView) {
+        lines.push(`- *Veículo:* ${caseView.vehicleModel || 'Veículo'} (${caseView.vehiclePlate || 'Sem placa'})`);
+        lines.push(`- *Status ERP:* *${caseView.currentErpStatus}*`);
+        if (caseView.delayReason) {
+          lines.push(`- *Motivo de atraso relatado:* ${caseView.delayReason}`);
+        }
+        if (caseView.nextPromisedStep) {
+          lines.push(`- *Próximo passo prometido:* ${caseView.nextPromisedStep}`);
+        }
+      }
+
+      if (linkedConvs.length > 0) {
+        lines.push(`\n*Conversas no Chatwoot vinculadas (${linkedConvs.length}):*`);
+        for (const c of linkedConvs) {
+          lines.push(`*Conversa #${c.conversationId}* (Vínculo: ${c.linkMethod})`);
+          lines.push(`  └ Chatwoot: ${c.chatwootUrl}`);
+          if (c.waLink) lines.push(`  └ WhatsApp: ${c.waLink}`);
+        }
+      } else {
+        lines.push(`\n*Conversas no Chatwoot:* Nenhuma conversa diretamente vinculada no grafo.`);
+        lines.push(`  └ Acessar Chatwoot: https://chat.tork.services/app/accounts/1/conversations`);
+      }
+
+      if (caseView && caseView.recentFacts && caseView.recentFacts.length > 0) {
+        lines.push(`\n*Fatos Recentes Identificados:*`);
+        for (const f of caseView.recentFacts.slice(0, 5)) {
+          lines.push(`- [${f.date}] *${f.subject}:* "${f.excerpt}" (${f.author})`);
+        }
+      }
+
+      replyText = sanitizeWhatsAppMarkdown(lines.join('\n'));
+    } else if (placa) {
+      const header = `> *Atendimento & Conversas — Placa ${placa}${storeSlug ? ` (${storeSlug})` : ''}*`;
+      replyText = sanitizeWhatsAppMarkdown(`${header}\n- Para consultar o histórico direto no Chatwoot: https://chat.tork.services/app/accounts/1/contacts/search?q=${encodeURIComponent(placa)}`);
+    } else {
+      replyText = sanitizeWhatsAppMarkdown(`> *Central de Atendimento & Chatwoot*\n- Acessar painel geral: https://chat.tork.services/app/accounts/1/conversations\n- Para consultar uma conversa específica, informe o número da OS ou a placa do veículo.`);
+    }
+
+    return {
+      source: 'GRAPH_CASE_ENGINE',
+      records: [],
+      filtersApplied: { osId, placa, storeSlug },
+      replyText,
+      toolsCalled
+    };
+  }
+
   if (intent.needsClarification) {
     const text = intent.clarificationMessage || 'Por favor, detalhe se voc? deseja consultar uma loja, placa ou resumo de ordens abertas.';
     return {
@@ -990,6 +1057,44 @@ async function _executeOperationalQueryCore(
 
   const lojaSlug = intent.lojaSlug;
   const canonicalQ = (intent.canonicalQuestion || '').toLowerCase();
+
+  // 1.0.3 Consulta de Tempário Técnico Automotivo (Spec 054 / 061 / 062)
+  if (intent.intent === 'TEMPARIO_TEMPO_SERVICO' || intent.contract?.operation === 'TEMPARIO_TEMPO_SERVICO') {
+    const coordinator = new TemparioHybridCoordinator(db);
+    const persona = (intent.contract?.entities as any)?.persona || (intent.lojaSlug ? 'gerente' : 'socio');
+    const queryResp = await coordinator.coordinateQuery({
+      rawQuery: intent.canonicalQuestion || '',
+      veiculoMarcaModelo: intent.veiculo || intent.vehicleModel || '',
+      ano: intent.contract?.entities?.ano as number | undefined,
+      motorTexto: (intent as any).motorTexto,
+      placa: intent.placa,
+      osId: intent.osId,
+      servicosSolicitados: intent.serviceTerms || [],
+      securityContext: {
+        persona: persona as any,
+        authorizedLojaSlug: intent.lojaSlug,
+        authorizedStore: intent.lojaSlug
+      },
+      targetLojaSlug: intent.lojaSlug,
+      turnId: intent.turnId
+    });
+
+    const balloons = composeTemparioHermesBalloon(queryResp);
+    const replyText = sanitizeWhatsAppMarkdown(balloons.join('\n\n---BLOCK---\n\n'));
+
+    return {
+      source: queryResp.retrievalMethod,
+      records: [],
+      filtersApplied: {
+        veiculo: intent.veiculo,
+        motor: (intent as any).motorTexto,
+        servicos: intent.serviceTerms,
+        lojaSlug: intent.lojaSlug
+      },
+      replyText,
+      toolsCalled: ['consultar_tempario_hibrido']
+    };
+  }
 
   // 2. Consulta de Perman?ncia no Pátio por Modelo de Veículo ("o Fiesta t? h? quanto tempo na loja?")
   if (intent.veiculo) {

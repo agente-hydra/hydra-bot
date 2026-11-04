@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import type { TurnContract, StructuredFilters } from './types/conversation_contract.js';
 import type { TurnPendingRequest } from './types/conversation_context_contract.js';
+import type { TemparioPendingContext } from './types/tempario_contract.js';
 
 export type IntentType =
   | 'list_os'
@@ -19,6 +20,7 @@ export type IntentType =
   | 'memory_preference'
   | 'conversation_correction'
   | 'vehicle_situation'
+  | 'TEMPARIO_TEMPO_SERVICO'
   | 'other';
 
 export interface TurnFilters extends StructuredFilters {
@@ -450,6 +452,108 @@ export function clearTurnPendingRequest(db: Database.Database, phone: string): v
   } catch (err: any) {
     console.error('[TURN_CONTEXT] Erro ao limpar pending request:', err?.message || err);
   }
+}
+
+/**
+ * Salva o contexto de detalhamento pendente de tempário para desdobramento progressivo (Spec 063).
+ */
+export function saveTemparioPendingContext(
+  db: Database.Database,
+  phone: string,
+  context: TemparioPendingContext
+): void {
+  ensureTurnContextTable(db);
+  const p = cleanPhone(phone);
+  if (!p) return;
+
+  try {
+    const nowIso = new Date().toISOString();
+    const reqJson = JSON.stringify(context);
+
+    const existing = db.prepare('SELECT phone FROM hydra_turn_contexts WHERE phone = ?').get(p);
+    if (existing) {
+      db.prepare(`
+        UPDATE hydra_turn_contexts
+        SET pending_request_json = ?, updated_at = ?
+        WHERE phone = ?
+      `).run(reqJson, nowIso, p);
+    } else {
+      db.prepare(`
+        INSERT INTO hydra_turn_contexts (
+          phone, last_turn_id, last_intent, loja_slug, placa, os_id,
+          filters_json, last_message_id, last_response_text, active_cursor,
+          pending_request_json, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        p,
+        `turn_tempario_${Date.now()}`,
+        'TEMPARIO_TEMPO_SERVICO',
+        null,
+        context.placa || null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        reqJson,
+        nowIso
+      );
+    }
+  } catch (err: any) {
+    console.error('[TURN_CONTEXT] Erro ao salvar tempario pending context:', err?.message || err);
+  }
+}
+
+/**
+ * Recupera o contexto de detalhamento pendente de tempário (Spec 063).
+ */
+export function getTemparioPendingContext(
+  db: Database.Database,
+  phone: string,
+  maxAgeMinutes: number = 120
+): TemparioPendingContext | null {
+  ensureTurnContextTable(db);
+  const p = cleanPhone(phone);
+  if (!p) return null;
+
+  try {
+    const row = db.prepare(`
+      SELECT pending_request_json, updated_at
+      FROM hydra_turn_contexts
+      WHERE phone = ?
+    `).get(p) as { pending_request_json?: string; updated_at?: string } | undefined;
+
+    if (!row || !row.pending_request_json) return null;
+
+    if (row.updated_at) {
+      const updatedAtMillis = new Date(row.updated_at).getTime();
+      if (Number.isFinite(updatedAtMillis)) {
+        const ageMs = Date.now() - updatedAtMillis;
+        if (ageMs > maxAgeMinutes * 60 * 1000) {
+          try {
+            db.prepare('UPDATE hydra_turn_contexts SET pending_request_json = NULL WHERE phone = ?').run(p);
+          } catch {}
+          return null;
+        }
+      }
+    }
+
+    const parsed = JSON.parse(row.pending_request_json);
+    if (parsed && parsed.tipo === 'TEMPARIO_DISCLOSURE') {
+      return parsed as TemparioPendingContext;
+    }
+    return null;
+  } catch (err: any) {
+    console.error('[TURN_CONTEXT] Erro ao recuperar tempario pending context:', err?.message || err);
+    return null;
+  }
+}
+
+/**
+ * Limpa o contexto de detalhamento de tempário (Spec 063).
+ */
+export function clearTemparioPendingContext(db: Database.Database, phone: string): void {
+  clearTurnPendingRequest(db, phone);
 }
 
 export function saveTurnCursor(db: Database.Database, cursor: TurnCursor): void {

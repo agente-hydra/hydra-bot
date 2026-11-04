@@ -5,7 +5,7 @@
  * Stack: TypeScript Strict (zero `any`, zero `@ts-ignore`)
  */
 
-import { PartItemReference } from './types/conversation_context_contract';
+import { PartItemReference } from './types/conversation_context_contract.js';
 
 export interface DelayCauseEvaluation {
   readonly hasValidEvidence: boolean;

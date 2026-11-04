@@ -38,7 +38,11 @@ export async function getEmbedder(): Promise<EmbeddingPipeline | null> {
   isLoading = true;
 
   try {
-    const { pipeline } = await import('@huggingface/transformers');
+    const moduleName = '@huggingface/transformers';
+    const hf = (await import(moduleName)) as {
+      pipeline: (task: string, model: string, options?: { quantized?: boolean }) => Promise<(text: string, opts?: { pooling?: string; normalize?: boolean }) => Promise<{ data: Float32Array }>>;
+    };
+    const pipeline = hf.pipeline;
     
     console.warn('[Embeddings] Inicializando Xenova/all-MiniLM-L6-v2 (quantized: true, CPU)...');
     const extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', ({ quantized: true } as any));

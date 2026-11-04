@@ -42,6 +42,8 @@ export interface InboundPart {
   partId?: string;
   type?: MediaKind;
   mediaUrl?: string;
+  url?: string;
+  isForwarded?: boolean;
   mimeType?: string;
   fileName?: string;
   fileSize?: number;

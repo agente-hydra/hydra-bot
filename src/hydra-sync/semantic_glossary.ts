@@ -26,7 +26,7 @@ import type {
   SemanticPeriod
 } from './types/semantic_contract.js';
 
-export type GlossaryCategory = 'metrica' | 'area' | 'loja' | 'sinonimo' | 'regra';
+export type GlossaryCategory = 'metrica' | 'area' | 'loja' | 'sinonimo' | 'regra' | 'tempario';
 
 export const OFFICIAL_AREAS = [
   'OLEO',
@@ -245,7 +245,18 @@ export const SEED_GLOSSARY: Array<Omit<GlossaryEntry, 'id'>> = [
   // Regras
   { categoria: 'regra', termo: 'excluir_master', termo_canonico: 'MASTER_EXCLUDED', descricao: 'A unidade MPMaster é administrativa e deve ser expurgada de comparativos e médias.' },
   { categoria: 'regra', termo: 'cmv_area_isolado', termo_canonico: 'ISOLATED_AREA_CMV', descricao: 'O CMV de área específica (ex: OLEO) deve ser calculado exclusivamente sobre faturamento_areas, sem fallback para o CMV geral da loja.' },
-  { categoria: 'regra', termo: 'orcamento_turno_50s', termo_canonico: 'GLOBAL_TURN_BUDGET_50S', descricao: 'O orçamento total de espera do turno é de 50s distribuído entre primário e secundário.' }
+  { categoria: 'regra', termo: 'orcamento_turno_50s', termo_canonico: 'GLOBAL_TURN_BUDGET_50S', descricao: 'O orçamento total de espera do turno é de 50s distribuído entre primário e secundário.' },
+
+  // Tempário Técnico Automotivo (Spec 054)
+  { categoria: 'tempario', termo: 'tempario', termo_canonico: 'TEMPARIO', descricao: 'Tempário técnico de mão de obra e tempos de oficina' },
+  { categoria: 'tempario', termo: 'tempário', termo_canonico: 'TEMPARIO', descricao: 'Tempário técnico de mão de obra e tempos de oficina' },
+  { categoria: 'tempario', termo: 'tempo de mao de obra', termo_canonico: 'TEMPARIO', descricao: 'Tempo padrão de mão de obra de reparo' },
+  { categoria: 'tempario', termo: 'tempo de mão de obra', termo_canonico: 'TEMPARIO', descricao: 'Tempo padrão de mão de obra de reparo' },
+  { categoria: 'tempario', termo: 'tempo tabelado', termo_canonico: 'TEMPARIO', descricao: 'Tempo tabelado de serviço OEM' },
+  { categoria: 'tempario', termo: 'horas de servico', termo_canonico: 'TEMPARIO', descricao: 'Horas de serviço mecânico tabelado' },
+  { categoria: 'tempario', termo: 'horas de serviço', termo_canonico: 'TEMPARIO', descricao: 'Horas de serviço mecânico tabelado' },
+  { categoria: 'tempario', termo: 'quanto tempo leva pra trocar', termo_canonico: 'TEMPARIO', descricao: 'Consulta de tempo padrão de substituição de componentes' },
+  { categoria: 'tempario', termo: 'sub-operacoes', termo_canonico: 'TEMPARIO', descricao: 'Etapas de execução técnica e grafo de dependência física' }
 ];
 
 /**

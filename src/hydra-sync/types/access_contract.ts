@@ -2,7 +2,14 @@
  * Contrato de Identidade, Acesso e Autorização Segregada do Hydra
  */
 
-export type UserRole = 'socio' | 'gerente' | 'operador';
+export type UserRole = 'owner' | 'admin' | 'socio' | 'gerente' | 'operador';
+
+export const CONVERSATION_ALLOWED_ROLES: ReadonlyArray<UserRole> = ['owner', 'admin', 'socio'] as const;
+
+export function isConversationAllowedRole(role?: string | null): boolean {
+  if (!role) return false;
+  return role === 'owner' || role === 'admin' || role === 'socio';
+}
 
 export interface AuthorizedUser {
   phone: string; // E.164 canônico: '5511996242812'

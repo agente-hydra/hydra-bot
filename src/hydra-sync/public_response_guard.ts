@@ -439,7 +439,7 @@ export function validateAndSanitizePublicResponse(
   if (policy.blockInternalSchemas) {
     const schemaPatterns = [
       /\b(?:SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|ALTER TABLE)\b[\s\S]{3,50}\b(?:FROM|INTO|SET|TABLE)\b/gi,
-      /\b(?:hydra_ops\.db|better-sqlite3|sqlite3|hydra_memories|conversation_messages|hydra_user_profiles|hydra_user_memory|hydra_turns)\b/gi,
+      /\b(?:hydra_ops\.db|better-sqlite3|sqlite3|hydra_memories|conversation_messages|hydra_user_profiles|hydra_user_memory|hydra_turns|tempario_vehicles|tempario_engines|tempario_operations|tempario_suboperations|tempario_dependencies_edges|tempario_procedure_chunks|vec_tempario_chunks|tempario_external_estimates_staging)\b/gi,
       /\bFROM\s+[\w_]+(?:\s+WHERE|\s+LIMIT|\s+GROUP|\s+ORDER|\b)/gi
     ];
 
@@ -456,7 +456,7 @@ export function validateAndSanitizePublicResponse(
   if (policy.blockToolNames) {
     const toolPatterns = [
       /\bmcp:[\w\-]+/gi,
-      /\b(?:get_aging_cars|get_daily_revenue|get_monthly_revenue|get_cmv|get_os_list|get_os_details|get_store_overview|get_checklist_audit|search_os|semantic_search_os|retrieve_operational_data)\b/gi
+      /\b(?:get_aging_cars|get_daily_revenue|get_monthly_revenue|get_cmv|get_os_list|get_os_details|get_store_overview|get_checklist_audit|search_os|semantic_search_os|retrieve_operational_data|consultar_tempario_hibrido)\b/gi
     ];
 
     for (const pat of toolPatterns) {

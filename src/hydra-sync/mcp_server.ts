@@ -25,6 +25,7 @@ import { processarDecisaoAuditada } from './decision_engine.js';
 import { retrieveOperationalData } from './hybrid_retrieval.js';
 import { resolveCaseContextByOs, buildCaseOperationalSummary } from './case_memory_reader.js';
 import { handleConsultarContasPagar } from './mcp_contas_pagar.js';
+import { TemparioHybridCoordinator } from './tempario_hybrid_coordinator.js';
 
 const server = new Server(
   {
@@ -304,6 +305,51 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               default: 20,
             },
           },
+        },
+      },
+      {
+        name: 'consultar_tempario_hibrido',
+        description: 'Consulta tempos padrões de mão de obra (tempário) via RAG vetorial + grafo de dependências físicas de acesso + cruzamento com histórico real de pátio das oficinas da rede.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            veiculo: {
+              type: 'string',
+              description: 'Modelo ou marca do veículo (ex: "Golf", "Onix", "Civic")',
+            },
+            ano: {
+              type: 'number',
+              description: 'Ano de fabricação/modelo do veículo (ex: 2020)',
+            },
+            motor: {
+              type: 'string',
+              description: 'Motorização do veículo (ex: "1.4 TSI", "EA211", "1.0")',
+            },
+            placa: {
+              type: 'string',
+              description: 'Placa do veículo no formato Mercosul ou antigo (ex: "FCK2E73", "EUS5006")',
+            },
+            os_id: {
+              type: 'string',
+              description: 'Número da Ordem de Serviço no ERP (opcional)',
+            },
+            servicos: {
+              type: 'array',
+              items: { type: 'string' },
+              description: 'Lista de serviços solicitados (ex: ["Substituição do Farol Dianteiro Esquerdo", "Substituição do Radiador de Arrefecimento"])',
+            },
+            loja_slug: {
+              type: 'string',
+              description: 'Slug da loja para isolamento de dados do pátio (obrigatório se persona for gerente)',
+            },
+            persona: {
+              type: 'string',
+              enum: ['socio', 'gerente', 'atendente', 'admin'],
+              description: 'Perfil de segurança do usuário solicitante (padrão: "socio")',
+              default: 'socio',
+            },
+          },
+          required: ['veiculo', 'servicos'],
         },
       },
     ],
@@ -701,6 +747,42 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: 'text',
               text: JSON.stringify(dados, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'consultar_tempario_hibrido': {
+        const veiculo = String(args?.veiculo || '').trim();
+        const ano = args?.ano ? Number(args.ano) : undefined;
+        const motor = args?.motor ? String(args.motor).trim() : undefined;
+        const placa = args?.placa ? String(args.placa).trim().toUpperCase() : undefined;
+        const osId = args?.os_id ? String(args.os_id).trim() : undefined;
+        const servicos = Array.isArray(args?.servicos) ? args.servicos.map(String) : [];
+        const lojaSlug = args?.loja_slug ? String(args.loja_slug).trim() : undefined;
+        const persona = String(args?.persona || 'socio').toLowerCase();
+
+        const coordinator = new TemparioHybridCoordinator(db);
+        const result = await coordinator.coordinateQuery({
+          rawQuery: `${placa || ''} ${veiculo} ${ano || ''} ${motor || ''} ${servicos.join(' ')}`.trim(),
+          veiculoMarcaModelo: veiculo || 'Veículo',
+          ano,
+          motorTexto: motor,
+          placa,
+          osId,
+          servicosSolicitados: servicos,
+          securityContext: {
+            persona: persona as any,
+            authorizedLojaSlug: lojaSlug,
+          },
+          targetLojaSlug: lojaSlug,
+        });
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
             },
           ],
         };

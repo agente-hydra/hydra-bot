@@ -111,6 +111,155 @@ export function ensureCaseAnalysisTables(db: Database.Database): void {
       );
       CREATE INDEX IF NOT EXISTS idx_graph_projections_loja ON hydra_case_graph_projections(loja_slug);
       CREATE INDEX IF NOT EXISTS idx_graph_projections_valid ON hydra_case_graph_projections(is_valid, is_intact);
+
+      -- Tabelas do Grafo Relacional e Atendimentos (Spec 059)
+      CREATE TABLE IF NOT EXISTS hydra_case_graph_nodes (
+        node_id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        label TEXT NOT NULL,
+        account_id TEXT NOT NULL DEFAULT '1',
+        loja_slug TEXT NOT NULL,
+        attributes_json TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_graph_nodes_type_loja ON hydra_case_graph_nodes(entity_type, loja_slug);
+
+      CREATE TABLE IF NOT EXISTS hydra_case_graph_edges (
+        edge_id TEXT PRIMARY KEY,
+        from_node_id TEXT NOT NULL,
+        to_node_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'ACTIVE',
+        version INTEGER NOT NULL DEFAULT 1,
+        link_method TEXT NOT NULL,
+        confidence TEXT NOT NULL DEFAULT 'HIGH',
+        loja_slug TEXT NOT NULL,
+        evidence_ref TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_graph_edges_from ON hydra_case_graph_edges(from_node_id, status);
+      CREATE INDEX IF NOT EXISTS idx_graph_edges_to ON hydra_case_graph_edges(to_node_id, status);
+      CREATE INDEX IF NOT EXISTS idx_graph_edges_loja ON hydra_case_graph_edges(loja_slug, relation_type);
+
+      CREATE TABLE IF NOT EXISTS hydra_case_current_position (
+        loja_slug TEXT NOT NULL,
+        os_id INTEGER NOT NULL,
+        source_id TEXT NOT NULL DEFAULT 'chatwoot',
+        account_id TEXT NOT NULL DEFAULT '1',
+        vehicle_plate TEXT,
+        vehicle_model TEXT,
+        customer_name TEXT,
+        customer_phone TEXT,
+        current_erp_status TEXT,
+        reported_delay_cause TEXT,
+        reported_delay_author TEXT,
+        reported_delay_role TEXT,
+        reported_delay_at TEXT,
+        reported_delay_raw TEXT,
+        next_promised_step TEXT,
+        part_dependencies_json TEXT,
+        commitments_summary TEXT,
+        active_gaps_json TEXT,
+        last_covered_timestamp TEXT,
+        projection_version INTEGER NOT NULL DEFAULT 1,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (loja_slug, os_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_case_position_plate ON hydra_case_current_position(vehicle_plate);
+      CREATE INDEX IF NOT EXISTS idx_case_position_phone ON hydra_case_current_position(customer_phone);
+
+      CREATE TABLE IF NOT EXISTS hydra_conversation_os_links (
+        conversation_id INTEGER NOT NULL,
+        os_id INTEGER NOT NULL,
+        loja_slug TEXT NOT NULL,
+        link_method TEXT NOT NULL,
+        confidence TEXT NOT NULL DEFAULT 'HIGH',
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (conversation_id, os_id, loja_slug)
+      );
+      CREATE INDEX IF NOT EXISTS idx_conv_os_links_os ON hydra_conversation_os_links(os_id, loja_slug);
+      CREATE INDEX IF NOT EXISTS idx_conv_os_links_conv ON hydra_conversation_os_links(conversation_id);
+
+      CREATE TABLE IF NOT EXISTS hydra_analises_atendimento (
+        revision_id TEXT PRIMARY KEY,
+        analysis_id TEXT NOT NULL,
+        source_id TEXT NOT NULL,
+        account_id TEXT NOT NULL,
+        conversation_id INTEGER NOT NULL,
+        loja_slug TEXT NOT NULL,
+        covered_os_ids TEXT,
+        source_type TEXT,
+        analyzed_until_message_id INTEGER,
+        analyzed_until_timestamp TEXT,
+        occurred_at TEXT,
+        analyzed_at TEXT,
+        analysis_run_id TEXT,
+        schema_version TEXT,
+        analyzer_version TEXT,
+        operational_summary TEXT,
+        conduct_alert TEXT,
+        is_valid INTEGER DEFAULT 1
+      );
+      CREATE INDEX IF NOT EXISTS idx_analise_conv_loja ON hydra_analises_atendimento(conversation_id, loja_slug);
+      CREATE INDEX IF NOT EXISTS idx_analise_loja ON hydra_analises_atendimento(loja_slug);
+
+      CREATE TABLE IF NOT EXISTS hydra_afirmacoes_analisadas (
+        revision_id TEXT NOT NULL,
+        statement_id TEXT NOT NULL,
+        fact_id TEXT,
+        analysis_id TEXT,
+        target_os_id INTEGER,
+        subject_type TEXT,
+        polarity TEXT,
+        author_role TEXT,
+        author_name TEXT,
+        message_id INTEGER,
+        event_timestamp TEXT,
+        raw_excerpt TEXT,
+        confirmation_level TEXT,
+        service_scope TEXT,
+        budget_version TEXT,
+        monetary_cents INTEGER,
+        delay_cause_reported TEXT,
+        part_name TEXT,
+        part_code TEXT,
+        part_quantity_requested INTEGER,
+        part_quantity_arrived INTEGER,
+        order_ref TEXT,
+        supersedes_fact_id TEXT,
+        PRIMARY KEY (revision_id, statement_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_afirmacao_target_os ON hydra_afirmacoes_analisadas(target_os_id);
+
+      CREATE TABLE IF NOT EXISTS hydra_lacunas_conversa (
+        gap_id TEXT PRIMARY KEY,
+        revision_id TEXT NOT NULL,
+        analysis_id TEXT,
+        conversation_id INTEGER,
+        gap_type TEXT,
+        message_id INTEGER,
+        event_timestamp TEXT,
+        description TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS hydra_analysis_projection_outbox (
+        job_id TEXT PRIMARY KEY,
+        revision_id TEXT NOT NULL,
+        analysis_id TEXT NOT NULL,
+        loja_slug TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'PENDING',
+        worker_id TEXT,
+        claim_token TEXT,
+        claimed_at TEXT,
+        lease_expires_at TEXT,
+        attempts INTEGER DEFAULT 0,
+        max_attempts INTEGER DEFAULT 5,
+        error_message TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        processed_at TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_outbox_status_attempts ON hydra_analysis_projection_outbox(status, attempts);
     `);
   } catch (err: any) {
     console.error('[REAL_ANALYSIS_REPO] Erro ao criar tabelas de análise de caso:', err?.message || err);

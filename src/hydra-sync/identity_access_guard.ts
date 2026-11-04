@@ -20,12 +20,14 @@
  */
 
 import type Database from 'better-sqlite3';
-import type {
+import {
   AuthorizedContext,
   AuthorizedUser,
   SecurityRejectionLog,
-  UserRole
+  UserRole,
+  isConversationAllowedRole
 } from './types/access_contract.js';
+import { CANONICAL_OWNER_PHONE } from './admin_policy.js';
 import { getUserProfile } from './command_interceptor.js';
 import { STORE_DISPLAY_NAMES } from './db_repository.js';
 
@@ -69,9 +71,11 @@ export function isGroupJid(jid?: string | null): boolean {
  * - Se NÃO estiver configurado, aceita a requisição em modo compatível e registra log sanitizado.
  */
 export function authenticateWebhookRequest(
-  headers: Record<string, string | string[] | undefined> | Headers | any
+  headers: Record<string, string | string[] | undefined> | Headers | any,
+  options: { strict?: boolean } = {}
 ): boolean {
   const secret = process.env.EVOLUTION_WEBHOOK_SECRET;
+  const isStrict = options.strict || process.env.STRICT_WEBHOOK_AUTH === '1';
 
   if (secret && secret.trim().length > 0) {
     if (!headers || typeof headers !== 'object') {
@@ -108,6 +112,12 @@ export function authenticateWebhookRequest(
       return true;
     }
 
+    return false;
+  }
+
+  // Se o modo estrito estiver ativo (ex: rotas administrativas ou STRICT_WEBHOOK_AUTH=1), não aceita sem secret
+  if (isStrict) {
+    console.warn('[AccessGuard STRICT] Webhook rejeitado: EVOLUTION_WEBHOOK_SECRET não configurado e modo estrito ativo.');
     return false;
   }
 
@@ -335,6 +345,24 @@ export function resolveCanonicalIdentity(
     return null;
   }
 
+  // R01: Somente 'owner', 'admin' e 'socio' podem conversar com a IA.
+  // Gerentes, operadores e terceiros são bloqueados categoricamente.
+  if (!isConversationAllowedRole(userRow.role)) {
+    recordSecurityRejection(db, {
+      remoteJidMasked: maskJid(rawRemoteJid),
+      phoneMasked: maskPhone(canonicalPhone),
+      reason: 'unauthorized_user',
+      endpoint: 'webhook_ingress',
+      timestamp: new Date().toISOString()
+    });
+    return null;
+  }
+
+  // Se for o telefone canônico do proprietário (Davi), normaliza/garante o papel 'owner'
+  const effectiveRole: UserRole = (canonicalPhone === CANONICAL_OWNER_PHONE)
+    ? 'owner'
+    : (userRow.role as UserRole);
+
   // 5. Monta AuthorizedUser estruturado
   let allowedStores: string[] = [];
   try {
@@ -347,7 +375,7 @@ export function resolveCanonicalIdentity(
   const user: AuthorizedUser = {
     phone: userRow.phone,
     name: userRow.name,
-    role: userRow.role as UserRole,
+    role: effectiveRole,
     allowedStores,
     isActive: userRow.is_active === 1,
     canSimulatePersona: userRow.can_simulate_persona === 1,
@@ -424,7 +452,7 @@ export function revalidateAuthorization(
       WHERE phone = ?
     `).get(clean) as any;
 
-    if (!row || row.is_active !== 1) {
+    if (!row || row.is_active !== 1 || !isConversationAllowedRole(row.role)) {
       return false;
     }
 

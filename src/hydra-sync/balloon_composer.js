@@ -333,10 +333,364 @@ A extra\xE7\xE3o de vendas de hoje para a unidade ${lojaNome} est\xE1 temporaria
     balloons: composeSemanticBalloons(notice)
   };
 }
+function formatHoursAndMin(hours) {
+  const totalMin = Math.round(hours * 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  const hStr = hours.toFixed(2).replace(".", ",");
+  if (h > 0 && m > 0) {
+    return `${hStr}h (${h}h ${m} min)`;
+  }
+  return `${hStr}h (${totalMin} min)`;
+}
+function composeTemparioHermesBalloon(response) {
+  const sections = [];
+  sections.push("*HYDRA | Temp\xE1rio T\xE9cnico Automotivo*");
+  if (response.veiculo) {
+    const v = response.veiculo;
+    const anoStr = v.anoInicio === v.anoFim ? `${v.anoInicio}` : `${v.anoInicio}-${v.anoFim}`;
+    const engineStr = response.motor ? ` \xB7 Motor ${response.motor.descricaoComercial}` : "";
+    const servicosTitulos = response.operacoesResolvidas.length > 0 ? response.operacoesResolvidas.map((o) => o.titulo).join(" + ") : response.cadeiaExecucao.steps.map((s) => s.titulo).join(" + ") || "Servi\xE7o sob consulta";
+    const dificuldades = response.operacoesResolvidas.map((o) => o.grauDificuldade);
+    const dificuldadeStr = dificuldades.includes("ESPECIALISTA") ? "Especialista" : dificuldades.includes("ALTO") ? "Alto" : dificuldades.includes("MEDIO") ? "M\xE9dio" : "Baixo";
+    sections.push(
+      `> *${v.marca} ${v.modelo} (${anoStr})${engineStr}*
+- *Servi\xE7os consultados:* ${servicosTitulos}
+- *Grau de dificuldade:* ${dificuldadeStr}`
+    );
+  } else {
+    sections.push(
+      `> *Ve\xEDculo sob Estimativa Provis\xF3ria*
+- *Aviso:* ${response.avisoQuarentena || "Ve\xEDculo ou servi\xE7o n\xE3o localizado no cat\xE1logo homologado OEM."}
+- *Status de evid\xEAncia:* Estimativa externa pendente de valida\xE7\xE3o`
+    );
+  }
+  if (response.cadeiaExecucao.steps.length > 0) {
+    const stepLines = ["*Sequ\xEAncia de execu\xE7\xE3o otimizada (Grafo de Acesso)*"];
+    for (const step of response.cadeiaExecucao.steps) {
+      const faseLabel = step.faseExecucao === "DESMONTAGEM" ? "Desmontagem" : step.faseExecucao === "EXECUCAO" ? "Execu\xE7\xE3o" : step.faseExecucao === "REMONTAGEM" ? "Remontagem" : "Teste e Ajuste";
+      let line = `- *${step.ordemExecucaoFinal}. ${step.titulo} (${faseLabel}):* *${step.tempoHoras.toFixed(2).replace(".", ",")}h* (${step.tempoMinutos} min)`;
+      if (step.ferramentas && step.ferramentas.length > 0) {
+        line += `
+  Ferramentas: ${step.ferramentas.join(", ")}`;
+      }
+      if (step.torqueEspecificado) {
+        line += ` (Torque: ${step.torqueEspecificado})`;
+      }
+      if (step.isAcessoCompartilhado) {
+        line += `
+  Acesso compartilhado entre os servi\xE7os (contabilizado 1 \xFAnica vez)`;
+      }
+      stepLines.push(line);
+    }
+    sections.push(stepLines.join("\n"));
+  }
+  const cadeia = response.cadeiaExecucao;
+  const taxaPadrao = cadeia.taxaHorariaPadrao || 270;
+  const valorBruto = cadeia.valorMaoDeObraBrutoSemAssociativa ?? Math.round(cadeia.tempoBrutoTotalHoras * taxaPadrao * 100) / 100;
+  const valorLiquido = cadeia.valorMaoDeObraSugerido ?? Math.round(cadeia.tempoLiquidoTotalHoras * taxaPadrao * 100) / 100;
+  const economiaReais = cadeia.economiaMaoDeObraReais ?? Math.round(cadeia.tempoEconomizadoDeduplicacaoHoras * taxaPadrao * 100) / 100;
+  const precoLines = [
+    `*Valores de M\xE3o de Obra (Taxa da Rede: R$ ${taxaPadrao.toFixed(2).replace(".", ",")}/h)*`,
+    `- *Tempo bruto somado (sem pacote):* ${formatHoursAndMin(cadeia.tempoBrutoTotalHoras)} (R$ ${valorBruto.toFixed(2).replace(".", ",")})`
+  ];
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    precoLines.push(
+      `- *Desconto por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace(".", ",")}h* (-R$ ${economiaReais.toFixed(2).replace(".", ",")})`
+    );
+  }
+  precoLines.push(`- *Tempo l\xEDquido cobrado:* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`);
+  precoLines.push(`- *Total M\xE3o de Obra a Cobrar:* *R$ ${valorLiquido.toFixed(2).replace(".", ",")}*`);
+  sections.push(precoLines.join("\n"));
+  if (cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+    const pecasLines = ["*Associativa de Pe\xE7as Necess\xE1rias*"];
+    for (const p of cadeia.pecasNecessarias) {
+      const statusPeca = p.obrigatoria ? "Obrigat\xF3ria" : "Preventiva recomendada";
+      const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : "";
+      pecasLines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} \u2014 ${statusPeca}`);
+    }
+    sections.push(pecasLines.join("\n"));
+  }
+  if (cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+    const ferrLines = ["*Ferramentas Especiais Exigidas na Bancada*"];
+    for (const ferr of cadeia.ferramentasNecessarias) {
+      ferrLines.push(`- ${ferr}`);
+    }
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      ferrLines.push(`- *Torques Cr\xEDticos:* ${cadeia.torquesEspecificados.join("; ")}`);
+    }
+    sections.push(ferrLines.join("\n"));
+  }
+  const comp = response.comparativoPatio;
+  const compLines = [
+    "*Comparativo: Tempo Tabelado vs. Realidade de P\xE1tio*",
+    `- *Tempo bruto somado (sem grafo):* ${formatHoursAndMin(cadeia.tempoBrutoTotalHoras)}`
+  ];
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    compLines.push(
+      `- *Economia por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace(".", ",")}h* (-${cadeia.tempoEconomizadoDeduplicacaoMinutos} min)`
+    );
+  }
+  compLines.push(`- *Tempo tabelado l\xEDquido (Manual OEM):* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`);
+  if (comp.temHistoricoRede && comp.tempoMedioExecucaoHoras !== null) {
+    const escopoDesc = comp.escopoAplicado === "LOJA_ISOLADA" && comp.lojaFiltroSlug ? `na unidade ${comp.lojaFiltroSlug}` : "na rede";
+    compLines.push(`- *Tempo m\xE9dio de execu\xE7\xE3o ${escopoDesc} (${comp.totalOsAnalisadas} OSs):* *${formatHoursAndMin(comp.tempoMedioExecucaoHoras)}*`);
+    if (comp.leadTimeMedioPatioDias !== null) {
+      compLines.push(`- *Perman\xEAncia m\xE9dia em p\xE1tio (Lead Time):* *${comp.leadTimeMedioPatioDias.toFixed(1).replace(".", ",")} dias*`);
+    }
+    if (comp.gargalosFatuaisComprovados.length > 0) {
+      compLines.push(`- *Gargalos documentados nas OSs:* ${comp.gargalosFatuaisComprovados.join("; ")}`);
+    }
+  } else {
+    compLines.push(`- *Hist\xF3rico de p\xE1tio:* ${comp.declaracaoLimitacaoFactual}`);
+  }
+  sections.push(compLines.join("\n"));
+  const auditLines = ["> *Proveni\xEAncia e Auditoria*"];
+  const statusDesc = response.statusEvidenciaGlobal === "HOMOLOGADO_OEM" ? "Manual Oficial OEM (Homologado)" : response.statusEvidenciaGlobal === "HISTORICO_OS_REDE" ? "Hist\xF3rico Factual de Ordens de Servi\xE7o" : "Estimativa Externa Pendente de Valida\xE7\xE3o";
+  auditLines.push(`- *Classifica\xE7\xE3o:* ${statusDesc}`);
+  if (response.evidenciasFontes && response.evidenciasFontes.length > 0) {
+    const fontes = response.evidenciasFontes.map((f) => {
+      let desc = f.nomeDocumento;
+      if (f.capituloSecao) desc += ` (${f.capituloSecao}`;
+      if (f.paginaTabela) desc += `, ${f.paginaTabela}`;
+      if (f.capituloSecao) desc += `)`;
+      return desc;
+    }).join("; ");
+    auditLines.push(`- *Fonte:* ${fontes}`);
+  } else if (response.avisoQuarentena) {
+    auditLines.push(`- *Quarentena:* ${response.avisoQuarentena}`);
+  }
+  auditLines.push(`- *Confian\xE7a da recupera\xE7\xE3o:* ${Math.round(response.confidenceScore * 100)}%`);
+  sections.push(auditLines.join("\n"));
+  const rawFullText = sections.join("\n\n");
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText);
+  const cleanNBSP = sanitized.replace(/[\u00A0\u202F]/g, " ");
+  return composeSemanticBalloons(cleanNBSP);
+}
+function composeTemparioExecutiveBalloon(response, options) {
+  const sections = [];
+  const v = response.veiculo;
+  const m = response.motor;
+  const marcaPura = v?.marca && v.marca !== "Nacional" ? `${v.marca} ` : "";
+  const modeloPuro = v?.modelo ? v.modelo.charAt(0).toUpperCase() + v.modelo.slice(1) : "Ve\xEDculo";
+  let vehicleDesc = v ? `${marcaPura}${modeloPuro}` : "Ve\xEDculo";
+  if (v && v.anoInicio && v.anoFim) {
+    vehicleDesc += ` (${v.anoInicio}-${v.anoFim})`;
+  }
+  if (m && m.descricaoComercial) {
+    vehicleDesc += ` \xB7 Motor ${m.descricaoComercial}`;
+  }
+  const servicosTexto = response.operacoesResolvidas.length > 0 ? response.operacoesResolvidas.map((o) => o.titulo).join(" + ") : response.cadeiaExecucao.steps.length > 0 ? response.cadeiaExecucao.steps.map((s) => s.titulo.replace(/\s*\(Pesquisa Técnica Web\)/gi, "")).join(" + ") : "Servi\xE7os Mec\xE2nicos Solicitados";
+  const headerLines = [
+    "*HYDRA | Temp\xE1rio T\xE9cnico & M\xE3o de Obra*",
+    "",
+    `> *${vehicleDesc}*`,
+    `- *Servi\xE7os:* ${servicosTexto}`
+  ];
+  sections.push(headerLines.join("\n"));
+  const cadeia = response.cadeiaExecucao;
+  const taxaPadrao = cadeia.taxaHorariaPadrao || 270;
+  const valorLiquido = cadeia.valorMaoDeObraSugerido ?? Math.round(cadeia.tempoLiquidoTotalHoras * taxaPadrao * 100) / 100;
+  const economiaReais = cadeia.economiaMaoDeObraReais ?? Math.round(cadeia.tempoEconomizadoDeduplicacaoHoras * taxaPadrao * 100) / 100;
+  const precoLines = [
+    `*Resumo de M\xE3o de Obra (Taxa da Rede: R$ ${taxaPadrao.toFixed(2).replace(".", ",")}/h)*`,
+    `- *Tempo l\xEDquido cobrado:* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`,
+    `- *Total M\xE3o de Obra a Cobrar:* *R$ ${valorLiquido.toFixed(2).replace(".", ",")}*`
+  ];
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    precoLines.push(
+      `- *Economia por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace(".", ",")}h* (-R$ ${economiaReais.toFixed(2).replace(".", ",")})`
+    );
+  }
+  const qtdEtapas = cadeia.steps?.length || 1;
+  precoLines.push(`- *Complexidade t\xE9cnica:* M\xE9dia (${qtdEtapas} etapas no grafo de acesso)`);
+  sections.push(precoLines.join("\n"));
+  if (options?.includePecasDirectly && cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+    const pecasLines = ["*Associativa de Pe\xE7as Necess\xE1rias*"];
+    for (const p of cadeia.pecasNecessarias) {
+      const statusPeca = p.obrigatoria ? "Obrigat\xF3ria" : "Preventiva recomendada";
+      const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : "";
+      pecasLines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} \u2014 ${statusPeca}`);
+    }
+    sections.push(pecasLines.join("\n"));
+  }
+  if (options?.includeFerramentasDirectly && cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+    const ferrLines = ["*Ferramentas Especiais Exigidas na Bancada*"];
+    for (const ferr of cadeia.ferramentasNecessarias) {
+      ferrLines.push(`- ${ferr}`);
+    }
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      ferrLines.push(`- *Torques Cr\xEDticos:* ${cadeia.torquesEspecificados.join("; ")}`);
+    }
+    sections.push(ferrLines.join("\n"));
+  }
+  if (!options?.includePecasDirectly && !options?.includeFerramentasDirectly) {
+    const qtdPecas = cadeia.pecasNecessarias?.length || 0;
+    const qtdFerr = cadeia.ferramentasNecessarias?.length || 0;
+    const menuLines = [
+      "----------------------------------------",
+      "*Deseja ver o detalhamento t\xE9cnico?*",
+      `1\uFE0F\u20E3 *Pe\xE7as necess\xE1rias* (${qtdPecas > 0 ? `${qtdPecas} itens` : "consultar lista"})`,
+      `2\uFE0F\u20E3 *Ferramentas de bancada e torques* (${qtdFerr > 0 ? `${qtdFerr} itens` : "consultar"})`,
+      "3\uFE0F\u20E3 *Passo a passo da montagem* (sequ\xEAncia otimizada)",
+      "4\uFE0F\u20E3 *Tudo completo* (relat\xF3rio t\xE9cnico integral)",
+      "",
+      '_Responda com o n\xFAmero (1, 2, 3 ou 4) ou escreva o que precisa (ex: "pe\xE7as" ou "ferramentas")._'
+    ];
+    sections.push(menuLines.join("\n"));
+  }
+  const rawFullText = sections.join("\n\n");
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText).replace(/[\u00A0\u202F]/g, " ");
+  return [sanitized];
+}
+function composeTemparioDetailBalloon(choice, response) {
+  if (choice === "COMPLETO") {
+    return composeTemparioHermesBalloon(response);
+  }
+  const sections = [];
+  const v = response.veiculo;
+  const m = response.motor;
+  let vehicleDesc = v ? `${v.marca} ${v.modelo}` : "Ve\xEDculo";
+  if (v && v.anoInicio && v.anoFim) {
+    vehicleDesc += ` (${v.anoInicio}-${v.anoFim})`;
+  }
+  if (m && m.descricaoComercial) {
+    vehicleDesc += ` \xB7 Motor ${m.descricaoComercial}`;
+  }
+  const servicosTexto = response.operacoesResolvidas.length > 0 ? response.operacoesResolvidas.map((o) => o.titulo).join(" + ") : "Servi\xE7os Mec\xE2nicos Solicitados";
+  const cadeia = response.cadeiaExecucao;
+  if (choice === "PECAS") {
+    sections.push(
+      `*HYDRA | Pe\xE7as Necess\xE1rias*
+
+> *${vehicleDesc}*
+- *Servi\xE7o:* ${servicosTexto}`
+    );
+    if (cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+      const pecasObrigatorias = cadeia.pecasNecessarias.filter((p) => p.obrigatoria);
+      const pecasPreventivas = cadeia.pecasNecessarias.filter((p) => !p.obrigatoria);
+      if (pecasObrigatorias.length > 0) {
+        const lines = ["*Pe\xE7as Obrigat\xF3rias para Montagem*"];
+        for (const p of pecasObrigatorias) {
+          const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : "";
+          lines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec}`);
+        }
+        sections.push(lines.join("\n"));
+      }
+      if (pecasPreventivas.length > 0) {
+        const lines = ["*Itens Preventivos Recomendados*"];
+        for (const p of pecasPreventivas) {
+          const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : "";
+          lines.push(`- [ ] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} \u2014 Opcional/Recomendado`);
+        }
+        sections.push(lines.join("\n"));
+      }
+    } else {
+      sections.push("Nenhuma pe\xE7a obrigat\xF3ria adicional registrada para este procedimento.");
+    }
+  } else if (choice === "FERRAMENTAS") {
+    sections.push(
+      `*HYDRA | Ferramental & Torques de Bancada*
+
+> *${vehicleDesc}*
+- *Servi\xE7o:* ${servicosTexto}`
+    );
+    if (cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+      const ferrLines = ["*Ferramental Especial Exigido na Bancada*"];
+      for (const f of cadeia.ferramentasNecessarias) {
+        ferrLines.push(`- ${f}`);
+      }
+      sections.push(ferrLines.join("\n"));
+    }
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      const torqueLines = ["*Torques Cr\xEDticos Tabelados pela Montadora*"];
+      for (const t of cadeia.torquesEspecificados) {
+        torqueLines.push(`- ${t}`);
+      }
+      sections.push(torqueLines.join("\n"));
+    }
+    if ((!cadeia.ferramentasNecessarias || cadeia.ferramentasNecessarias.length === 0) && (!cadeia.torquesEspecificados || cadeia.torquesEspecificados.length === 0)) {
+      sections.push("Ferramentas manuais convencionais de oficina mec\xE2nica.");
+    }
+  } else if (choice === "PASSOS") {
+    sections.push(
+      `*HYDRA | Sequ\xEAncia T\xE9cnica de Execu\xE7\xE3o*
+
+> *${vehicleDesc}*
+- *Servi\xE7o:* ${servicosTexto}`
+    );
+    if (cadeia.steps && cadeia.steps.length > 0) {
+      const stepLines = ["*Passo a Passo Otimizado (Grafo de Acesso)*"];
+      for (const step of cadeia.steps) {
+        const faseLabel = step.faseExecucao === "DESMONTAGEM" ? "Desmontagem" : step.faseExecucao === "EXECUCAO" ? "Execu\xE7\xE3o" : step.faseExecucao === "REMONTAGEM" ? "Remontagem" : "Teste e Ajuste";
+        let line = `- *${step.ordemExecucaoFinal}. ${step.titulo} (${faseLabel}):* *${step.tempoHoras.toFixed(2).replace(".", ",")}h* (${step.tempoMinutos} min)`;
+        if (step.ferramentas && step.ferramentas.length > 0) {
+          line += `
+  Ferramentas: ${step.ferramentas.join(", ")}`;
+        }
+        if (step.torqueEspecificado) {
+          line += ` (Torque: ${step.torqueEspecificado})`;
+        }
+        if (step.isAcessoCompartilhado) {
+          line += `
+  Acesso compartilhado entre os servi\xE7os (contabilizado 1 \xFAnica vez)`;
+        }
+        stepLines.push(line);
+      }
+      sections.push(stepLines.join("\n"));
+    }
+  }
+  const rawFullText = sections.join("\n\n");
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText).replace(/[\u00A0\u202F]/g, " ");
+  return [sanitized];
+}
+function composePlateVehicleBalloon(record) {
+  const anoStr = record.anoModelo ? record.anoFabricacao && record.anoFabricacao !== record.anoModelo ? ` (${record.anoFabricacao}/${record.anoModelo})` : ` (${record.anoModelo})` : "";
+  const header = `*HYDRA | Consulta Veicular por Placa*
+
+> *${record.modeloCompleto}${anoStr}*`;
+  const details = [];
+  details.push(`- *Placa:* ${record.placaFormatada}`);
+  const corComb = [];
+  if (record.cor) corComb.push(`*Cor:* ${record.cor}`);
+  if (record.combustivel) corComb.push(`*Combust\xEDvel:* ${record.combustivel}`);
+  if (corComb.length > 0) {
+    details.push(`- ${corComb.join(" \xB7 ")}`);
+  }
+  const loc = [];
+  if (record.municipio) loc.push(record.municipio);
+  if (record.uf) loc.push(record.uf);
+  if (loc.length > 0) {
+    details.push(`- *Munic\xEDpio:* ${loc.join(" / ")}`);
+  }
+  const mec = [];
+  if (record.motor) mec.push(`*Motor:* ${record.motor}`);
+  if (record.potencia) mec.push(`*Pot\xEAncia:* ${record.potencia} cv`);
+  if (record.cilindrada) mec.push(`*Cilindradas:* ${record.cilindrada} cc`);
+  if (mec.length > 0) {
+    details.push(`- ${mec.join(" \xB7 ")}`);
+  }
+  if (record.chassiMascarado) {
+    details.push(`- *Chassi:* \`${record.chassiMascarado}\``);
+  }
+  const situacao = record.situacao ? record.situacao === "CIRCULACAO" ? "Em circula\xE7\xE3o (Regular)" : record.situacao : "Em circula\xE7\xE3o (Regular)";
+  details.push(`- *Situa\xE7\xE3o cadastral:* ${situacao}`);
+  const fonte = record.origemDados === "ORDENS_SERVICO_REDE" ? "_Dados recuperados do hist\xF3rico operacional da rede de oficinas._" : "_Dados obtidos via Base Nacional de Registro Veicular (APIBrasil)._";
+  const balloonText = `${header}
+${details.join("\n")}
+
+${fonte}`;
+  const sanitized = sanitizeWhatsAppMarkdown(balloonText).replace(/[\u00A0\u202F]/g, " ");
+  return [sanitized];
+}
 export {
   composePartialSuccessBalloon,
+  composePlateVehicleBalloon,
   composeSemanticBalloons,
   composeSemanticBalloonsStructured,
+  composeTemparioDetailBalloon,
+  composeTemparioExecutiveBalloon,
+  composeTemparioHermesBalloon,
   convertMarkdownTablesToWhatsAppLists,
   formatCurrencyBRL,
   formatDeterministicFinancialBalloon,

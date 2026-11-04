@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "isolatedModules": true
+  },
+  "include": [
+    "src/hydra-sync/types/tempario_contract.ts",
+    "src/hydra-sync/tempario_graph_repository.ts",
+    "src/hydra-sync/tempario_vector.ts",
+    "src/hydra-sync/tempario_hybrid_coordinator.ts",
+    "src/hydra-sync/tempario_web_researcher.ts",
+    "src/hydra-sync/operational_data_repository.ts",
+    "src/hydra-sync/semantic_glossary.ts",
+    "src/hydra-sync/balloon_composer.ts",
+    "src/hydra-sync/public_response_guard.ts",
+    "src/hydra-sync/tests/test_harness_tempario.ts",
+    "src/hydra-sync/tests/test_harness_tempario_stress.ts",
+    "src/hydra-sync/tests/test_harness_spec066_ia_web_anti_hallucination.ts",
+    "src/hydra-sync/tests/test_harness_spec067_plate_resilience.ts"
+  ]
+}

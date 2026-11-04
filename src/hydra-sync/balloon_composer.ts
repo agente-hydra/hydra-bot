@@ -38,6 +38,12 @@ import {
   convertMarkdownTableToNativeBlocks
 } from './format_utils.js';
 import type { ComposedBalloonsResult } from './types/language_contract.js';
+import type {
+  TemparioHybridQueryResponse,
+  TemparioDetailChoice,
+  TemparioPresentationOptions
+} from './types/tempario_contract.js';
+import type { VehiclePlateRecord } from './types/plate_lookup_contract.js';
 
 export interface SemanticPayload {
   /** 1. Resposta direta (conclusão executiva) */
@@ -647,4 +653,557 @@ export function formatDeterministicFinancialBalloon(
     isZeroConfirmed: false,
     balloons: composeSemanticBalloons(notice)
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPOSITOR HERMES: TEMPÁRIO TÉCNICO AUTOMOTIVO (SPEC 054)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Compõe o balão Hermes nativo para consultas de Tempário Técnico Automotivo (Spec 054).
+ * Regras estritas:
+ * - Citações com `> *Título*`
+ * - Listas com `- *Campo:* Valor`
+ * - Zero emojis decorativos
+ * - Zero tabelas Markdown (|---|)
+ * - Zero asteriscos duplos (**)
+ * - Zero NBSP (\u00A0 ou \u202F)
+ */
+function formatHoursAndMin(hours: number): string {
+  const totalMin = Math.round(hours * 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  const hStr = hours.toFixed(2).replace('.', ',');
+  if (h > 0 && m > 0) {
+    return `${hStr}h (${h}h ${m} min)`;
+  }
+  return `${hStr}h (${totalMin} min)`;
+}
+
+export function composeTemparioHermesBalloon(
+  response: TemparioHybridQueryResponse
+): string[] {
+  const sections: string[] = [];
+
+  // 1. Cabeçalho Principal
+  sections.push('*HYDRA | Tempário Técnico Automotivo*');
+
+  // 2. Card do Veículo e Motor
+  if (response.veiculo) {
+    const v = response.veiculo;
+    const anoStr = v.anoInicio === v.anoFim ? `${v.anoInicio}` : `${v.anoInicio}-${v.anoFim}`;
+    const engineStr = response.motor ? ` · Motor ${response.motor.descricaoComercial}` : '';
+    const servicosTitulos = response.operacoesResolvidas.length > 0
+      ? response.operacoesResolvidas.map(o => o.titulo).join(' + ')
+      : (response.cadeiaExecucao.steps.map(s => s.titulo).join(' + ') || 'Serviço sob consulta');
+
+    const dificuldades = response.operacoesResolvidas.map(o => o.grauDificuldade);
+    const dificuldadeStr = dificuldades.includes('ESPECIALISTA') ? 'Especialista'
+      : (dificuldades.includes('ALTO') ? 'Alto'
+      : (dificuldades.includes('MEDIO') ? 'Médio' : 'Baixo'));
+
+    sections.push(
+      `> *${v.marca} ${v.modelo} (${anoStr})${engineStr}*\n` +
+      `- *Serviços consultados:* ${servicosTitulos}\n` +
+      `- *Grau de dificuldade:* ${dificuldadeStr}`
+    );
+  } else {
+    sections.push(
+      `> *Veículo sob Estimativa Provisória*\n` +
+      `- *Aviso:* ${response.avisoQuarentena || 'Veículo ou serviço não localizado no catálogo homologado OEM.'}\n` +
+      `- *Status de evidência:* Estimativa externa pendente de validação`
+    );
+  }
+
+  // 3. Sequência de Execução Otimizada (Grafo de Acesso)
+  if (response.cadeiaExecucao.steps.length > 0) {
+    const stepLines: string[] = ['*Sequência de execução otimizada (Grafo de Acesso)*'];
+    for (const step of response.cadeiaExecucao.steps) {
+      const faseLabel = step.faseExecucao === 'DESMONTAGEM' ? 'Desmontagem'
+        : (step.faseExecucao === 'EXECUCAO' ? 'Execução'
+        : (step.faseExecucao === 'REMONTAGEM' ? 'Remontagem' : 'Teste e Ajuste'));
+
+      let line = `- *${step.ordemExecucaoFinal}. ${step.titulo} (${faseLabel}):* *${step.tempoHoras.toFixed(2).replace('.', ',')}h* (${step.tempoMinutos} min)`;
+      if (step.ferramentas && step.ferramentas.length > 0) {
+        line += `\n  Ferramentas: ${step.ferramentas.join(', ')}`;
+      }
+      if (step.torqueEspecificado) {
+        line += ` (Torque: ${step.torqueEspecificado})`;
+      }
+      if (step.isAcessoCompartilhado) {
+        line += `\n  Acesso compartilhado entre os serviços (contabilizado 1 única vez)`;
+      }
+      stepLines.push(line);
+    }
+    sections.push(stepLines.join('\n'));
+  }
+
+  // 3.1. Precificação Comercial de Mão de Obra (Taxa da Rede: R$ 270,00/h)
+  const cadeia = response.cadeiaExecucao;
+  const taxaPadrao = cadeia.taxaHorariaPadrao || 270.00;
+  const valorBruto = cadeia.valorMaoDeObraBrutoSemAssociativa ?? Math.round(cadeia.tempoBrutoTotalHoras * taxaPadrao * 100) / 100;
+  const valorLiquido = cadeia.valorMaoDeObraSugerido ?? Math.round(cadeia.tempoLiquidoTotalHoras * taxaPadrao * 100) / 100;
+  const economiaReais = cadeia.economiaMaoDeObraReais ?? Math.round(cadeia.tempoEconomizadoDeduplicacaoHoras * taxaPadrao * 100) / 100;
+
+  const precoLines: string[] = [
+    `*Valores de Mão de Obra (Taxa da Rede: R$ ${taxaPadrao.toFixed(2).replace('.', ',')}/h)*`,
+    `- *Tempo bruto somado (sem pacote):* ${formatHoursAndMin(cadeia.tempoBrutoTotalHoras)} (R$ ${valorBruto.toFixed(2).replace('.', ',')})`
+  ];
+
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    precoLines.push(
+      `- *Desconto por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace('.', ',')}h* (-R$ ${economiaReais.toFixed(2).replace('.', ',')})`
+    );
+  }
+
+  precoLines.push(`- *Tempo líquido cobrado:* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`);
+  precoLines.push(`- *Total Mão de Obra a Cobrar:* *R$ ${valorLiquido.toFixed(2).replace('.', ',')}*`);
+  sections.push(precoLines.join('\n'));
+
+  // 3.2. Associativa de Peças Necessárias
+  if (cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+    const pecasLines: string[] = ['*Associativa de Peças Necessárias*'];
+    for (const p of cadeia.pecasNecessarias) {
+      const statusPeca = p.obrigatoria ? 'Obrigatória' : 'Preventiva recomendada';
+      const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : '';
+      pecasLines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} — ${statusPeca}`);
+    }
+    sections.push(pecasLines.join('\n'));
+  }
+
+  // 3.3. Ferramentas Especiais Exigidas na Bancada
+  if (cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+    const ferrLines: string[] = ['*Ferramentas Especiais Exigidas na Bancada*'];
+    for (const ferr of cadeia.ferramentasNecessarias) {
+      ferrLines.push(`- ${ferr}`);
+    }
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      ferrLines.push(`- *Torques Críticos:* ${cadeia.torquesEspecificados.join('; ')}`);
+    }
+    sections.push(ferrLines.join('\n'));
+  }
+
+  // 4. Comparativo: Tempo Tabelado vs. Realidade de Pátio
+  const comp = response.comparativoPatio;
+  const compLines: string[] = [
+    '*Comparativo: Tempo Tabelado vs. Realidade de Pátio*',
+    `- *Tempo bruto somado (sem grafo):* ${formatHoursAndMin(cadeia.tempoBrutoTotalHoras)}`
+  ];
+
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    compLines.push(
+      `- *Economia por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace('.', ',')}h* (-${cadeia.tempoEconomizadoDeduplicacaoMinutos} min)`
+    );
+  }
+
+  compLines.push(`- *Tempo tabelado líquido (Manual OEM):* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`);
+
+  if (comp.temHistoricoRede && comp.tempoMedioExecucaoHoras !== null) {
+    const escopoDesc = comp.escopoAplicado === 'LOJA_ISOLADA' && comp.lojaFiltroSlug
+      ? `na unidade ${comp.lojaFiltroSlug}`
+      : 'na rede';
+
+    compLines.push(`- *Tempo médio de execução ${escopoDesc} (${comp.totalOsAnalisadas} OSs):* *${formatHoursAndMin(comp.tempoMedioExecucaoHoras)}*`);
+    if (comp.leadTimeMedioPatioDias !== null) {
+      compLines.push(`- *Permanência média em pátio (Lead Time):* *${comp.leadTimeMedioPatioDias.toFixed(1).replace('.', ',')} dias*`);
+    }
+    if (comp.gargalosFatuaisComprovados.length > 0) {
+      compLines.push(`- *Gargalos documentados nas OSs:* ${comp.gargalosFatuaisComprovados.join('; ')}`);
+    }
+  } else {
+    compLines.push(`- *Histórico de pátio:* ${comp.declaracaoLimitacaoFactual}`);
+  }
+  sections.push(compLines.join('\n'));
+
+  // 5. Proveniência e Auditoria
+  const auditLines: string[] = ['> *Proveniência e Auditoria*'];
+  const statusDesc = response.statusEvidenciaGlobal === 'HOMOLOGADO_OEM'
+    ? 'Manual Oficial OEM (Homologado)'
+    : (response.statusEvidenciaGlobal === 'HISTORICO_OS_REDE'
+    ? 'Histórico Factual de Ordens de Serviço'
+    : 'Estimativa Externa Pendente de Validação');
+
+  auditLines.push(`- *Classificação:* ${statusDesc}`);
+
+  if (response.evidenciasFontes && response.evidenciasFontes.length > 0) {
+    const fontes = response.evidenciasFontes.map(f => {
+      let desc = f.nomeDocumento;
+      if (f.capituloSecao) desc += ` (${f.capituloSecao}`;
+      if (f.paginaTabela) desc += `, ${f.paginaTabela}`;
+      if (f.capituloSecao) desc += `)`;
+      return desc;
+    }).join('; ');
+    auditLines.push(`- *Fonte:* ${fontes}`);
+  } else if (response.avisoQuarentena) {
+    auditLines.push(`- *Quarentena:* ${response.avisoQuarentena}`);
+  }
+
+  auditLines.push(`- *Confiança da recuperação:* ${Math.round(response.confidenceScore * 100)}%`);
+  sections.push(auditLines.join('\n'));
+
+  const rawFullText = sections.join('\n\n');
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText);
+
+  // Garante eliminação de NBSP
+  const cleanNBSP = sanitized.replace(/[\u00A0\u202F]/g, ' ');
+
+  return composeSemanticBalloons(cleanNBSP);
+}
+
+/**
+ * Formata a resposta inicial executiva e compacta de tempário (Spec 063: Progressive Disclosure).
+ * Retorna 1 único balão legível para WhatsApp com Valores, Tempo Líquido, Economia de Acesso
+ * e um Menu Interativo de Aprofundamento (1 a 4).
+ */
+export function composeTemparioExecutiveBalloon(
+  response: TemparioHybridQueryResponse,
+  options?: TemparioPresentationOptions
+): string[] {
+  const sections: string[] = [];
+
+  // 1. Cabeçalho Executivo
+  const v = response.veiculo;
+  const m = response.motor;
+  const marcaPura = (v?.marca && v.marca !== 'Nacional' && v.marca !== 'Multimarcas') ? `${v.marca} ` : '';
+  const modeloPuro = v?.modelo ? (v.modelo.charAt(0).toUpperCase() + v.modelo.slice(1)) : 'Veículo';
+  let vehicleDesc = v ? `${marcaPura}${modeloPuro}` : 'Veículo';
+  if (response.isEstimativaReferencia) {
+    vehicleDesc = 'Linha Passeio Padrão (Estimativa de Referência)';
+  } else {
+    if (v && v.anoInicio && v.anoFim) {
+      vehicleDesc += v.anoInicio === v.anoFim ? ` (${v.anoInicio})` : ` (${v.anoInicio}-${v.anoFim})`;
+    }
+    if (m && m.descricaoComercial && m.descricaoComercial !== 'Motor Padrão') {
+      vehicleDesc += ` · Motor ${m.descricaoComercial}`;
+    }
+  }
+
+  const servicosTexto = response.operacoesResolvidas.length > 0
+    ? response.operacoesResolvidas.map(o => o.titulo).join(' + ')
+    : (response.cadeiaExecucao.steps.length > 0
+        ? response.cadeiaExecucao.steps.map(s => s.titulo.replace(/\s*\(Pesquisa Técnica Web\)/gi, '')).join(' + ')
+        : 'Serviços Mecânicos Solicitados');
+
+  const isRef = Boolean(response.isEstimativaReferencia);
+  const placaLabel = options?.placaConsultada ? options.placaConsultada.toUpperCase() : '';
+
+  const headerLines: string[] = [
+    '*HYDRA | Tempário Técnico & Mão de Obra*',
+    ''
+  ];
+
+  if (isRef) {
+    const titlePlaca = placaLabel ? `Placa ${placaLabel} · ` : '';
+    headerLines.push(`> *${titlePlaca}${servicosTexto} (Estimativa de Referência)*`);
+    if (placaLabel) {
+      headerLines.push(`- *Placa consultada:* ${placaLabel}`);
+    }
+    headerLines.push(`- *Serviços:* ${servicosTexto}`);
+    const diag = response.diagnosticoPlaca || 'Placa sem cadastro no ERP da rede (referência padrão para linha passeio)';
+    headerLines.push(`- *Identificação veicular:* ${diag}`);
+  } else {
+    headerLines.push(`> *${vehicleDesc}*`);
+    if (options?.placaConsultada) {
+      headerLines.push(`- *Placa consultada:* ${options.placaConsultada}`);
+    }
+    headerLines.push(`- *Serviços:* ${servicosTexto}`);
+  }
+  sections.push(headerLines.join('\n'));
+
+  // 2. Resumo de Mão de Obra (Taxa da Rede: R$ 270,00/h)
+  const cadeia = response.cadeiaExecucao;
+  const taxaPadrao = cadeia.taxaHorariaPadrao || 270.00;
+  const valorLiquido = cadeia.valorMaoDeObraSugerido ?? Math.round(cadeia.tempoLiquidoTotalHoras * taxaPadrao * 100) / 100;
+  const economiaReais = cadeia.economiaMaoDeObraReais ?? Math.round(cadeia.tempoEconomizadoDeduplicacaoHoras * taxaPadrao * 100) / 100;
+
+  const precoLines: string[] = [
+    `*Resumo de Mão de Obra (Taxa da Rede: R$ ${taxaPadrao.toFixed(2).replace('.', ',')}/h)*`
+  ];
+
+  if (isRef) {
+    const minHoras = (cadeia.tempoLiquidoTotalHoras * 0.85).toFixed(2).replace('.', ',');
+    const maxHoras = (cadeia.tempoLiquidoTotalHoras * 1.25).toFixed(2).replace('.', ',');
+    const minVal = (valorLiquido * 0.85).toFixed(2).replace('.', ',');
+    const maxVal = (valorLiquido * 1.25).toFixed(2).replace('.', ',');
+    precoLines.push(
+      `- *Tempo líquido sugerido:* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}* (Faixa típica: ${minHoras}h a ${maxHoras}h)`,
+      `- *Total Mão de Obra a Cobrar:* *R$ ${valorLiquido.toFixed(2).replace('.', ',')}* (R$ ${minVal} a R$ ${maxVal})`
+    );
+  } else {
+    precoLines.push(
+      `- *Tempo líquido cobrado:* *${formatHoursAndMin(cadeia.tempoLiquidoTotalHoras)}*`,
+      `- *Total Mão de Obra a Cobrar:* *R$ ${valorLiquido.toFixed(2).replace('.', ',')}*`
+    );
+  }
+
+  if (cadeia.possuiDeduplicacaoAtiva && cadeia.tempoEconomizadoDeduplicacaoHoras > 0) {
+    precoLines.push(
+      `- *Economia por acesso compartilhado:* *-${cadeia.tempoEconomizadoDeduplicacaoHoras.toFixed(2).replace('.', ',')}h* (-R$ ${economiaReais.toFixed(2).replace('.', ',')})`
+    );
+  }
+
+  const qtdEtapas = cadeia.steps?.length || 1;
+  precoLines.push(`- *Complexidade técnica:* Média (${qtdEtapas} etapas no grafo de acesso)`);
+  sections.push(precoLines.join('\n'));
+
+  // Se for estimativa de referência, convida a refinar o carro
+  if (isRef) {
+    const refineMsg = placaLabel
+      ? `💡 _Para cravar o tempo exato e salvar a placa *${placaLabel}* no banco, qual é o modelo e ano do carro (ex: Corsa 1.4, Palio 1.0, Onix 1.0)?_`
+      : `💡 _Para cravar o tempo exato para o seu veículo, informe o modelo e ano (ex: Corsa 1.4, Palio 1.0)._`;
+    sections.push(refineMsg);
+  }
+
+  // Se o usuário pediu peças diretamente:
+  if (options?.includePecasDirectly && cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+    const pecasLines: string[] = ['*Associativa de Peças Necessárias*'];
+    for (const p of cadeia.pecasNecessarias) {
+      const statusPeca = p.obrigatoria ? 'Obrigatória' : 'Preventiva recomendada';
+      const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : '';
+      pecasLines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} — ${statusPeca}`);
+    }
+    sections.push(pecasLines.join('\n'));
+  }
+
+  // Se o usuário pediu ferramentas diretamente:
+  if (options?.includeFerramentasDirectly && cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+    const ferrLines: string[] = ['*Ferramentas Especiais Exigidas na Bancada*'];
+    for (const ferr of cadeia.ferramentasNecessarias) {
+      ferrLines.push(`- ${ferr}`);
+    }
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      ferrLines.push(`- *Torques Críticos:* ${cadeia.torquesEspecificados.join('; ')}`);
+    }
+    sections.push(ferrLines.join('\n'));
+  }
+
+  // Se não pediu tudo diretamente, adiciona o Menu Interativo
+  if (!options?.includePecasDirectly && !options?.includeFerramentasDirectly) {
+    const qtdPecas = cadeia.pecasNecessarias?.length || 0;
+    const qtdFerr = cadeia.ferramentasNecessarias?.length || 0;
+
+    const menuLines: string[] = [
+      '----------------------------------------',
+      '*Deseja ver o detalhamento técnico?*',
+      `1️⃣ *Peças necessárias* (${qtdPecas > 0 ? `${qtdPecas} itens` : 'consultar lista'})`,
+      `2️⃣ *Ferramentas de bancada e torques* (${qtdFerr > 0 ? `${qtdFerr} itens` : 'consultar'})`,
+      '3️⃣ *Passo a passo da montagem* (sequência otimizada)',
+      '4️⃣ *Tudo completo* (relatório técnico integral)',
+      '',
+      '_Responda com o número (1, 2, 3 ou 4) ou escreva o que precisa (ex: "peças" ou "ferramentas")._'
+    ];
+    sections.push(menuLines.join('\n'));
+  }
+
+  const rawFullText = sections.join('\n\n');
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText).replace(/[\u00A0\u202F]/g, ' ');
+
+  // O balão executivo é retornado como 1 único balão focado
+  return [sanitized];
+}
+
+/**
+ * Formata o balão cirúrgico de detalhamento de acordo com a escolha do operador (Spec 063).
+ */
+export function composeTemparioDetailBalloon(
+  choice: TemparioDetailChoice,
+  response: TemparioHybridQueryResponse
+): string[] {
+  if (choice === 'COMPLETO') {
+    return composeTemparioHermesBalloon(response);
+  }
+
+  const sections: string[] = [];
+  const v = response.veiculo;
+  const m = response.motor;
+  const marcaPura = (v?.marca && v.marca !== 'Nacional' && v.marca !== 'Multimarcas') ? `${v.marca} ` : '';
+  const modeloPuro = v?.modelo ? (v.modelo.charAt(0).toUpperCase() + v.modelo.slice(1)) : 'Veículo';
+  let vehicleDesc = v ? `${marcaPura}${modeloPuro}` : 'Veículo';
+  if (response.isEstimativaReferencia) {
+    vehicleDesc = 'Linha Passeio Padrão (Estimativa de Referência)';
+  } else {
+    if (v && v.anoInicio && v.anoFim) {
+      vehicleDesc += v.anoInicio === v.anoFim ? ` (${v.anoInicio})` : ` (${v.anoInicio}-${v.anoFim})`;
+    }
+    if (m && m.descricaoComercial && m.descricaoComercial !== 'Motor Padrão') {
+      vehicleDesc += ` · Motor ${m.descricaoComercial}`;
+    }
+  }
+
+  const servicosTexto = response.operacoesResolvidas.length > 0
+    ? response.operacoesResolvidas.map(o => o.titulo).join(' + ')
+    : 'Serviços Mecânicos Solicitados';
+
+  const cadeia = response.cadeiaExecucao;
+
+  if (choice === 'PECAS') {
+    sections.push(
+      `*HYDRA | Peças Necessárias*\n\n> *${vehicleDesc}*\n- *Serviço:* ${servicosTexto}`
+    );
+
+    if (cadeia.pecasNecessarias && cadeia.pecasNecessarias.length > 0) {
+      const pecasObrigatorias = cadeia.pecasNecessarias.filter(p => p.obrigatoria);
+      const pecasPreventivas = cadeia.pecasNecessarias.filter(p => !p.obrigatoria);
+
+      if (pecasObrigatorias.length > 0) {
+        const lines = ['*Peças Obrigatórias para Montagem*'];
+        for (const p of pecasObrigatorias) {
+          const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : '';
+          lines.push(`- [x] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec}`);
+        }
+        sections.push(lines.join('\n'));
+      }
+
+      if (pecasPreventivas.length > 0) {
+        const lines = ['*Itens Preventivos Recomendados*'];
+        for (const p of pecasPreventivas) {
+          const spec = p.especificacaoTecnica ? ` [${p.especificacaoTecnica}]` : '';
+          lines.push(`- [ ] ${p.nomePeca} (${p.quantidade} ${p.unidade})${spec} — Opcional/Recomendado`);
+        }
+        sections.push(lines.join('\n'));
+      }
+    } else {
+      sections.push('Nenhuma peça obrigatória adicional registrada para este procedimento.');
+    }
+  } else if (choice === 'FERRAMENTAS') {
+    sections.push(
+      `*HYDRA | Ferramental & Torques de Bancada*\n\n> *${vehicleDesc}*\n- *Serviço:* ${servicosTexto}`
+    );
+
+    if (cadeia.ferramentasNecessarias && cadeia.ferramentasNecessarias.length > 0) {
+      const ferrLines = ['*Ferramental Especial Exigido na Bancada*'];
+      for (const f of cadeia.ferramentasNecessarias) {
+        ferrLines.push(`- ${f}`);
+      }
+      sections.push(ferrLines.join('\n'));
+    }
+
+    if (cadeia.torquesEspecificados && cadeia.torquesEspecificados.length > 0) {
+      const torqueLines = ['*Torques Críticos Tabelados pela Montadora*'];
+      for (const t of cadeia.torquesEspecificados) {
+        torqueLines.push(`- ${t}`);
+      }
+      sections.push(torqueLines.join('\n'));
+    }
+
+    if ((!cadeia.ferramentasNecessarias || cadeia.ferramentasNecessarias.length === 0) &&
+        (!cadeia.torquesEspecificados || cadeia.torquesEspecificados.length === 0)) {
+      sections.push('Ferramentas manuais convencionais de oficina mecânica.');
+    }
+  } else if (choice === 'PASSOS') {
+    sections.push(
+      `*HYDRA | Sequência Técnica de Execução*\n\n> *${vehicleDesc}*\n- *Serviço:* ${servicosTexto}`
+    );
+
+    if (cadeia.steps && cadeia.steps.length > 0) {
+      const stepLines = ['*Passo a Passo Otimizado (Grafo de Acesso)*'];
+      for (const step of cadeia.steps) {
+        const faseLabel = step.faseExecucao === 'PRE_REQUISITO' ? 'Pré-Requisito'
+          : step.faseExecucao === 'DESMONTAGEM' ? 'Desmontagem'
+          : step.faseExecucao === 'ACESSO' ? 'Acesso'
+          : step.faseExecucao === 'EXECUCAO' ? 'Execução'
+          : step.faseExecucao === 'REMONTAGEM' ? 'Remontagem'
+          : 'Finalização e Teste';
+
+        let line = `- *${step.ordemExecucaoFinal}. ${step.titulo} (${faseLabel}):* *${step.tempoHoras.toFixed(2).replace('.', ',')}h* (${step.tempoMinutos} min)`;
+        if (step.ferramentas && step.ferramentas.length > 0) {
+          line += `\n  Ferramentas: ${step.ferramentas.join(', ')}`;
+        }
+        if (step.torqueEspecificado) {
+          line += ` (Torque: ${step.torqueEspecificado})`;
+        }
+        if (step.isAcessoCompartilhado) {
+          line += `\n  Acesso compartilhado entre os serviços (contabilizado 1 única vez)`;
+        }
+        stepLines.push(line);
+      }
+      sections.push(stepLines.join('\n'));
+    }
+  }
+
+  const rawFullText = sections.join('\n\n');
+  const sanitized = sanitizeWhatsAppMarkdown(rawFullText).replace(/[\u00A0\u202F]/g, ' ');
+  return [sanitized];
+}
+
+/**
+ * Compõe balão honesto e direto quando uma placa não consta no histórico das lojas nem na base externa,
+ * solicitando o modelo do veículo para vincular à placa e calcular o tempário sem alucinação (Spec 066).
+ */
+export function composeUnresolvedPlateTemparioBalloon(params: {
+  readonly placa: string;
+  readonly servicos: readonly string[];
+}): string[] {
+  const servicosLimpos = params.servicos
+    .map(s => s.replace(/\b[A-Z]{3}-?[0-9][A-Z0-9][0-9]{2}\b/gi, '').replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .join(' + ') || 'Serviço mecânico solicitado';
+
+  const lines: string[] = [
+    '*HYDRA | Tempário Técnico & Mão de Obra*',
+    '',
+    `> *Identificação de Placa Pendente — ${params.placa.toUpperCase()}*`,
+    `- *Serviço solicitado:* ${servicosLimpos}`,
+    '- *Status no sistema:* Placa sem Ordem de Serviço anterior na rede e não localizada na base externa',
+    '',
+    `Qual é o *modelo e ano* desse veículo (ex: *Corsa 1.4 2010*, *Palio 1.0 2012*, *Onix 1.0*)?`,
+    `_Responda apenas o carro/ano que já vinculo à placa *${params.placa.toUpperCase()}* e calculo a mão de obra exata (R$ 270,00/h)._`
+  ];
+
+  const rawText = lines.join('\n');
+  const sanitized = sanitizeWhatsAppMarkdown(rawText).replace(/[\u00A0\u202F]/g, ' ');
+  return [sanitized];
+}
+
+/**
+ * Compõe balão visual Hermes V2 para exibição de dados cadastrais veiculares por placa (Spec 064).
+ */
+export function composePlateVehicleBalloon(record: VehiclePlateRecord): string[] {
+  const anoStr = record.anoModelo
+    ? (record.anoFabricacao && record.anoFabricacao !== record.anoModelo
+        ? ` (${record.anoFabricacao}/${record.anoModelo})`
+        : ` (${record.anoModelo})`)
+    : '';
+
+  const header = `*HYDRA | Consulta Veicular por Placa*\n\n> *${record.modeloCompleto}${anoStr}*`;
+
+  const details: string[] = [];
+  details.push(`- *Placa:* ${record.placaFormatada}`);
+
+  const corComb: string[] = [];
+  if (record.cor) corComb.push(`*Cor:* ${record.cor}`);
+  if (record.combustivel) corComb.push(`*Combustível:* ${record.combustivel}`);
+  if (corComb.length > 0) {
+    details.push(`- ${corComb.join(' · ')}`);
+  }
+
+  const loc: string[] = [];
+  if (record.municipio) loc.push(record.municipio);
+  if (record.uf) loc.push(record.uf);
+  if (loc.length > 0) {
+    details.push(`- *Município:* ${loc.join(' / ')}`);
+  }
+
+  const mec: string[] = [];
+  if (record.motor) mec.push(`*Motor:* ${record.motor}`);
+  if (record.potencia) mec.push(`*Potência:* ${record.potencia} cv`);
+  if (record.cilindrada) mec.push(`*Cilindradas:* ${record.cilindrada} cc`);
+  if (mec.length > 0) {
+    details.push(`- ${mec.join(' · ')}`);
+  }
+
+  if (record.chassiMascarado) {
+    details.push(`- *Chassi:* \`${record.chassiMascarado}\``);
+  }
+
+  const situacao = record.situacao ? (record.situacao === 'CIRCULACAO' ? 'Em circulação (Regular)' : record.situacao) : 'Em circulação (Regular)';
+  details.push(`- *Situação cadastral:* ${situacao}`);
+
+  const fonte = record.origemDados === 'ORDENS_SERVICO_REDE'
+    ? '_Dados recuperados do histórico operacional da rede de oficinas._'
+    : '_Dados obtidos via Base Nacional de Registro Veicular (APIBrasil)._';
+
+  const balloonText = `${header}\n${details.join('\n')}\n\n${fonte}`;
+  const sanitized = sanitizeWhatsAppMarkdown(balloonText).replace(/[\u00A0\u202F]/g, ' ');
+  return [sanitized];
 }
