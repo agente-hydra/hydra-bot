@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IssuesCollection",
+  "type": "object",
+  "required": ["specId", "mode", "issues"],
+  "properties": {
+    "specId": { "type": "string" },
+    "mode": { "type": "string", "enum": ["github", "markdown-only"] },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task", "title", "state", "criteria"],
+        "properties": {
+          "task": { "type": ["integer", "string"] },
+          "number": { "type": ["integer", "null"] },
+          "url": { "type": ["string", "null"] },
+          "title": { "type": "string" },
+          "specialistId": { "type": "string" },
+          "state": {
+            "type": "string",
+            "enum": ["open", "in-progress", "closed", "blocked", "markdown-only"]
+          },
+          "criteria": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["text", "command"],
+              "properties": {
+                "text": { "type": "string" },
+                "command": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

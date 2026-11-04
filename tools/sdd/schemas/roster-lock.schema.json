@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "RosterLock",
+  "type": "object",
+  "required": ["sddVersion", "mode", "evidenceHash", "confidence", "specialists"],
+  "properties": {
+    "sddVersion": { "type": "string" },
+    "mode": {
+      "type": "string",
+      "enum": ["first-run", "upgrade", "noop", "migrate"]
+    },
+    "evidenceHash": { "type": "string" },
+    "confidence": {
+      "type": "string",
+      "enum": ["high", "medium", "low"]
+    },
+    "specialists": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "version"],
+        "properties": {
+          "id": { "type": "string" },
+          "version": { "type": "integer", "minimum": 1 },
+          "lineage": {
+            "type": "object",
+            "required": ["from", "op"],
+            "properties": {
+              "from": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "op": {
+                "type": "string",
+                "enum": ["keep", "rename", "split", "merge"]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

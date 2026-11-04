@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ScoutFrontMatter",
+  "type": "object",
+  "required": ["specialistId", "specId", "anchors", "complexity"],
+  "properties": {
+    "specialistId": { "type": "string" },
+    "specId": { "type": "string" },
+    "anchors": {
+      "type": "array",
+      "items": { "type": "string", "pattern": "^[^:]+:\\d+$" }
+    },
+    "complexity": {
+      "type": "string",
+      "enum": ["BAIXA", "MEDIA", "ALTA"]
+    }
+  }
+}

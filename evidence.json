@@ -1,0 +1,2078 @@
+{
+  "repoRoot": "C:\\Users\\User\\Desktop\\agy",
+  "timestamp": "2026-11-04T23:06:57.151Z",
+  "degraded": [],
+  "items": [
+    {
+      "id": "dep-@huggingface/transformers",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.@huggingface/transformers",
+      "weight": 0.4,
+      "payload": {
+        "package": "@huggingface/transformers",
+        "version": "4.3.0",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-@modelcontextprotocol/sdk",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.@modelcontextprotocol/sdk",
+      "weight": 0.4,
+      "payload": {
+        "package": "@modelcontextprotocol/sdk",
+        "version": "1.30.1",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-better-sqlite3",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.better-sqlite3",
+      "weight": 0.4,
+      "payload": {
+        "package": "better-sqlite3",
+        "version": "13.0.3",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-date-fns",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.date-fns",
+      "weight": 0.4,
+      "payload": {
+        "package": "date-fns",
+        "version": "4.4.0",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-dotenv",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.dotenv",
+      "weight": 0.4,
+      "payload": {
+        "package": "dotenv",
+        "version": "17.4.2",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-fastify",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.fastify",
+      "weight": 1,
+      "payload": {
+        "package": "fastify",
+        "version": "5.10.0",
+        "category": "api-backend",
+        "suggestedRole": "Fastify HTTP API & Routing"
+      }
+    },
+    {
+      "id": "dep-playwright",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.playwright",
+      "weight": 1,
+      "payload": {
+        "package": "playwright",
+        "version": "1.62.0",
+        "category": "browser-automation",
+        "suggestedRole": "Crawler & Headless Browser Automation"
+      }
+    },
+    {
+      "id": "dep-sqlite-vec",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.sqlite-vec",
+      "weight": 0.4,
+      "payload": {
+        "package": "sqlite-vec",
+        "version": "0.1.9",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-xlsx",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.xlsx",
+      "weight": 1,
+      "payload": {
+        "package": "xlsx",
+        "version": "0.18.5",
+        "category": "data-spreadsheets",
+        "suggestedRole": "Excel & Spreadsheet Processing"
+      }
+    },
+    {
+      "id": "dep-tsx",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.tsx",
+      "weight": 0.4,
+      "payload": {
+        "package": "tsx",
+        "version": "4.23.1",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-typescript",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.typescript",
+      "weight": 0.4,
+      "payload": {
+        "package": "typescript",
+        "version": "5.9.3",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "dep-@types/node",
+      "kind": "dependency",
+      "ref": "package.json#dependencies.@types/node",
+      "weight": 0.4,
+      "payload": {
+        "package": "@types/node",
+        "version": "22.20.1",
+        "category": "general-dependency",
+        "suggestedRole": null
+      }
+    },
+    {
+      "id": "struct-AGENTS.md",
+      "kind": "structure",
+      "ref": "AGENTS.md",
+      "weight": 0.8,
+      "payload": {
+        "directory": "AGENTS.md",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-GEMINI.md",
+      "kind": "structure",
+      "ref": "GEMINI.md",
+      "weight": 0.8,
+      "payload": {
+        "directory": "GEMINI.md",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-ORIGINAL_REQUEST.md",
+      "kind": "structure",
+      "ref": "ORIGINAL_REQUEST.md",
+      "weight": 0.8,
+      "payload": {
+        "directory": "ORIGINAL_REQUEST.md",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-README.md",
+      "kind": "structure",
+      "ref": "README.md",
+      "weight": 0.8,
+      "payload": {
+        "directory": "README.md",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-deploy",
+      "kind": "structure",
+      "ref": "deploy",
+      "weight": 0.8,
+      "payload": {
+        "directory": "deploy",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-deploy-tests",
+      "kind": "structure",
+      "ref": "deploy/tests",
+      "weight": 0.8,
+      "payload": {
+        "directory": "deploy/tests",
+        "fileCount": 2
+      }
+    },
+    {
+      "id": "struct-docs-app-map",
+      "kind": "structure",
+      "ref": "docs/app-map",
+      "weight": 0.8,
+      "payload": {
+        "directory": "docs/app-map",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-docs",
+      "kind": "structure",
+      "ref": "docs",
+      "weight": 0.8,
+      "payload": {
+        "directory": "docs",
+        "fileCount": 2
+      }
+    },
+    {
+      "id": "struct-docs-superpowers",
+      "kind": "structure",
+      "ref": "docs/superpowers",
+      "weight": 0.8,
+      "payload": {
+        "directory": "docs/superpowers",
+        "fileCount": 2
+      }
+    },
+    {
+      "id": "struct-hydra_apresentacao_socio.html",
+      "kind": "structure",
+      "ref": "hydra_apresentacao_socio.html",
+      "weight": 0.8,
+      "payload": {
+        "directory": "hydra_apresentacao_socio.html",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-hydra_mapa_mental.html",
+      "kind": "structure",
+      "ref": "hydra_mapa_mental.html",
+      "weight": 0.8,
+      "payload": {
+        "directory": "hydra_mapa_mental.html",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-hydra_onepage_socio.html",
+      "kind": "structure",
+      "ref": "hydra_onepage_socio.html",
+      "weight": 0.8,
+      "payload": {
+        "directory": "hydra_onepage_socio.html",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-iniciar-agy.bat",
+      "kind": "structure",
+      "ref": "iniciar-agy.bat",
+      "weight": 0.8,
+      "payload": {
+        "directory": "iniciar-agy.bat",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-list_inst.js",
+      "kind": "structure",
+      "ref": "list_inst.js",
+      "weight": 0.8,
+      "payload": {
+        "directory": "list_inst.js",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-list_tokens.js",
+      "kind": "structure",
+      "ref": "list_tokens.js",
+      "weight": 0.8,
+      "payload": {
+        "directory": "list_tokens.js",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-package-lock.json",
+      "kind": "structure",
+      "ref": "package-lock.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "package-lock.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-package.json",
+      "kind": "structure",
+      "ref": "package.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "package.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-projects",
+      "kind": "structure",
+      "ref": "projects",
+      "weight": 0.8,
+      "payload": {
+        "directory": "projects",
+        "fileCount": 5
+      }
+    },
+    {
+      "id": "struct-proposal_full.md",
+      "kind": "structure",
+      "ref": "proposal_full.md",
+      "weight": 0.8,
+      "payload": {
+        "directory": "proposal_full.md",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-scratch",
+      "kind": "structure",
+      "ref": "scratch",
+      "weight": 0.8,
+      "payload": {
+        "directory": "scratch",
+        "fileCount": 25
+      }
+    },
+    {
+      "id": "struct-scratch_mcp_lead_tools.ts",
+      "kind": "structure",
+      "ref": "scratch_mcp_lead_tools.ts",
+      "weight": 0.8,
+      "payload": {
+        "directory": "scratch_mcp_lead_tools.ts",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-scripts",
+      "kind": "structure",
+      "ref": "scripts",
+      "weight": 0.8,
+      "payload": {
+        "directory": "scripts",
+        "fileCount": 7
+      }
+    },
+    {
+      "id": "struct-skills-lock.json",
+      "kind": "structure",
+      "ref": "skills-lock.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "skills-lock.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-specs-031-playwright-anti-flakiness-robustez-rede",
+      "kind": "structure",
+      "ref": "specs/031-playwright-anti-flakiness-robustez-rede",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/031-playwright-anti-flakiness-robustez-rede",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-039-hydra-rede-heartbeat-auth-bridge-resilience",
+      "kind": "structure",
+      "ref": "specs/039-hydra-rede-heartbeat-auth-bridge-resilience",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/039-hydra-rede-heartbeat-auth-bridge-resilience",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-040-hydra-resiliencia-alertas-anti-impressao-antiflood",
+      "kind": "structure",
+      "ref": "specs/040-hydra-resiliencia-alertas-anti-impressao-antiflood",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/040-hydra-resiliencia-alertas-anti-impressao-antiflood",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-041-sdd-alethe-orquestracao-dinamica",
+      "kind": "structure",
+      "ref": "specs/041-sdd-alethe-orquestracao-dinamica",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/041-sdd-alethe-orquestracao-dinamica",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-042-hydra-rede-dupla-verificacao-anti-cascata",
+      "kind": "structure",
+      "ref": "specs/042-hydra-rede-dupla-verificacao-anti-cascata",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/042-hydra-rede-dupla-verificacao-anti-cascata",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-043-hydra-rede-bateria-testes-caos-e2e",
+      "kind": "structure",
+      "ref": "specs/043-hydra-rede-bateria-testes-caos-e2e",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/043-hydra-rede-bateria-testes-caos-e2e",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-044-hydra-rede-prevencao-duplicacao-contaminacao",
+      "kind": "structure",
+      "ref": "specs/044-hydra-rede-prevencao-duplicacao-contaminacao",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/044-hydra-rede-prevencao-duplicacao-contaminacao",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-045-hydra-rede-neutralizacao-joyride-backdrop-sessao",
+      "kind": "structure",
+      "ref": "specs/045-hydra-rede-neutralizacao-joyride-backdrop-sessao",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/045-hydra-rede-neutralizacao-joyride-backdrop-sessao",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-047-hydra-rede-esteira-madrugada-0500-anti-stale",
+      "kind": "structure",
+      "ref": "specs/047-hydra-rede-esteira-madrugada-0500-anti-stale",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/047-hydra-rede-esteira-madrugada-0500-anti-stale",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-048-hydra-rede-session-persistence-keepalive",
+      "kind": "structure",
+      "ref": "specs/048-hydra-rede-session-persistence-keepalive",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/048-hydra-rede-session-persistence-keepalive",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-049-hydra-patio-reconciliation-ghost-expurge-sync",
+      "kind": "structure",
+      "ref": "specs/049-hydra-patio-reconciliation-ghost-expurge-sync",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/049-hydra-patio-reconciliation-ghost-expurge-sync",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-050-hydra-evolution-instance-reconnect-watchdog",
+      "kind": "structure",
+      "ref": "specs/050-hydra-evolution-instance-reconnect-watchdog",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/050-hydra-evolution-instance-reconnect-watchdog",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-054-hydra-tempario-hibrido-automotivo",
+      "kind": "structure",
+      "ref": "specs/054-hydra-tempario-hibrido-automotivo",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/054-hydra-tempario-hibrido-automotivo",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-058-hydra-assistente-admin-socios",
+      "kind": "structure",
+      "ref": "specs/058-hydra-assistente-admin-socios",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/058-hydra-assistente-admin-socios",
+        "fileCount": 8
+      }
+    },
+    {
+      "id": "struct-specs-059-hydra-chat-conversas-grafo-os",
+      "kind": "structure",
+      "ref": "specs/059-hydra-chat-conversas-grafo-os",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/059-hydra-chat-conversas-grafo-os",
+        "fileCount": 4
+      }
+    },
+    {
+      "id": "struct-specs-060-hydra-rede-captcha-bypass-live-auth",
+      "kind": "structure",
+      "ref": "specs/060-hydra-rede-captcha-bypass-live-auth",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/060-hydra-rede-captcha-bypass-live-auth",
+        "fileCount": 5
+      }
+    },
+    {
+      "id": "struct-specs-061-hydra-tempario-bateria-testes-estresse-rede",
+      "kind": "structure",
+      "ref": "specs/061-hydra-tempario-bateria-testes-estresse-rede",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/061-hydra-tempario-bateria-testes-estresse-rede",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-062-hydra-tempario-fastpath-dispatch-vps-sync",
+      "kind": "structure",
+      "ref": "specs/062-hydra-tempario-fastpath-dispatch-vps-sync",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/062-hydra-tempario-fastpath-dispatch-vps-sync",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-063-hydra-tempario-progressive-disclosure-ux",
+      "kind": "structure",
+      "ref": "specs/063-hydra-tempario-progressive-disclosure-ux",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/063-hydra-tempario-progressive-disclosure-ux",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-backstudio-lead-triage-pipeline",
+      "kind": "structure",
+      "ref": "specs/backstudio-lead-triage-pipeline",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/backstudio-lead-triage-pipeline",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-conciliacao-patio-rede-2310",
+      "kind": "structure",
+      "ref": "specs/conciliacao-patio-rede-2310",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/conciliacao-patio-rede-2310",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-deploy-deskcomm-crm-isolated-vps",
+      "kind": "structure",
+      "ref": "specs/deploy-deskcomm-crm-isolated-vps",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/deploy-deskcomm-crm-isolated-vps",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-admin-group-and-settlement",
+      "kind": "structure",
+      "ref": "specs/hydra-admin-group-and-settlement",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-admin-group-and-settlement",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-case-history-graph",
+      "kind": "structure",
+      "ref": "specs/hydra-case-history-graph",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-case-history-graph",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-clean-trio-dispatch",
+      "kind": "structure",
+      "ref": "specs/hydra-clean-trio-dispatch",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-clean-trio-dispatch",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-confirmed-open-os",
+      "kind": "structure",
+      "ref": "specs/hydra-confirmed-open-os",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-confirmed-open-os",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-contas-pagar-dispatch",
+      "kind": "structure",
+      "ref": "specs/hydra-contas-pagar-dispatch",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-contas-pagar-dispatch",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-conversation-memory-protection",
+      "kind": "structure",
+      "ref": "specs/hydra-conversation-memory-protection",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-conversation-memory-protection",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-conversational-adaptable",
+      "kind": "structure",
+      "ref": "specs/hydra-conversational-adaptable",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-conversational-adaptable",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-daily-report-sanitization-and-branding",
+      "kind": "structure",
+      "ref": "specs/hydra-daily-report-sanitization-and-branding",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-daily-report-sanitization-and-branding",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-data-crawlers",
+      "kind": "structure",
+      "ref": "specs/hydra-data-crawlers",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-data-crawlers",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-deep-os-and-store-isolation",
+      "kind": "structure",
+      "ref": "specs/hydra-deep-os-and-store-isolation",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-deep-os-and-store-isolation",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-hermes-balloons-and-os-audit",
+      "kind": "structure",
+      "ref": "specs/hydra-hermes-balloons-and-os-audit",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-hermes-balloons-and-os-audit",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-language-whatsapp-comprehension",
+      "kind": "structure",
+      "ref": "specs/hydra-language-whatsapp-comprehension",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-language-whatsapp-comprehension",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-linea-runtime-repair",
+      "kind": "structure",
+      "ref": "specs/hydra-linea-runtime-repair",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-linea-runtime-repair",
+        "fileCount": 6
+      }
+    },
+    {
+      "id": "struct-specs-hydra-llm-first-architecture",
+      "kind": "structure",
+      "ref": "specs/hydra-llm-first-architecture",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-llm-first-architecture",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-mapa-metas-reconcile-and-clean-dispatch",
+      "kind": "structure",
+      "ref": "specs/hydra-mapa-metas-reconcile-and-clean-dispatch",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-mapa-metas-reconcile-and-clean-dispatch",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-mcp-lead-instance-routing",
+      "kind": "structure",
+      "ref": "specs/hydra-mcp-lead-instance-routing",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-mcp-lead-instance-routing",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-obsidian-memory-audit",
+      "kind": "structure",
+      "ref": "specs/hydra-obsidian-memory-audit",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-obsidian-memory-audit",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-os-360-formatting-and-conversation-continuity",
+      "kind": "structure",
+      "ref": "specs/hydra-os-360-formatting-and-conversation-continuity",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-os-360-formatting-and-conversation-continuity",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-os-checklist-and-clean-cards",
+      "kind": "structure",
+      "ref": "specs/hydra-os-checklist-and-clean-cards",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-os-checklist-and-clean-cards",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-os-conversation-context",
+      "kind": "structure",
+      "ref": "specs/hydra-os-conversation-context",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-os-conversation-context",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-patio-bot-bridge",
+      "kind": "structure",
+      "ref": "specs/hydra-patio-bot-bridge",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-patio-bot-bridge",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-patio-d1-reconciliation",
+      "kind": "structure",
+      "ref": "specs/hydra-patio-d1-reconciliation",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-patio-d1-reconciliation",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-patio-real-count-and-balloon-titles",
+      "kind": "structure",
+      "ref": "specs/hydra-patio-real-count-and-balloon-titles",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-patio-real-count-and-balloon-titles",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-patio-signal-policy-60pct-and-readable-layout",
+      "kind": "structure",
+      "ref": "specs/hydra-patio-signal-policy-60pct-and-readable-layout",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-patio-signal-policy-60pct-and-readable-layout",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-premium-formatting-and-yard-integrity",
+      "kind": "structure",
+      "ref": "specs/hydra-premium-formatting-and-yard-integrity",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-premium-formatting-and-yard-integrity",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-query-manual-reliable-data",
+      "kind": "structure",
+      "ref": "specs/hydra-query-manual-reliable-data",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-query-manual-reliable-data",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-query-routing-and-formatting-fix",
+      "kind": "structure",
+      "ref": "specs/hydra-query-routing-and-formatting-fix",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-query-routing-and-formatting-fix",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-rede-state-contingency-audit",
+      "kind": "structure",
+      "ref": "specs/hydra-rede-state-contingency-audit",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-rede-state-contingency-audit",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-rede-venda-juros",
+      "kind": "structure",
+      "ref": "specs/hydra-rede-venda-juros",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-rede-venda-juros",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-hydra-semantic-layer",
+      "kind": "structure",
+      "ref": "specs/hydra-semantic-layer",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/hydra-semantic-layer",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-manager-conversational-ai",
+      "kind": "structure",
+      "ref": "specs/manager-conversational-ai",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/manager-conversational-ai",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-manager-store-scope",
+      "kind": "structure",
+      "ref": "specs/manager-store-scope",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/manager-store-scope",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-specs-vertex-ai-provider-deskcomm",
+      "kind": "structure",
+      "ref": "specs/vertex-ai-provider-deskcomm",
+      "weight": 0.8,
+      "payload": {
+        "directory": "specs/vertex-ai-provider-deskcomm",
+        "fileCount": 3
+      }
+    },
+    {
+      "id": "struct-src-hydra-sync",
+      "kind": "structure",
+      "ref": "src/hydra-sync",
+      "weight": 0.8,
+      "payload": {
+        "directory": "src/hydra-sync",
+        "fileCount": 226
+      }
+    },
+    {
+      "id": "struct-src-workers",
+      "kind": "structure",
+      "ref": "src/workers",
+      "weight": 0.8,
+      "payload": {
+        "directory": "src/workers",
+        "fileCount": 32
+      }
+    },
+    {
+      "id": "struct-test_commands_composer.ts",
+      "kind": "structure",
+      "ref": "test_commands_composer.ts",
+      "weight": 0.8,
+      "payload": {
+        "directory": "test_commands_composer.ts",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-test_send_node.js",
+      "kind": "structure",
+      "ref": "test_send_node.js",
+      "weight": 0.8,
+      "payload": {
+        "directory": "test_send_node.js",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-tsconfig.clean.json",
+      "kind": "structure",
+      "ref": "tsconfig.clean.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "tsconfig.clean.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-tsconfig.hydra.json",
+      "kind": "structure",
+      "ref": "tsconfig.hydra.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "tsconfig.hydra.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-tsconfig.json",
+      "kind": "structure",
+      "ref": "tsconfig.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "tsconfig.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-tsconfig.tempario.json",
+      "kind": "structure",
+      "ref": "tsconfig.tempario.json",
+      "weight": 0.8,
+      "payload": {
+        "directory": "tsconfig.tempario.json",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "struct-webhook-listener.js",
+      "kind": "structure",
+      "ref": "webhook-listener.js",
+      "weight": 0.8,
+      "payload": {
+        "directory": "webhook-listener.js",
+        "fileCount": 1
+      }
+    },
+    {
+      "id": "graphify-summary",
+      "kind": "structure",
+      "ref": "graphify-out/graph.json",
+      "weight": 1,
+      "payload": {
+        "nodeCount": 9775,
+        "edgeCount": 0
+      }
+    },
+    {
+      "id": "cochange-_agent_-_projects",
+      "kind": "cochange",
+      "ref": ".agent<->projects",
+      "weight": 0.7,
+      "payload": {
+        "pair": ".agent<->projects",
+        "frequency": 14
+      }
+    },
+    {
+      "id": "cochange-_agent_-_src",
+      "kind": "cochange",
+      "ref": ".agent<->src",
+      "weight": 0.7,
+      "payload": {
+        "pair": ".agent<->src",
+        "frequency": 8
+      }
+    },
+    {
+      "id": "cochange-projects_-_src",
+      "kind": "cochange",
+      "ref": "projects<->src",
+      "weight": 0.7,
+      "payload": {
+        "pair": "projects<->src",
+        "frequency": 7
+      }
+    },
+    {
+      "id": "cochange-src_-_webhook-listener_js",
+      "kind": "cochange",
+      "ref": "src<->webhook-listener.js",
+      "weight": 0.7,
+      "payload": {
+        "pair": "src<->webhook-listener.js",
+        "frequency": 4
+      }
+    },
+    {
+      "id": "cochange-_gitignore_-_src",
+      "kind": "cochange",
+      "ref": ".gitignore<->src",
+      "weight": 0.7,
+      "payload": {
+        "pair": ".gitignore<->src",
+        "frequency": 4
+      }
+    },
+    {
+      "id": "cochange-package-lock_json_-_package_json",
+      "kind": "cochange",
+      "ref": "package-lock.json<->package.json",
+      "weight": 0.7,
+      "payload": {
+        "pair": "package-lock.json<->package.json",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "cochange-package-lock_json_-_src",
+      "kind": "cochange",
+      "ref": "package-lock.json<->src",
+      "weight": 0.7,
+      "payload": {
+        "pair": "package-lock.json<->src",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "cochange-package-lock_json_-_tsconfig_json",
+      "kind": "cochange",
+      "ref": "package-lock.json<->tsconfig.json",
+      "weight": 0.7,
+      "payload": {
+        "pair": "package-lock.json<->tsconfig.json",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "cochange-package_json_-_src",
+      "kind": "cochange",
+      "ref": "package.json<->src",
+      "weight": 0.7,
+      "payload": {
+        "pair": "package.json<->src",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "cochange-package_json_-_tsconfig_json",
+      "kind": "cochange",
+      "ref": "package.json<->tsconfig.json",
+      "weight": 0.7,
+      "payload": {
+        "pair": "package.json<->tsconfig.json",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "cochange-src_-_tsconfig_json",
+      "kind": "cochange",
+      "ref": "src<->tsconfig.json",
+      "weight": 0.7,
+      "payload": {
+        "pair": "src<->tsconfig.json",
+        "frequency": 3
+      }
+    },
+    {
+      "id": "mem-auth-7",
+      "kind": "memory",
+      "ref": ".agent/memory/auth.md#7",
+      "weight": 0.9,
+      "payload": {
+        "file": "auth.md",
+        "line": 7,
+        "date": "2026-09-30",
+        "tag": "Feature ID: hydra-memory-rag-isolation",
+        "title": "",
+        "summary": "**Contexto:** Barreira antecipada de autenticação de webhook, resolução de identidade canônica PN/LID, rejeição silenciosa de não-cadastrados, segregação de simulação de personas e revalidação em voo.\n**Regra aprendida:**\n1. Barreira 1 no Ingress: Remetentes não cadastrados em `hydra_authorized_user"
+      }
+    },
+    {
+      "id": "mem-domain-7",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#7",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 7,
+        "date": "2026-11-04",
+        "tag": "Feature ID: 067-diagnostico-apibrasil-e-estimativa-imediata",
+        "title": "",
+        "summary": "**Contexto:** Resolução definitiva do vácuo de orçamento e bloqueio conversacional quando uma placa automotiva não é encontrada no ERP nem na base externa APIBrasil (devido a saldo zerado na conta do usuário ou placa sem histórico). Implementação do Tempário de Referência Imediato (Linha Passeio Pad"
+      }
+    },
+    {
+      "id": "mem-domain-23",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#23",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 23,
+        "date": "2026-11-04",
+        "tag": "Feature ID: 064-api-brasil-placa-lookup",
+        "title": "",
+        "summary": "**Contexto:** Implementação de consulta veicular direta por placa no WhatsApp e enriquecimento automático de contexto para o Tempário Técnico Híbrido, substituindo o scraping legado do ERP Oficina Inteligente pela APIBrasil Gateway V2 com política L1/L2/L3 de preservação de cota gratuita e balões na"
+      }
+    },
+    {
+      "id": "mem-domain-37",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#37",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 37,
+        "date": "2026-10-27",
+        "tag": "Feature ID: 033-robustez-definitiva-esteira-rede",
+        "title": "",
+        "summary": "**Contexto:** Eliminação definitiva das falhas estruturais na esteira noturna e matinal da Rede: lojas zeradas prematuras (caso Santo André com R$ 0,00 na Rede e R$ 7.481 no Pátio), queda de socket da instância WhatsApp na Evolution API às 08:00 AM, e contaminação indevida de transações de PIX da ma"
+      }
+    },
+    {
+      "id": "mem-domain-52",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#52",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 52,
+        "date": "2026-10-09",
+        "tag": "Feature ID: hydra-crawler-payment-tab-and-closure-reconciliation",
+        "title": "",
+        "summary": "**Contexto:** Correção da discrepância financeira e de ciclo de vida de OSs no crawler (`os_deep_inspector.ts`, `deep-crawler.ts`, `db_repository.ts`), onde ordens faturadas/fechadas e quitadas (caso real OS #1856 Fusca Novo - Rei do Módulo, R$ 4.000 quitado via PIX) apareciam como \"0% pago / R$ 4.0"
+      }
+    },
+    {
+      "id": "mem-domain-65",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#65",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 65,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-harness-async-and-intent-hardening",
+        "title": "",
+        "summary": "**Contexto:** Endurecimento crítico do harness e dispatcher do Hydra Agent (`dual_worker_router.ts`, `agent_dispatcher.ts`, `db_repository.ts`, `webhook-listener.js`) na VPS Linux, eliminando congelamento do event loop, vazamento de contexto de veículos/OS em mensagens subsequentes, timeouts de 90s"
+      }
+    },
+    {
+      "id": "mem-domain-78",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#78",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 78,
+        "date": "2026-10-08",
+        "tag": "Feature ID: watchdog-parser-and-safety-hardening",
+        "title": "",
+        "summary": "**Contexto:** Endurecimento da extração de JSON e tratamento de restrições de moderação de IA no Watchdog (`/home/operacional/watchdog/worker.js`) na VPS Linux, eliminando quebras por streams interrompidos da CLI `agy` e bloqueios da Google Generative AI Prohibited Use policy.\n**Regra aprendida:**\n1"
+      }
+    },
+    {
+      "id": "mem-domain-90",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#90",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 90,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-os-360-full-details",
+        "title": "",
+        "summary": "**Contexto:** Diagnóstico e resolução da inconsistência financeira e informacional no detalhamento de OSs do Hydra Agent (caso real OS #1916 ReiDoModulo), onde serviços discriminados mostravam apenas R$ 130 de uma OS de R$ 1.600 omitindo R$ 1.470 de reparo de bancada/peças, além de ignorar o Grafo d"
+      }
+    },
+    {
+      "id": "mem-domain-103",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#103",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 103,
+        "date": "2026-10-23",
+        "tag": "Feature/Bug: Conciliação Pátio x Rede — Resolução Temporal de Crédito e Expurgo de Contas a Prazo",
+        "title": "",
+        "summary": "**Contexto:** Correção do descompasso entre o relatório automático `Conciliacao Patio x Rede` e a conferência manual financeira. O robô reportava R$ 0,00 de crédito recebido em D-1 e acumulava saldo fantasma de R$ 95.981,52, enquanto a conciliação manual apurava R$ 67.977,88 em aberto.\n**Regra apren"
+      }
+    },
+    {
+      "id": "mem-domain-115",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#115",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 115,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-graph-agent-integration",
+        "title": "",
+        "summary": "**Contexto:** Integração das buscas do Hydra Agent ao Grafo de Atendimentos (CaseMemoryReader / Fast-Path e MCP Tool get_os_case_history) e gerenciador de presença contínua WhatsApp (PresenceHeartbeatKeeper).\n**Regra aprendida:**\n1. Presença Contínua (\"Digitando...\") no WhatsApp: O status \"composing"
+      }
+    },
+    {
+      "id": "mem-domain-129",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#129",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 129,
+        "date": "2026-10-07",
+        "tag": "Feature: Watchdog Sliding Idle Debounce",
+        "title": "",
+        "summary": "**Contexto:** Transição da arquitetura de acumulação de conversas no Watchdog de Janela Fixa (Fixed Window com SETNX) para Janela Deslizante de Inatividade (Sliding Idle Debounce) de 20 minutos com teto máximo de segurança de 2 horas.\n**Regra aprendida:**\n1. Janela de Inatividade (Sliding Debounce):"
+      }
+    },
+    {
+      "id": "mem-domain-140",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#140",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 140,
+        "date": "2026-10-06",
+        "tag": "Feature: Hydra Pátio — Reconciliação Diária de OS & Ciclo de Quitação",
+        "title": "",
+        "summary": "**Contexto:** Automação da conciliação diária de veículos em pátio e ordens de serviço por loja no ERP Oficina Inteligente, com rastreamento persistente do ciclo de vida das OSs (Ledger Mensal), layout corporativo idêntico ao modelo de referência (`CONCILIAÇÃO 2608.xlsx`) alinhado à estética Slate d"
+      }
+    },
+    {
+      "id": "mem-domain-153",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#153",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 153,
+        "date": "2026-10-06",
+        "tag": "Feature: Hydra Rede — Relatório de Juros Diário & Layout A4 Delimitado",
+        "title": "",
+        "summary": "**Contexto:** Automação completa do crawler Meu Rede para 10 lojas credenciadas com extração de transações individuais via fila S3, preenchimento elástico da planilha de juros/taxas em layout delimitado A4 Paisagem, disparo diário pontual às 08:00 AM via WhatsApp e canal de contingência exclusivo pa"
+      }
+    },
+    {
+      "id": "mem-domain-168",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#168",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 168,
+        "date": "2026-09-29",
+        "tag": "Feature: Hydra Financial Engine e Fluxo Conversacional Multi-Turno",
+        "title": "",
+        "summary": "**Contexto:** Integração dos Agentes 1 e 2 do ecossistema Hydra na VPS. Consultas de metas (goal_gap), CMV, faturamento por área, canais de mídia e continuidade de diálogo (anáfora, elipses, reset de rede).\n**Regra aprendida:**\n1. Base de Cálculo de CMV: O sistema Oficina Inteligente calcula `% C.M."
+      }
+    },
+    {
+      "id": "mem-domain-181",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#181",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 181,
+        "date": "2026-09-29",
+        "tag": "Feature: Confirmação de Recebimento (👀) e Digitando Contínuo no WhatsApp",
+        "title": "",
+        "summary": "**Contexto:** Implementação de confirmação ultra-rápida de recebimento via reação 👀 vinculada ao `messageId` original e manutenção contínua do estado \"digitando\" (`composing`) durante todo o processamento de consultas assíncronas no webhook do Hydra.\n**Regra aprendida:**\n1. Contrato da Evolution AP"
+      }
+    },
+    {
+      "id": "mem-domain-195",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#195",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 195,
+        "date": "2026-09-29",
+        "tag": "Feature: Encavalamento de Mensagens, CMV da Rede e Evidências Multimodais",
+        "title": "",
+        "summary": "**Contexto:** Implementação do agrupador de mensagens encavaladas (`MessageBatcher`), cálculo e apresentação de CMV consolidado da rede (razão ponderada), comparativo de lojas e pior loja, blindagem anti-regressão de slug genérico e contratos unificados de mídia multimodal (`InboundPart`, `MediaEvid"
+      }
+    },
+    {
+      "id": "mem-domain-209",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#209",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 209,
+        "date": "2026-09-29",
+        "tag": "Fix: Ingress Evolution Webhook e Anti-Loop de Status",
+        "title": "",
+        "summary": "**Contexto:** Correção da entrega de mensagens reais WhatsApp da Evolution API para o listener Hydra (`http://172.18.0.1:3333`).\n**Regra aprendida:**\n1. Contrato de Mensagens da Evolution API: O deserializador Baileys (`prepareMessage`) da Evolution sempre injeta `status: \"DELIVERY_ACK\"` em todas as"
+      }
+    },
+    {
+      "id": "mem-domain-221",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#221",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 221,
+        "date": "2026-09-30",
+        "tag": "Fix: Ingress de Status e Ciclo Completo de Reações em Produção",
+        "title": "",
+        "summary": "**Contexto:** Correção de regressão onde `Boolean(payload?.data?.status)` em `webhook-listener.js` interceptava mensagens normais (`messages.upsert`), e validação do ciclo 👀 -> digitando -> balão -> ✅ em produção sob PM2.\n**Regra aprendida:**\n1. Tratamento de Updates de Status: Eventos de entrega e"
+      }
+    },
+    {
+      "id": "mem-domain-230",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#230",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 230,
+        "date": "2026-09-30",
+        "tag": "Feature ID: hydra-memory-rag-isolation",
+        "title": "",
+        "summary": "**Contexto:** Memória atômica estruturada, validador determinístico contra alucinação factual, consolidação sem LLM em America/Sao_Paulo e RAG com isolamento estrito de escopo efetivo.\n**Regra aprendida:**\n1. Validador Determinístico Equilibrado: Rejeita fatos transitórios e operacionais pontuais (s"
+      }
+    },
+    {
+      "id": "mem-domain-247",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#247",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 247,
+        "date": "2026-10-05",
+        "tag": "Feature ID: hydra-os-conversation-context",
+        "title": "",
+        "summary": "**Contexto:** Auditoria e correção definitiva do Incidente Linea/Jabaquara (Versão 2.1). Consulta e desambiguação de situação de veículo por modelo e loja em linguagem natural, acoplamento estrito de análises prévias existentes com ERP, segregação de operações (situação vs contagem vs listagem), mit"
+      }
+    },
+    {
+      "id": "mem-domain-263",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#263",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 263,
+        "date": "2026-10-06",
+        "tag": "Feature ID: hydra-manager-leads-mcp & hydra-manager-leads-formatting-v2",
+        "title": "",
+        "summary": "**Contexto:** Servidor MCP SSE público (Traefik/Cloudflare em `https://bot.tork.services/mcp/sse`) para robôs de atendimento notificarem gerentes das 10 lojas sobre novos agendamentos e cancelamentos via WhatsApp oficial (`atendimento`), com formatação visual nativa clean e trava de segurança estrit"
+      }
+    },
+    {
+      "id": "mem-domain-278",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#278",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 278,
+        "date": "2026-10-06",
+        "tag": "Feature ID: hydra-context-router-and-audit-sync",
+        "title": "",
+        "summary": "**Contexto:** Correção sistêmica de sequestro de contexto pelo resolvedor de veículos, resolução de anáforas de OSs em turnos subsequentes, ancoragem de fallback determinístico pós-timeout da LLM, extração horária de CMV (Gestão Periódica) e slotting de briefings executivos vespertinos.\n**Regra apre"
+      }
+    },
+    {
+      "id": "mem-domain-294",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#294",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 294,
+        "date": "2026-10-07",
+        "tag": "Regra Cardinal de Segurança: Proibição de Envio por Instâncias de Gerentes",
+        "title": "",
+        "summary": "**Contexto:** Bloqueio incondicional de instâncias de gerentes de lojas físicas para disparos de saída (outbound).\n**Regra aprendida:**\n1. **PROIBIÇÃO ABSOLUTA DE ENVIO POR INSTÂNCIAS DE GERENTES:** Instâncias de WhatsApp atribuídas a lojas ou gerentes (ex: `Maua`, `Jorge Beretta`, `Kennedy`, `Dom P"
+      }
+    },
+    {
+      "id": "mem-domain-308",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#308",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 308,
+        "date": "2026-10-07",
+        "tag": "Feature ID: hydra-intent-refinement-v2",
+        "title": "",
+        "summary": "**Contexto:** Substituição de concatenações manuais de histórico e heurísticas frágeis de regex/palavras-chave por persistência nativa de conversas multi-turn do AGY CLI (`--conversation <id>` com `--output-format json`), armazenamento do `agy_conversation_id` no SQLite por telefone, limpeza compuls"
+      }
+    },
+    {
+      "id": "mem-domain-322",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#322",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 322,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-patio-engine-reconstruction",
+        "title": "",
+        "summary": "**Contexto:** Reestruturação completa do motor de conciliação diária de Carros em Pátio & OS (Modelo Canônico D-1), ingestão nativa direta a partir dos arquivos granulares do Hydra Bot na VPS (`/home/operacional/hydra-data/crawls`), calibração visual precisa (linha inteira âmbar para saídas de pátio"
+      }
+    },
+    {
+      "id": "mem-domain-335",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#335",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 335,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-patio-strict-payments-and-grand-total",
+        "title": "",
+        "summary": "**Contexto:** Correção do critério temporal de detecção de pagamentos em D-1, eliminando falso positivo que importava parcelas futuras de cartão de crédito e pagamentos antigos de OSs que haviam sido editadas no ERP em D-1.\n**Regra aprendida:**\n1. **`historico_atualizado_em` Não é Data de Pagamento:"
+      }
+    },
+    {
+      "id": "mem-domain-345",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#345",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 345,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-admin-group-and-settlement",
+        "title": "",
+        "summary": "**Contexto:** Cadastro do novo administrador Joacir Barros (+55 11 94764-5967), integração do grupo WhatsApp Mecânica TI (120363425738307789@g.us) como canal de broadcast exclusivo para resumos diários e alertas de conversas dos gerentes (Watchdog), com trava de segurança de grupo (zero conversação"
+      }
+    },
+    {
+      "id": "mem-domain-357",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#357",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 357,
+        "date": "2026-10-08",
+        "tag": "Feature ID: hydra-hermes-balloons-and-os-audit",
+        "title": "",
+        "summary": "**Contexto:** Implementação de particionamento em balões nativos no WhatsApp via `---BLOCK---`, categorização semântica de peças e serviços por sistemas mecânicos, Title Case inteligente, hierarquização estrita de vistorias (inspeção de entrada subordinada ao checklist de entrada) e card de auditori"
+      }
+    },
+    {
+      "id": "mem-domain-371",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#371",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 371,
+        "date": "2026-10-09",
+        "tag": "Feature ID: hydra-evo-interactive-os",
+        "title": "",
+        "summary": "**Contexto:** Substituição do envio maciço de múltiplos balões colados de OS por uma arquitetura interativa e modular de 3 etapas no WhatsApp via Evolution API v2.3.7 (`sendText` resumo executivo sóbrio -> `sendList` menu nativo de módulos -> `sendText` detalhamento modular sob demanda), com arquite"
+      }
+    },
+    {
+      "id": "mem-domain-390",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#390",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 390,
+        "date": "2026-10-09",
+        "tag": "Feature ID: hydra-patio-piraporinha-stale-fix",
+        "title": "",
+        "summary": "**Contexto:** Correção e blindagem de resiliência após discrepância de conciliação de OSs em Piraporinha causada por timeout transiente de ASP.NET WebForms (`#lblSiglaEmpresa`) na virada de loja, que acionou o Circuit Breaker e preservou o snapshot do dia anterior (24h obsoleto), gerando relatório m"
+      }
+    },
+    {
+      "id": "mem-domain-404",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#404",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 404,
+        "date": "2026-10-09",
+        "tag": "Feature ID: hydra-contas-pagar-excel-retention-vector",
+        "title": "",
+        "summary": "**Contexto:** Extração dupla automatizada (PDF oficial + planilha Excel estruturada) da tela `wfContaBuscaPagar.aspx` do ERP Oficina Inteligente, com política de retenção mínima de 2 dias (48 horas), ingestão relacional idempotente no SQLite WAL (`contas_pagar_lancamentos`), indexação vetorial e FTS"
+      }
+    },
+    {
+      "id": "mem-domain-420",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#420",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 420,
+        "date": "2026-10-27",
+        "tag": "Feature ID: 037-roteamento-gerentes-cron-antispam-servico-prestado",
+        "title": "",
+        "summary": "**Contexto:** Implementação do roteamento determinístico de indicadores (Faturamento, Meta, CMV e % Serviço Prestado) para gerentes de loja (Quarta e Sexta às 14:00 BRT) e blindagem anti-spam/anti-flood para o alerta executivo de Mão de Obra/Serviço Prestado (< 45%) no grupo dos sócios.\n**Regra apre"
+      }
+    },
+    {
+      "id": "mem-domain-447",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#447",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 447,
+        "date": "2026-10-28",
+        "tag": "Feature ID: 042-ajuste-patio-balao3-expurgo-oss-fantasmas",
+        "title": "",
+        "summary": "**Contexto:** Correção da distorção de contagem e valoração de pátio no Balão 3 (19:00 PM - Fechamento do Dia & Carga de Pátio). Ordens de serviço antigas, canceladas ou 100% quitadas esquecidas no ERP Oficina Inteligente estavam inflando a previsão de amanhã em dezenas de carros e mais de R$ 100.00"
+      }
+    },
+    {
+      "id": "mem-domain-467",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#467",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 467,
+        "date": "2026-10-28",
+        "tag": "Feature ID: 043-inclusao-master-contas-a-pagar-balao2",
+        "title": "",
+        "summary": "**Contexto:** Correção do consolidado diário de contas a pagar e previsão de saldo no Balão 2 matinal (07:40 AM - Faturamento, CMV & Contas do Dia). A unidade `MPMaster` (Master/Matriz) havia sido excluída via cláusula SQL hardcoded, omitindo R$ 4.868,72 em despesas corporativas e gerando um falso p"
+      }
+    },
+    {
+      "id": "mem-domain-488",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#488",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 488,
+        "date": "2026-10-28",
+        "tag": "Feature ID: 038-backstudio-fluxo-preview-onboarding-antihallucination",
+        "title": "",
+        "summary": "**Contexto:** Reformulação da esteira comercial do agente David no DeskcommCRM (Backstudio). Eliminação de alucinações de preview (leads sem demonstração prévia não podem receber promessa de preview pronto nem links genéricos), expurgo de overfitting de nomes (\"Marcos\" nos few-shots), substituição d"
+      }
+    },
+    {
+      "id": "mem-domain-516",
+      "kind": "memory",
+      "ref": ".agent/memory/domain.md#516",
+      "weight": 0.9,
+      "payload": {
+        "file": "domain.md",
+        "line": 516,
+        "date": "2026-10-28",
+        "tag": "Feature ID: 046-hydra-rede-fix-modal-changebrand-e-falso-positivo-dom",
+        "title": "",
+        "summary": "**Contexto:** Correção da interceptação de ponteiro no seletor de estabelecimentos do Meu Rede e eliminação de falso-positivo de reprovação in-flight decorrente de divergência com o resumo visual da tela (`DOM_REDE`). Revalidação e consolidação com sucesso das 10 lojas credenciadas para a data 27/10"
+      }
+    },
+    {
+      "id": "mem-infra-7",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#7",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 7,
+        "date": "2026-10-27",
+        "tag": "Infra/Feature ID: 038-restauracao-watchdog-harness-agy-vps",
+        "title": "",
+        "summary": "**Contexto:** Recuperação do robô de auditoria de conduta dos gerentes (`watchdog-worker`) após travamento por `SyntaxError` de variável duplicada (`storeInfo`), drenagem de 134 conversas represadas na fila do Redis (`watchdog:scheduled_evals`), ampliação do timeout de execução do `agy` CLI headless"
+      }
+    },
+    {
+      "id": "mem-infra-16",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#16",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 16,
+        "date": "2026-10-27",
+        "tag": "Infra/Feature ID: 033-robustez-definitiva-esteira-rede",
+        "title": "",
+        "summary": "**Contexto:** Implementação do Golden Gate das 06:00 AM (`run_morning_watchdog_0600.js`), Cutoff Gate de fechamento operacional (19:30 BRT) e Watchdog com Auto-Healing de socket WhatsApp Baileys na Evolution API (`evo.tork.services`).\n**Regra aprendida:**\n1. **Golden Gate das 06:00 AM no Cron da VPS"
+      }
+    },
+    {
+      "id": "mem-infra-25",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#25",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 25,
+        "date": "2026-10-06",
+        "tag": "Infra: Agendador de Tarefas Hydra Pátio & OS (Windows Task Scheduler)",
+        "title": "",
+        "summary": "**Contexto:** Configuração inicial no Windows (DEPRECADO).\n**Status:** MIGRADO PARA VPS LINUX EM 2026-10-08.\n**Regra aprendida:** O Agendador de Tarefas do Windows depende da máquina do usuário estar ligada e conectada, o que quebra relatórios matinais caso a máquina esteja suspensa. Foi 100% substi"
+      }
+    },
+    {
+      "id": "mem-infra-30",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#30",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 30,
+        "date": "2026-10-22",
+        "tag": "Feature ID: fix-patio-stale-crawler-and-zero-balance",
+        "title": "",
+        "summary": "**Contexto:** Diagnóstico e recuperação da defasagem de 25h no Deep Crawler de Pátio que zerou os pagamentos D-1 (`PAGAMENTOS: \"—\"`) nas 10 lojas do ERP Oficina Inteligente e derrubou a Conciliação Pátio x Rede para 14%. Implementação de locks desacoplados e gate determinístico anti-vacuidade.\n**Reg"
+      }
+    },
+    {
+      "id": "mem-infra-40",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#40",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 40,
+        "date": "2026-10-22",
+        "tag": "Feature ID: hydra-rede-incident-2026-10-21-remediation-and-containment",
+        "title": "",
+        "summary": "**Contexto:** Remediação do incidente da Rede de 21/10/2026, contenção definitiva contra timeouts de reCAPTCHA/WAF e isolamento de processos na VPS.\n**Regra aprendida:**\n1. **Sessão Persistente & reCAPTCHA:** O portal da Rede ativou reCAPTCHA v2 e verificação Akamai. A solução definitiva utiliza sto"
+      }
+    },
+    {
+      "id": "mem-infra-49",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#49",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 49,
+        "date": "2026-10-23",
+        "tag": "Feature ID: 031-playwright-anti-flakiness-robustez-rede",
+        "title": "",
+        "summary": "**Contexto:** Refatoração e blindagem da infraestrutura de automação Playwright do portal Meu Rede (`hydra-rede`), eliminando flakiness e instabilidade com base nos 5 pilares estratégicos da Spec 031 e auditoria técnica de produção.\n**Regra aprendida:**\n1. **Fim dos Timeouts Estáticos & Auto-Waiting"
+      }
+    },
+    {
+      "id": "mem-infra-63",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#63",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 63,
+        "date": "2026-10-23",
+        "tag": "Infra: Google Cloud Vertex AI OpenAI Bridge no DeskcommCRM",
+        "title": "",
+        "summary": "**Contexto:** Conexão corporativa direta da Service Account Google Cloud Vertex AI (`bot-iptv@bot-iptv-479618.iam.gserviceaccount.com`) ao DeskcommCRM (`https://desk.tork.services`) sem chaves de AI Studio / AIza.\n**Regra aprendida:**\n1. **Endpoint Global do Vertex AI:** Novos modelos Gemini como `g"
+      }
+    },
+    {
+      "id": "mem-infra-77",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#77",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 77,
+        "date": "2026-10-23",
+        "tag": "Bugfix: Correção de Datas D-1 na Rede, Novo Layout SPA e Conciliação Pátio x Rede",
+        "title": "",
+        "summary": "**Contexto:** O relatório matinal de Juros Rede e Conciliação do dia 23/10 falhou ao puxar dados do dia 21/10 em vez de 22/10, gerando conciliação com 0% de acurácia. Além disso, o portal Meu Rede atualizou o cabeçalho para um novo componente SPA (`header-bar` com drawer lateral).\n**Regra aprendida:"
+      }
+    },
+    {
+      "id": "mem-infra-89",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#89",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 89,
+        "date": "2026-10-08",
+        "tag": "Infra: Automação Pátio & OS na VPS Linux (Crontab Encadeado)",
+        "title": "",
+        "summary": "**Contexto:** Migração completa da conciliação diária de Pátio & OS para a VPS Linux (`operacional@100.126.50.101`).\n**Regra aprendida:**\n1. **Encadeamento Pós-Crawler no Cron:** Configurado `15 3 * * * /home/operacional/hydra/scripts/run-hydra-daily-full.sh && /home/operacional/hydra-rede/scripts/r"
+      }
+    },
+    {
+      "id": "mem-infra-98",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#98",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 98,
+        "date": "2026-10-06",
+        "tag": "Infra: Agendador de Tarefas Hydra Rede (Windows Task Scheduler)",
+        "title": "",
+        "summary": "**Contexto:** Configuração do agendamento matinal silencioso do relatório de juros da Rede no Windows.\n**Regra aprendida:**\n1. Task Scheduler: Tarefa `\\Hydra-Rede-Juros-Diario` agendada diariamente às 07:50:00 AM executando `C:\\Users\\User\\Desktop\\agy\\projects\\hydra-rede\\run_juros_rede.bat`.\n2. Execu"
+      }
+    },
+    {
+      "id": "mem-infra-108",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#108",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 108,
+        "date": "2026-09-18",
+        "tag": "",
+        "title": "Setup Infinyx (mktfun/infinyx)",
+        "summary": "**GitHub:** `https://github.com/mktfun/infinyx.git` — Conta: `mktfun` — Token ativo com escopo total `repo`\n**Branch padrão:** `main` — HEAD: `5c02866` (feat: parallax stacked cards no Metodo 6D)\n**Git identity configurada:** `Antigravity AI <ai@clawhub.com>`\n**Git path:** `git` via PATH do usuário"
+      }
+    },
+    {
+      "id": "mem-infra-119",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#119",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 119,
+        "date": "2026-10-27",
+        "tag": "Infra: Cron Roteamento Gerentes & Trigger Horário Serviço Prestado na VPS",
+        "title": "",
+        "summary": "**Contexto:** Configuração dos agendamentos crontab na VPS Linux (`operacional@100.126.50.101`) para o despacho bi-semanal de CMV por gerente e a verificação anti-spam horária de serviço prestado para os sócios.\n**Regra aprendida:**\n1. **Crontab de Gerentes (Quarta e Sexta às 14:00 BRT):**\n   `0 14"
+      }
+    },
+    {
+      "id": "mem-infra-138",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#138",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 138,
+        "date": "2026-10-28",
+        "tag": "Infra: Integração Dinâmica Alethe + SDD",
+        "title": "",
+        "summary": "**Contexto:** Instalação e calibração da skill `alethe` integrada dinamicamente ao ciclo SDD (`/vibe-proposal` e `/vibe-apply`).\n**Regra aprendida:**\n1. **Navalha de Ockham na Orquestração:** Tarefas pequenas (<= 3 arquivos ou acopladas) continuam 100% sob execução direta do líder (`direct`), sem cu"
+      }
+    },
+    {
+      "id": "mem-infra-152",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#152",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 152,
+        "date": "2026-10-29",
+        "tag": "Feature ID: 051-hydra-rede-universal-qr-watchdog-resilience",
+        "title": "",
+        "summary": "**Contexto:** Implementação do Sistema Universal de Reconexão e Watchdog de WhatsApp para as 10 lojas da Rede Mecânica Popular, com Hub Central (`https://bot.tork.services/qr`), páginas individuais com auto-refresh a cada 12 segundos, proteção anti-stampede via Single-Flight Locking e cache in-memor"
+      }
+    },
+    {
+      "id": "mem-infra-169",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#169",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 169,
+        "date": "2026-10-29",
+        "tag": "Feature ID: 052-reidomodulo-sla-triage-local-llm",
+        "title": "",
+        "summary": "**Contexto:** Notificação privada de reconexão do WhatsApp ao gerente da loja (`store.phoneCanonical`), implantação do SLA de 5 minutos do Rei do Módulo (com links `wa.me` e Chatwoot) e arquitetura de triagem semântica em 3 camadas: Camada 1 determinística com Regex Shield (descarte de cortesias/agr"
+      }
+    },
+    {
+      "id": "mem-infra-182",
+      "kind": "memory",
+      "ref": ".agent/memory/infra.md#182",
+      "weight": 0.9,
+      "payload": {
+        "file": "infra.md",
+        "line": 182,
+        "date": "2026-10-29",
+        "tag": "Feature ID: 053-central-sla-lead-recovery-routing",
+        "title": "",
+        "summary": "**Contexto:** Unificação do SLA da Central de Atendimento (`central_sla.js`) para o padrão de 5 minutos do Rei do Módulo com triagem por Regex Shield e links diretos (`wa.me` e Chatwoot), isolamento de escopo por `inbox_id` para evitar contaminação do número da Central com leads respondendo em lojas"
+      }
+    },
+    {
+      "id": "mem-sessions-7",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#7",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 7,
+        "date": "2026-09-14",
+        "tag": "",
+        "title": "Landing Page Oficial INFYNIX (Master Blueprint v1.0)",
+        "summary": "**Contexto:** Implementação completa da Landing Page institucional da INFYNIX em `projects/infinyx` baseada no arquivo `INFYNIX_Master_Blueprint_v1_0 (1).docx`.\n**Decisões e Regras Aprendidas:**\n- Removido vídeo de fundo pesado (`hero-bg.mp4`), substituído pelo Key Visual de titânio (`hero-poster.jp"
+      }
+    },
+    {
+      "id": "mem-sessions-15",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#15",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 15,
+        "date": "2026-09-18",
+        "tag": "",
+        "title": "SDD Setup Infinyx (sdd-setup)",
+        "summary": "**Contexto:** Setup headless do ambiente para o projeto `mktfun/infinyx` em nova sessão de chat.\n**O que foi feito:**\n- Git identity configurada: `Antigravity AI <ai@clawhub.com>`\n- GitHub CLI autenticado via `$env:GH_TOKEN` (conta `mktfun`, escopo total `repo`)\n- Repositório verificado: `https://gi"
+      }
+    },
+    {
+      "id": "mem-sessions-26",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#26",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 26,
+        "date": "2026-09-23",
+        "tag": "",
+        "title": "Consolidação Spec 26 (Restauração Visual, WebGL, Footer e SVGs)",
+        "summary": "**Contexto:** Conclusão da Spec 26 e correções direcionadas na landing page INFYNIX (`projects/infinyx`).\n**O que foi feito:**\n- Hero: Montanhas restauradas (`.framer-u991jm`, `.framer-f7ktf5`, `.framer-13cc0rb` visíveis e opacidade 1); contraste preto corrigido nos botões e nos 4 badges do ciclo ro"
+      }
+    },
+    {
+      "id": "mem-sessions-36",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#36",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 36,
+        "date": "2026-09-23",
+        "tag": "",
+        "title": "Consolidação Spec 27 (Adaptação de #what-you-get para INFYNIX)",
+        "summary": "**Contexto:** Conclusão da Spec 27 na landing page INFYNIX (`projects/infinyx`).\n**O que foi feito:**\n- Abertura da Seção: Badge \"Como trabalhamos\", H2 \"Da operação fragmentada a um sistema que trabalha.\" e parágrafo institucional.\n- Card 1 (Descoberta): \"01 · Descoberta\", \"Começamos pelo processo r"
+      }
+    },
+    {
+      "id": "mem-sessions-48",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#48",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 48,
+        "date": "2026-09-29",
+        "tag": "",
+        "title": "Sessão: Missão 2 — Conversa Natural, WhatsApp & Produção Hydra",
+        "summary": "- **Objetivo:** Conectar o motor financeiro do Agente 1 (commit bf9a871) à experiência conversacional e publicar em produção.\n- **Entregas:**\n  - `intent_rewriter.ts`: Anáforas de loja (\"E o CMV dela?\", \"Qual área tá pior?\"), elipses com herança de operação financeira (\"E Santo André?\") e quebra de"
+      }
+    },
+    {
+      "id": "mem-sessions-57",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#57",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 57,
+        "date": "2026-09-29",
+        "tag": "",
+        "title": "Sessão: Confirmação de Recebimento (👀) e Digitando Contínuo no WhatsApp",
+        "summary": "- **Objetivo:** Garantir que o usuário receba confirmação visual imediata com reação 👀 à mensagem enviada e manter o estado \"digitando\" (`composing`) ativo sem interrupções durante o tempo de execução da consulta, encerrando com `paused` antes da entrega do primeiro balão.\n- **Entregas:**\n  - `webh"
+      }
+    },
+    {
+      "id": "mem-sessions-66",
+      "kind": "memory",
+      "ref": ".agent/memory/sessions.md#66",
+      "weight": 0.9,
+      "payload": {
+        "file": "sessions.md",
+        "line": 66,
+        "date": "2026-09-29",
+        "tag": "",
+        "title": "Sessão: Encavalamento de Mensagens, CMV da Rede e Evidências Multimodais",
+        "summary": "- **Objetivo:** Resolver mensagens fragmentadas e encavaladas no WhatsApp, eliminar o erro \"não há CMV da loja LOJA\", calcular CMV consolidado da rede (fórmula ponderada de 18.64%), ranquear lojas sem mascarar ausência como 0.00% e integrar evidências multimodais de áudio, imagem, vídeo e documentos"
+      }
+    },
+    {
+      "id": "mem-ui-7",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#7",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 7,
+        "date": "2026-09-14",
+        "tag": "",
+        "title": "Padrões de Landing Page Anti-Slop & Impeccable",
+        "summary": "**Contexto:** Absorção do catálogo anti-slop do Impeccable, Web Interface Guidelines de Rauno Freiberg e ferramentas de referência para LPs.\n**Regra aprendida:**\n- Não permitir a tríade de AI slop: título escuro com palavra em gradiente violeta/rosa neon + grid de 3 cards idênticos com borda translú"
+      }
+    },
+    {
+      "id": "mem-ui-21",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#21",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 21,
+        "date": "2026-09-14",
+        "tag": "",
+        "title": "Catálogo de Recursos e Referências",
+        "summary": "- **Componentes shadcn:** Shoogle (`https://shoogle.dev`) — buscador direto de blocos shadcn prontos para colar.\n- **Efeitos e Interações:** 21st.dev (`https://21st.dev`) e Aceternity UI (`https://ui.aceternity.com`).\n- **Scaffolding e Wireframes:** Subframe (`https://subframe.com`) e Google Stitch"
+      }
+    },
+    {
+      "id": "mem-ui-31",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#31",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 31,
+        "date": "2026-09-14",
+        "tag": "",
+        "title": "Pipeline de Assets Visuais (Modo Diretor)",
+        "summary": "**Pipeline Principal (Google Flow — Nano Banana Pro + Veo 3):**\n- O Antigravity gera o **Prompt Pack** de alta precisão.\n- **Nano Banana Pro (Imagem):** Foco em lentes (ex: 35mm / 85mm f/1.8), iluminação cinematográfica volumétrica, renderização fidedigna de materiais (vidro, titânio, tecidos) e tip"
+      }
+    },
+    {
+      "id": "mem-ui-43",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#43",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 43,
+        "date": "2026-09-23",
+        "tag": "Feature ID: 26",
+        "title": "",
+        "summary": "**Contexto:** Restauração das montanhas e tipografia do Hero, ciclo de vida e renderização de Core Features (WebGL + SVGs), contenção do card CTA e substituição estrutural do Footer Framer legado por Footer semântico INFYNIX.\n**Regra aprendida:**\n1. **XML Parsing em SVGs:** Caracteres `&` puros dent"
+      }
+    },
+    {
+      "id": "mem-ui-56",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#56",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 56,
+        "date": "2026-09-23",
+        "tag": "Feature ID: 27",
+        "title": "",
+        "summary": "**Contexto:** Adaptação da seção `#what-you-get` para a narrativa \"Como trabalhamos\" da INFYNIX (Descoberta, Implementação e Evolução) com reconstrução de cenários WebP limpos e sobreposição de 4 mockups SVG transparentes.\n**Regra aprendida:**\n1. **Composição Fundo vs. Interface em Framer:** Quando"
+      }
+    },
+    {
+      "id": "mem-ui-70",
+      "kind": "memory",
+      "ref": ".agent/memory/ui.md#70",
+      "weight": 0.9,
+      "payload": {
+        "file": "ui.md",
+        "line": 70,
+        "date": "2026-10-07",
+        "tag": "Feature: Layout Hermes WhatsApp — Separação de Cards de OS e Eliminação de Pipes",
+        "title": "",
+        "summary": "**Contexto:** Formatação de listagens operacionais e de múltiplas Ordens de Serviço (OSs) no WhatsApp via Hydra Bot.\n**Regra aprendida:**\n1. **Preservação de Divisores de Traços no WhatsApp:** Linhas de separação visual como `----------------------------------------` não são `<hr>` do HTML, mas sepa"
+      }
+    },
+    {
+      "id": "ops-deploy",
+      "kind": "ops",
+      "ref": "deploy",
+      "weight": 0.85,
+      "payload": {
+        "path": "deploy"
+      }
+    },
+    {
+      "id": "ops-scripts",
+      "kind": "ops",
+      "ref": "scripts",
+      "weight": 0.85,
+      "payload": {
+        "path": "scripts"
+      }
+    },
+    {
+      "id": "ops-_github",
+      "kind": "ops",
+      "ref": ".github",
+      "weight": 0.85,
+      "payload": {
+        "path": ".github"
+      }
+    }
+  ]
+}

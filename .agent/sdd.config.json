@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "specialists": {
+    "enabled": true,
+    "minK": 2,
+    "maxK": 6,
+    "maxLinesScout": 40
+  },
+  "issues": {
+    "enabled": true,
+    "provider": "github",
+    "mode": "auto"
+  },
+  "commitPolicy": {
+    "requireLint": true,
+    "requireEvidence": true,
+    "hookMode": "warn"
+  }
+}

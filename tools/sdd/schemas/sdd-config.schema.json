@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SddConfig",
+  "type": "object",
+  "required": ["version", "specialists", "issues", "commitPolicy"],
+  "properties": {
+    "version": { "type": "string" },
+    "specialists": {
+      "type": "object",
+      "required": ["enabled", "minK", "maxK", "maxLinesScout"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "minK": { "type": "integer", "minimum": 1 },
+        "maxK": { "type": "integer", "maximum": 10 },
+        "maxLinesScout": { "type": "integer", "maximum": 100 }
+      }
+    },
+    "issues": {
+      "type": "object",
+      "required": ["enabled", "provider", "mode"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "provider": { "type": "string", "enum": ["github", "none"] },
+        "mode": { "type": "string", "enum": ["auto", "markdown-only"] }
+      }
+    },
+    "commitPolicy": {
+      "type": "object",
+      "required": ["requireLint", "requireEvidence", "hookMode"],
+      "properties": {
+        "requireLint": { "type": "boolean" },
+        "requireEvidence": { "type": "boolean" },
+        "hookMode": { "type": "string", "enum": ["enforce", "warn", "disabled"] }
+      }
+    }
+  }
+}

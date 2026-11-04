@@ -73,3 +73,11 @@ Pacote Python `graphifyy` (2 Y's), comando `graphify` (1 Y). Nunca use `npx @bam
 - ⛔ **PROIBIÇÃO ABSOLUTA:** É terminantemente proibido enviar qualquer mensagem (teste, automação ou produção) através de instâncias/números de gerentes de loja (ex: `Maua`, `Jorge Beretta`, `Kennedy`, `Dom Pedro`, `Rudge`, `Jabaquara`, `Piraporinha`, `Planalto`, `Carijós`, etc.). Aparelhos de gerentes NUNCA podem ser remetentes de envios do sistema!
 - ✅ **Remetentes Permitidos Exclusivos:** APENAS `hydra` e `atendimento` (ou outra instância que o usuário autorizar explicitamente por escrito e que NÃO seja de gerente).
 - Qualquer script de teste, ferramenta MCP ou código Node/TS deve ter trava programática contra instâncias não autorizadas.
+
+<!-- sdd:managed:begin id="specialists-governance" -->
+## Especialistas Persistentes do Roster (SDD v2)
+- Especialistas persistentes descobertos pelo setup são permitidos para pesquisa, scouts e tarefas delimitadas.
+- Concorrência máxima em fan-out: <= 5 especialistas simultâneos.
+- O agente líder detém a autoridade única de integração, build gate global e commits.
+- Especialistas operam em worktrees isoladas ou devolvem deltas; nunca editam memória compartilhada diretamente.
+<!-- sdd:managed:end id="specialists-governance" -->

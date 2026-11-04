@@ -1,0 +1,48 @@
+{
+  "sddVersion": "2.0.0",
+  "mode": "first-run",
+  "evidenceHash": "3e0981b766d900ffc38185897370750aa4475e51cdbe66dc1c10be643fed76a9",
+  "confidence": "high",
+  "specialists": [
+    {
+      "id": "specialist-crawler-rede",
+      "version": 1,
+      "lineage": {
+        "from": [
+          "specialist-crawler-rede"
+        ],
+        "op": "keep"
+      }
+    },
+    {
+      "id": "specialist-tempario-semantic",
+      "version": 1,
+      "lineage": {
+        "from": [
+          "specialist-tempario-semantic"
+        ],
+        "op": "keep"
+      }
+    },
+    {
+      "id": "specialist-messaging-whatsapp",
+      "version": 1,
+      "lineage": {
+        "from": [
+          "specialist-messaging-whatsapp"
+        ],
+        "op": "keep"
+      }
+    },
+    {
+      "id": "specialist-ops-infra",
+      "version": 1,
+      "lineage": {
+        "from": [
+          "specialist-ops-infra"
+        ],
+        "op": "keep"
+      }
+    }
+  ]
+}

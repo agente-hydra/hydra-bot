@@ -1,0 +1,57 @@
+#!/usr/bin/env node
+// @ts-check
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+
+const commitMsgFile = process.argv[2];
+if (!commitMsgFile || !existsSync(commitMsgFile)) {
+  process.exit(0);
+}
+
+// Dynamically resolve secrets.mjs from repo root or tools/sdd
+let scanSecrets = null;
+const possiblePaths = [
+  resolve(process.cwd(), 'tools/sdd/lib/secrets.mjs'),
+  resolve(dirname(import.meta.url.replace(/^file:\/\/\/?/, '')), '../../lib/secrets.mjs'),
+  resolve(dirname(import.meta.url.replace(/^file:\/\/\/?/, '')), '../tools/sdd/lib/secrets.mjs'),
+];
+
+for (const p of possiblePaths) {
+  if (existsSync(p)) {
+    const mod = await import(`file:///${p.replace(/\\/g, '/')}`);
+    scanSecrets = mod.scanSecrets;
+    break;
+  }
+}
+
+const msg = readFileSync(commitMsgFile, 'utf-8');
+const lines = msg.split('\n').filter((l) => !l.startsWith('#'));
+const subject = lines[0]?.trim() || '';
+
+// 1. Secret Scanning (R7) — Always strictly blocks!
+if (scanSecrets) {
+  const secrets = scanSecrets(msg);
+  if (secrets.hasSecret) {
+    console.error('\n⛔ [SDD HOOK ERROR] Secret detected in commit message!');
+    for (const m of secrets.matches) {
+      console.error(`   - Pattern: ${m.pattern} (${m.redacted})`);
+    }
+    process.exit(1);
+  }
+}
+
+const isSddArchive = process.env.SDD_ARCHIVE === '1';
+
+// 2. Format checking (R1)
+const r1Regex = /^(feat|fix|docs|refactor|test|chore)(\([a-zA-Z0-9_\-]+\))?:\s*.{10,72}$/;
+if (!r1Regex.test(subject)) {
+  if (isSddArchive) {
+    console.error(`\n⛔ [SDD HOOK ERROR] Invalid commit format: "${subject}"`);
+    console.error('   Expected: type(<scope>): <summary between 10 and 72 chars>');
+    process.exit(1);
+  } else {
+    console.warn(`\n⚠️  [SDD HOOK WARN] Subject does not follow conventional format: "${subject}"`);
+  }
+}
+
+process.exit(0);
