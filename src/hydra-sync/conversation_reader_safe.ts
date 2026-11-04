@@ -5,8 +5,8 @@
  * Correção F06 & Gate 5: Registro de lacuna TRUNCATED_HISTORY quando histórico excede limite
  */
 
-import { SanitizedMessage, ConversationGap } from './types/conversation_context_contract';
-import { ConversationSourceAdapter, FetchMessagesOptions } from './conversation_source_adapter';
+import { SanitizedMessage, ConversationGap } from './types/conversation_context_contract.js';
+import { ConversationSourceAdapter, FetchMessagesOptions } from './conversation_source_adapter.js';
 
 export interface ConversationReaderSafeOptions {
   readonly maxMessagesBudget?: number;
@@ -77,7 +77,7 @@ export class ConversationReaderSafe {
       }
 
       // Sanitização de todas as mensagens
-      const sanitizedMessages = cappedRaw.map(msg => this.sanitize(msg));
+      const sanitizedMessages = cappedRaw.map((msg: any) => this.sanitize(msg));
 
       // Verificação de lacunas de mídia (ex: áudio não transcrito - T50)
       for (const msg of sanitizedMessages) {

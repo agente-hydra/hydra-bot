@@ -1,0 +1,19 @@
+{
+  "specId": "069-fix-dispatcher-runtime-reference-and-scope",
+  "owned": [
+    "specs/069-fix-dispatcher-runtime-reference-and-scope/design.md",
+    "specs/069-fix-dispatcher-runtime-reference-and-scope/proposal.md",
+    "specs/069-fix-dispatcher-runtime-reference-and-scope/spec-plan.md",
+    "src/hydra-sync/agent_dispatcher.ts",
+    "src/hydra-sync/conversation_cache_manager.ts",
+    "src/hydra-sync/conversation_reader_safe.ts",
+    "src/hydra-sync/conversation_source_adapter.ts",
+    "src/hydra-sync/fixtures/conversation_context_fixtures.ts",
+    "src/hydra-sync/operational_adapter.ts",
+    "src/hydra-sync/summary_evidence_adapter.ts",
+    "src/hydra-sync/tests/test_harness_spec069_dispatcher_e2e.ts",
+    "tsconfig.tempario.json"
+  ],
+  "shared": [],
+  "baselineDirty": []
+}

@@ -5,8 +5,8 @@
  * Correção F07 & Gate 4: Chave multi-fatorial com segregação de persona e invalidação por mensagem editada
  */
 
-import { CombinedOSSituationReport, CacheContextKey } from './types/conversation_context_contract';
-import { ConversationSourceAdapter } from './conversation_source_adapter';
+import { CombinedOSSituationReport, CacheContextKey } from './types/conversation_context_contract.js';
+import { ConversationSourceAdapter } from './conversation_source_adapter.js';
 
 interface CacheEntry {
   readonly report: CombinedOSSituationReport;

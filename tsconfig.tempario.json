@@ -22,6 +22,8 @@
     "src/hydra-sync/tests/test_harness_tempario.ts",
     "src/hydra-sync/tests/test_harness_tempario_stress.ts",
     "src/hydra-sync/tests/test_harness_spec066_ia_web_anti_hallucination.ts",
-    "src/hydra-sync/tests/test_harness_spec067_plate_resilience.ts"
+    "src/hydra-sync/tests/test_harness_spec067_plate_resilience.ts",
+    "src/hydra-sync/tests/test_harness_spec068_lighting_and_typo.ts",
+    "src/hydra-sync/tests/test_harness_spec069_dispatcher_e2e.ts"
   ]
 }

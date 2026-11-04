@@ -120,6 +120,7 @@ import {
   isDirectPlateQuery
 } from './intent_rewriter.js';
 import { TemparioHybridCoordinator, resolveVehicleFromPlateOrOs } from './tempario_hybrid_coordinator.js';
+import { isValidVehicleForPersistence } from './tempario_graph_repository.js';
 import { lookupVehiclePlate, upsertManualPlateCache, getLastPlateDiagnostic } from './apibrasil_plate_client.js';
 import { resolveVehicleBrandAndModel } from './tempario_web_researcher.js';
 import {
@@ -461,7 +462,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         resposta_gerada: sanitized.cleanText,
         latencia_ms: totalMs,
         motor_utilizado: 'FALLBACK_API',
-        erro: null
+        erro: undefined
       });
 
       return {
@@ -496,102 +497,126 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     !isDirectPlateQuery(textoLimpo).isPlateQuery
   ) {
     const extractedFollowUp = extractTemparioEntitiesFromText(textoLimpo);
-    const candidateVehicleRaw = extractedFollowUp.veiculo || textoLimpo.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
-    const resolvedIdentity = resolveVehicleBrandAndModel(
-      candidateVehicleRaw,
-      extractedFollowUp.ano,
-      extractedFollowUp.motorTexto
-    );
 
-    // Verifica se a resposta realmente representa um veículo válido (e não uma pergunta financeira avulsa)
-    const isFinancialAbort = /\b(faturamento|receita|caixa|ranking|ticket|meta|loja|unidade)\b/i.test(normalizarTexto(textoLimpo));
-    if (!isFinancialAbort && isValidVehicleForPersistence(resolvedIdentity.marca, resolvedIdentity.modelo)) {
-      const tDbStart = Date.now();
-      upsertManualPlateCache(db, {
-        placa: pendingPlateCtx.placa,
-        marca: resolvedIdentity.marca,
-        modelo: resolvedIdentity.modelo,
-        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
-        motor: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao
+    // Se o usuário enviou uma nova consulta técnica de tempário (ex: "troca de laampadas traseiras tracker 2023"),
+    // não podemos sequestrar a mensagem como resposta de modelo para a placa pendente.
+    const isTechnicalQuery = isTemparioTechnicalQuery(textoLimpo);
+    const isSameService = isTechnicalQuery && extractedFollowUp.serviceTerms.length > 0 &&
+      extractedFollowUp.serviceTerms.every(st => {
+        const stNorm = normalizarTexto(st);
+        return pendingPlateCtx.servicos.some(ps => {
+          const psNorm = normalizarTexto(ps);
+          return psNorm.includes(stNorm) || stNorm.includes(psNorm);
+        });
       });
 
-      const persona = activeProfile.persona || 'socio';
-      const storeSlug = activeProfile.persona === 'gerente' ? activeProfile.lojaSlug : undefined;
-      const fullVehicleLabel = `${resolvedIdentity.marca} ${resolvedIdentity.modelo}`.trim();
-      const coordinator = new TemparioHybridCoordinator(db);
+    if (isTechnicalQuery && !isSameService) {
+      // Usuário mudou de assunto e enviou novo serviço técnico. Limpa o contexto pendente para não sequestrar.
+      clearTemparioPendingContext(db, phone);
+    } else {
+      const candidateVehicleRaw = extractedFollowUp.veiculo || textoLimpo.replace(/\b(19\d{2}|20\d{2})\b/g, '').trim();
+      const resolvedIdentity = resolveVehicleBrandAndModel(
+        candidateVehicleRaw,
+        extractedFollowUp.ano,
+        extractedFollowUp.motorTexto
+      );
 
-      const queryResp = await coordinator.coordinateQuery({
-        rawQuery: `${fullVehicleLabel} ${extractedFollowUp.ano || ''} ${pendingPlateCtx.servicos.join(' ')}`.trim(),
-        veiculoMarcaModelo: fullVehicleLabel,
-        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
-        motorTexto: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao,
-        placa: pendingPlateCtx.placa,
-        servicosSolicitados: pendingPlateCtx.servicos,
-        securityContext: {
-          persona: persona as any,
-          authorizedLojaSlug: storeSlug,
-          authorizedStore: storeSlug
-        },
-        targetLojaSlug: storeSlug
-      });
+      // Verifica se a resposta realmente representa um veículo válido (e não uma pergunta financeira avulsa)
+      const isFinancialAbort = /\b(faturamento|receita|caixa|ranking|ticket|meta|loja|unidade)\b/i.test(normalizarTexto(textoLimpo));
+      if (!isFinancialAbort && isValidVehicleForPersistence(resolvedIdentity.marca, resolvedIdentity.modelo)) {
+        const tDbStart = Date.now();
+        upsertManualPlateCache(db, {
+          placa: pendingPlateCtx.placa,
+          marca: resolvedIdentity.marca,
+          modelo: resolvedIdentity.modelo,
+          ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+          motor: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao
+        });
 
-      const executionDbMsLocal = Date.now() - tDbStart;
-      const rawBalloons = composeTemparioExecutiveBalloon(queryResp);
-      const combinedReply = rawBalloons.join('\n\n---BLOCK---\n\n');
-      const sanitized = validateAndSanitizePublicResponse(combinedReply);
-      const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
-      const totalMs = Date.now() - startTime;
+        const persona = userProfile.persona || 'socio';
+        const storeSlug = userProfile.persona === 'gerente' ? userProfile.lojaSlug : undefined;
+        const fullVehicleLabel = `${resolvedIdentity.marca} ${resolvedIdentity.modelo}`.trim();
+        const coordinator = new TemparioHybridCoordinator(db);
 
-      saveTemparioPendingContext(db, phone, {
-        tipo: 'TEMPARIO_DISCLOSURE',
-        veiculo: queryResp.veiculoIdentificado || fullVehicleLabel,
-        motor: extractedFollowUp.motorTexto || resolvedIdentity.motorPadrao,
-        ano: extractedFollowUp.ano || pendingPlateCtx.ano,
-        placa: pendingPlateCtx.placa,
-        servicos: pendingPlateCtx.servicos,
-        queryResponse: queryResp,
-        createdAt: new Date().toISOString()
-      });
+        const queryResp = await coordinator.coordinateQuery({
+          rawQuery: `${fullVehicleLabel} ${extractedFollowUp.ano || ''} ${pendingPlateCtx.servicos.join(' ')}`.trim(),
+          veiculoMarcaModelo: fullVehicleLabel,
+          ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+          motorTexto: extractedFollowUp.motorTexto || pendingPlateCtx.motor || resolvedIdentity.motorPadrao,
+          placa: pendingPlateCtx.placa,
+          servicosSolicitados: pendingPlateCtx.servicos,
+          securityContext: {
+            persona: persona as any,
+            authorizedLojaSlug: storeSlug,
+            authorizedStore: storeSlug
+          },
+          targetLojaSlug: storeSlug
+        });
 
-      saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consultar_tempario_hibrido', null);
-      if (rawMessageId) {
-        markMessageCompleted(db, rawMessageId, {
+        const executionDbMsLocal = Date.now() - tDbStart;
+        const rawBalloons = composeTemparioExecutiveBalloon(queryResp, {
+          placaConsultada: pendingPlateCtx.placa
+        });
+        const combinedReply = rawBalloons.join('\n\n---BLOCK---\n\n');
+        const sanitized = validateAndSanitizePublicResponse(combinedReply);
+        const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
+        const totalMs = Date.now() - startTime;
+
+        const resolvedVehicleFollowUp = queryResp.veiculo
+          ? `${queryResp.veiculo.marca} ${queryResp.veiculo.modelo}`.trim()
+          : fullVehicleLabel;
+
+        saveTemparioPendingContext(db, phone, {
+          tipo: 'TEMPARIO_DISCLOSURE',
+          veiculo: resolvedVehicleFollowUp,
+          motor: extractedFollowUp.motorTexto || resolvedIdentity.motorPadrao,
+          ano: extractedFollowUp.ano || pendingPlateCtx.ano,
+          placa: pendingPlateCtx.placa,
+          servicos: pendingPlateCtx.servicos,
+          queryResponse: queryResp,
+          createdAt: new Date().toISOString()
+        });
+
+        saveConversationMessage(db, phone, 'assistant', sanitized.cleanText, 'consultar_tempario_hibrido', null);
+        if (rawMessageId) {
+          markMessageCompleted(db, rawMessageId, {
+            messages,
+            replyText: sanitized.cleanText,
+            toolsCalled: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
+            motorUsed: 'FALLBACK_API',
+            latenciaMs: totalMs
+          });
+        }
+
+        insertAgentInteractionLog(db, {
+          phone,
+          conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
+          message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
+          pergunta: textoLimpo,
+          tools_chamadas: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
+          resposta_gerada: sanitized.cleanText,
+          latencia_ms: totalMs,
+          motor_utilizado: 'FALLBACK_API',
+          erro: undefined
+        });
+
+        return {
           messages,
           replyText: sanitized.cleanText,
           toolsCalled: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
-          motorUsed: 'FALLBACK_API',
-          latenciaMs: totalMs
-        });
+          motor: 'FALLBACK_API',
+          latenciaMs: totalMs,
+          telemetry: {
+            queueWaitMs,
+            intentRewriteMs: 0,
+            executionDbMs: executionDbMsLocal,
+            llmMs: 0,
+            formatMs: 1,
+            totalMs
+          },
+          isFeedback: false
+        };
       }
-
-      insertAgentInteractionLog(db, {
-        phone,
-        conversation_id: rawConvId ? Number(rawConvId) || undefined : undefined,
-        message_id: rawMessageId ? Number(rawMessageId) || undefined : undefined,
-        pergunta: textoLimpo,
-        tools_chamadas: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
-        resposta_gerada: sanitized.cleanText,
-        latencia_ms: totalMs,
-        motor_utilizado: 'FALLBACK_API',
-        erro: null
-      });
-
-      return {
-        messages,
-        replyText: sanitized.cleanText,
-        toolsCalled: ['vincular_placa_veiculo', 'consultar_tempario_hibrido'],
-        motor: 'FALLBACK_API',
-        latenciaMs: totalMs,
-        telemetry: {
-          queueWaitMs,
-          intentRewriteMs: 0,
-          executionDbMs: executionDbMsLocal,
-          llmMs: 0,
-          formatMs: 1,
-          totalMs
-        },
-        isFeedback: false
-      };
     }
   }
 
@@ -627,7 +652,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         resposta_gerada: sanitized.cleanText,
         latencia_ms: totalMs,
         motor_utilizado: 'FALLBACK_API',
-        erro: null
+        erro: undefined
       });
 
       return {
@@ -1493,14 +1518,14 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
   }
 
   // 3.0.4 TEMPÁRIO TÉCNICO HÍBRIDO AUTOMOTIVO (Spec 054 / 061 / 062 Fast-Path)
-  if (canonical.intent === 'TEMPARIO_TEMPO_SERVICO' || canonical.contract?.operation === 'TEMPARIO_TEMPO_SERVICO' || isTemparioTechnicalQuery(textoLimpo)) {
+  if ((canonical.intent as string) === 'TEMPARIO_TEMPO_SERVICO' || (canonical.contract?.operation as string) === 'TEMPARIO_TEMPO_SERVICO' || isTemparioTechnicalQuery(textoLimpo)) {
     const tDbStart = Date.now();
     const coordinator = new TemparioHybridCoordinator(db);
 
     const extracted = extractTemparioEntitiesFromText(textoLimpo);
     let targetVeiculo = canonical.veiculo || canonical.vehicleModel || extracted.veiculo;
     let targetMotor = (canonical as any).motorTexto || extracted.motorTexto;
-    let targetAno = canonical.contract?.entities?.ano as number | undefined || extracted.ano;
+    let targetAno = (canonical.contract?.entities as any)?.ano as number | undefined || extracted.ano;
     const targetPlaca = canonical.placa || extracted.placa;
     const targetOsId = canonical.osId || extracted.osId;
     const serviceTerms = (canonical.serviceTerms && canonical.serviceTerms.length > 0)
@@ -1619,7 +1644,7 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
         resposta_gerada: sanitized.cleanText,
         latencia_ms: totalMs,
         motor_utilizado: 'FALLBACK_API',
-        erro: null
+        erro: undefined
       });
 
       return {
@@ -1674,9 +1699,11 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
     const messages = splitIntoWhatsAppBlocks(sanitized.cleanText);
     const totalMs = Date.now() - startTime;
 
+    const resolvedVehicleName = targetVeiculo || (queryResp.veiculo ? `${queryResp.veiculo.marca} ${queryResp.veiculo.modelo}`.trim() : 'Veículo');
+
     saveTemparioPendingContext(db, phone, {
       tipo: 'TEMPARIO_DISCLOSURE',
-      veiculo: targetVeiculo || queryResp.veiculoIdentificado || 'Veículo',
+      veiculo: resolvedVehicleName,
       motor: targetMotor,
       ano: targetAno,
       placa: targetPlaca,
@@ -1923,7 +1950,8 @@ export async function dispatchMessage(input: DispatcherInput): Promise<Dispatche
    - ZERO duplo asterisco '**'. Use sempre '*texto*'.
    - ZERO cabeçalhos CommonMark ('#', '##', '###').
    - ZERO tabelas markdown (| col |) e ZERO pipes ('|') inline agrupando campos na mesma linha.
-   - ZERO listagens de 'Pendências de Baixa no ERP' em consultas de pátio operacional.`;
+   - ZERO listagens de 'Pendências de Baixa no ERP' em consultas de pátio operacional.
+   - ⛔ PROIBIÇÃO ABSOLUTA DE GERAR TABELAS OU ESTIMATIVAS DE TEMPÁRIO/MÃO DE OBRA NO PROMPT GERAL: Toda estimativa de tempo e valor de mão de obra de oficina é de competência EXCLUSIVA do motor determinístico de tempário. NUNCA invente títulos como 'Tempário Técnico e Estimativa Operacional', NUNCA crie intervalos de tempo ou faixas de preço (ex: '0,4h a 0,6h' ou 'R$ 108 a R$ 405') e NUNCA emita campos com 'Não informado / Pendente'. Se o usuário perguntou sobre tempo ou mão de obra, informe objetivamente o procedimento e direcione à cotação padrão da rede.`;
 
     // Contexto é mantido persistentemente pelo AGY CLI através do agy_conversation_id.
     // Injetamos a Gramática Visual Universal HERMES_DIRECTIVES em TODOS os turnos para blindar contra drift do LLM.
@@ -2018,7 +2046,7 @@ ${HERMES_DIRECTIVES}
         });
         const os360Params: OS360CardParams = {
           osId: osDetail?.osId ?? resolution.activeOrder.osId,
-          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug,
+          lojaSlug: osDetail?.lojaSlug ?? resolution.activeOrder.storeSlug ?? 'rede',
           vehicleModel: osDetail?.veiculo ?? resolution.vehicle.model ?? 'Veículo',
           vehiclePlate: osDetail?.placa ?? resolution.vehicle.plate ?? 'Placa não informada',
           clientName: osDetail?.clienteNome ?? resolution.activeOrder.clientName ?? 'Cliente não informado',

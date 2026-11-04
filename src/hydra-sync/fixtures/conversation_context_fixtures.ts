@@ -13,7 +13,7 @@ import {
   SanitizedMessage,
   ExtractedStatement,
   ConversationGap
-} from '../types/conversation_context_contract';
+} from '../types/conversation_context_contract.js';
 
 export interface FixtureOSData {
   readonly osId: number;

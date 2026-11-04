@@ -12,7 +12,7 @@ import {
   ExtractedStatement,
   ConversationGap,
   SanitizedMessage
-} from './types/conversation_context_contract';
+} from './types/conversation_context_contract.js';
 
 export class SummaryEvidenceAdapter {
   private summariesStore: Map<number, ConversationAnalysisRecord> = new Map();
@@ -110,7 +110,7 @@ export class SummaryEvidenceAdapter {
    * Extrai afirmações estritamente operacionais da análise, expurgando alertas isolados de conduta (WATCHDOG_FLAG).
    */
   public extractOperationalStatements(summary: ConversationAnalysisRecord): ExtractedStatement[] {
-    return (summary.statements || []).filter(s => s.subject !== 'WATCHDOG_FLAG');
+    return (summary.statements || []).filter((s: ExtractedStatement) => s.subject !== 'WATCHDOG_FLAG');
   }
 
   /**
@@ -269,7 +269,7 @@ export class SummaryEvidenceAdapter {
 
     // Vínculo comprovado e estrito!
     const statements = analysis.statements || [];
-    const targetStatements = statements.filter(s => s.targetOsId === order.osId);
+    const targetStatements = statements.filter((s: ExtractedStatement) => s.targetOsId === order.osId);
     return {
       isValidLink: true,
       usableStatements: targetStatements

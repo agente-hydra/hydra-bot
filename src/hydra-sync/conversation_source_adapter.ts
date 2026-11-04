@@ -4,7 +4,7 @@
  * Responsabilidade: Executor 2 (Fontes, Dados e Evidências)
  */
 
-import { SanitizedMessage } from './types/conversation_context_contract';
+import { SanitizedMessage } from './types/conversation_context_contract.js';
 
 export interface ChatwootMessageRaw {
   readonly id: number;

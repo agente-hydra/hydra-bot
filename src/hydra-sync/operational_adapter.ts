@@ -826,7 +826,7 @@ export function validateAnswerRequirements(options: {
         const slug = req.targetLojaSlug || intent.lojaSlug;
         if (slug) {
           try {
-            const countRow = db.prepare('SELECT COUNT(*) as c FROM ordens_servico WHERE loja_slug = ? AND is_aberta = 1').get(slug);
+            const countRow = db.prepare('SELECT COUNT(*) as c FROM ordens_servico WHERE loja_slug = ? AND is_aberta = 1').get(slug) as { c: number } | undefined;
             cloned.fulfilled = true;
             if (countRow && countRow.c === 0) {
               cloned.missingReason = `Nenhuma ordem de serviço aberta para a unidade ${slug}.`;
@@ -851,7 +851,7 @@ export function validateAnswerRequirements(options: {
                 WHERE LOWER(loja_slug) = LOWER(?) AND UPPER(area) = UPPER(?)
                 ORDER BY data_fim DESC, id DESC
                 LIMIT 1
-              `).get(slug, areaUpper);
+              `).get(slug, areaUpper) as { cmv_percentual: number | null } | undefined;
 
               if (row && row.cmv_percentual !== null && row.cmv_percentual !== undefined) {
                 cloned.fulfilled = true;
@@ -892,7 +892,7 @@ export function validateAnswerRequirements(options: {
               WHERE LOWER(loja_slug) = LOWER(?)
               ORDER BY data_fim DESC, id DESC
               LIMIT 1
-            `).get(slug);
+            `).get(slug) as { cmv_percentual: number | null } | undefined;
 
             if (row && row.cmv_percentual !== null && row.cmv_percentual !== undefined) {
               cloned.fulfilled = true;
@@ -951,7 +951,7 @@ async function _executeOperationalQueryCore(
   }
 
   // 1.0.2 Consulta de Conversas / Atendimento / Grafo da OS (Spec 059)
-  if (intent.intent === 'os_conversation' || intent.contract?.operation === 'os_conversation') {
+  if ((intent.intent as string) === 'os_conversation' || (intent.contract?.operation as string) === 'os_conversation') {
     const linker = new OsConversationGraphLinker(db);
     const osId = intent.osId ? Number(intent.osId) : undefined;
     const placa = intent.placa ? intent.placa.trim().toUpperCase() : undefined;
@@ -1059,13 +1059,13 @@ async function _executeOperationalQueryCore(
   const canonicalQ = (intent.canonicalQuestion || '').toLowerCase();
 
   // 1.0.3 Consulta de Tempário Técnico Automotivo (Spec 054 / 061 / 062)
-  if (intent.intent === 'TEMPARIO_TEMPO_SERVICO' || intent.contract?.operation === 'TEMPARIO_TEMPO_SERVICO') {
+  if ((intent.intent as string) === 'TEMPARIO_TEMPO_SERVICO' || (intent.contract?.operation as string) === 'TEMPARIO_TEMPO_SERVICO') {
     const coordinator = new TemparioHybridCoordinator(db);
     const persona = (intent.contract?.entities as any)?.persona || (intent.lojaSlug ? 'gerente' : 'socio');
     const queryResp = await coordinator.coordinateQuery({
       rawQuery: intent.canonicalQuestion || '',
       veiculoMarcaModelo: intent.veiculo || intent.vehicleModel || '',
-      ano: intent.contract?.entities?.ano as number | undefined,
+      ano: (intent.contract?.entities as any)?.ano as number | undefined,
       motorTexto: (intent as any).motorTexto,
       placa: intent.placa,
       osId: intent.osId,
