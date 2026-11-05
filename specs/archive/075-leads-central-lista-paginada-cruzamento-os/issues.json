@@ -1,0 +1,92 @@
+{
+  "specId": "075-leads-central-lista-paginada-cruzamento-os",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 31,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/31",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 25,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/25",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T1] Backend: filtros por intervalo de datas, paginação servidor-side e filtros de campanha (`leads_db.js`, `web_server.js`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node --check` nos dois arquivos + script Node que semeia 35 leads em DB temporário e afirma: `pageSize=10` retorna 10 e `total=35`, `page=4` retorna 5, `pageSize=20/50/100` respeitados, `from/to` inclusivos filtram corretamente.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 26,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/26",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T2] Motor de cruzamento Lead ↔ OS read-only (`os_crossref.js` + tabela `leads_os_links`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "teste com `hydra_ops` fixture temporário (OS com telefone só no `raw_payload`): vínculo telefone = `CONFIRMADO`, nome fuzzy = `PROVAVEL`, OS anterior à entrada não vincula, e tentativa de escrita na conexão readOnly lança erro.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 27,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/27",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T3] API de Análise e detalhe de OS (`getAnalyticsData`, `/leads/api/analytics`, `/leads/api/lead/:id/os`, `/leads/api/crossref/rebuild`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "teste E2E afirma valores exatos de receita/ticket/conversão sobre dataset fixture e que rotas sem PIN retornam 401.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 28,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/28",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T4] UI: tabela de leads com linha clicável, paginação, toggle Lista/Grade e filtro De/Até (`public/index.html`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "script Node parseia scripts inline (`new Function`) e assere presença de `renderLeadsTable`, `pageSize`, `viewMode`, `input type=\"date\"`, `tr` com `data-visit-id`, e ausência de emojis slop.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 5,
+      "number": 29,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/29",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T5] UI: aba Análise (KPIs + rankings filtráveis), seção OS no detalhe e swipe para 4 abas",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "parse JS inline OK; HTML contém `renderAnalytics`, `rankingTable`, seção `sheetOsSection`; suíte E2E demo confirma Análise com dados semeados.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 6,
+      "number": 30,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/30",
+      "title": "[Spec 075-leads-central-lista-paginada-cruzamento-os / T6] Suíte E2E, deploy VPS e verificação em produção",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/src/leads_system/test_leads_system.js` exit 0 (local e VPS) + `curl` autenticado em `/leads/api/analytics` retornando JSON válido em produção.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

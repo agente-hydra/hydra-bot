@@ -531,3 +531,27 @@
 - NUNCA reprovar ou deletar um arquivo Excel cujo EC interno bate com a loja por divergência contra cards visuais de tela não filtrados.
 - NUNCA confiar em `document.querySelector` único para verificar visibilidade de modais dinâmicos do Angular/Bootstrap.
 - NUNCA usar fallback de planilhas de datas legadas na pasta `output/` ou no Desktop.
+
+---
+
+## [2026-11-05] — [Feature: 075-leads-central-lista-paginada-cruzamento-os]
+**Contexto:** Central de Leads e Atribuição de Faturamento com Cruzamento Determinístico de Ordens de Serviço (`hydra_ops.db` do Oficina Inteligente) e Leads de Campanha (`leads_funnel.db`). Paginação server-side (10, 20, 50, 100), filtros por intervalo de datas ("de X a Y" com presets) e ranking analítico de ROI/receita por campanha e anúncio.
+**Regra aprendida:**
+1. **Cruzamento com Oficina Inteligente via `raw_payload`:**
+   - A tabela `ordens_servico` no `hydra_ops.db` NÃO possui coluna dedicada de telefone. O telefone reside obrigatoriamente dentro do campo JSON `raw_payload` (`cliente_telefone`, `cliente_telefones[]` ou `cliente_telefone_sms`).
+   - A normalização de telefone para formato E.164 (DDI + DDD + 8/9 dígitos) é a chave primária determinística (`CONFIRMADO`, confiança 1.0) para vincular o lead da landing page à OS física aberta na oficina.
+   - Camadas secundárias de matching: Camada 2 por Nome Normalizado + Placa do Veículo (`PROVAVEL`, confiança 0.85); Camada 3 por Similaridade de Nome (`SUGESTAO`, confiança 0.70).
+2. **Janela de Atribuição e Cache In-Memory:**
+   - Janela de atribuição configurada para 90 dias entre a visita/contato do lead e a data de emissão/abertura da OS (`data_inicio` / `data_inicio_iso`).
+   - Cache em memória de 10 minutos (`TTL = 600000ms`) com invalidação atômica e trigger manual (`POST /leads/api/crossref/rebuild`) com proteção de PIN para evitar re-scans pesados e repetidos no banco operacional.
+3. **Segurança Inegociável de Conexão Read-Only em SQLite Operacional:**
+   - O acesso ao banco `hydra_ops.db` da oficina NUNCA pode ter permissão de escrita pelo subsistema de leads.
+   - Utilizar obrigatoriamente `{ readOnly: true }` no `DatabaseSync` do Node.js (`node:sqlite`) ou `{ readonly: true }` no `better-sqlite3`. Qualquer tentativa de mutação dispara exceção SQLite `SQLITE_READONLY`.
+4. **Filtros e Paginação Server-Side Resilientes a Fuso Horário:**
+   - As fronteiras de data (`dateFrom`, `dateTo`) devem ser resolvidas para ISO UTC com início do dia (`T00:00:00.000Z`) e fim do dia (`T23:59:59.999Z`) considerando o fuso de São Paulo (UTC-3).
+   - A contagem de páginas e cálculo de offset (`LIMIT ? OFFSET ?`) deve sempre preservar os mesmos predicados de data e campanha em `COUNT(*)` e `SELECT *`.
+**Risco identificado:** A tabela `ordens_servico` pode variar em esquemas entre ambientes legados (alguns com `data_inicio`, outros com `data_inicio_iso`). O módulo de cruzamento deve inspecionar dinamicamente `PRAGMA table_info(ordens_servico)` antes de compor a query de datas.
+**Não fazer:**
+- NUNCA abrir o banco `hydra_ops.db` em modo leitura-escrita a partir do Leads Hub.
+- NUNCA assumir que o telefone do cliente está em uma coluna `telefone` no `hydra_ops.db`.
+- NUNCA fazer paginação apenas no client-side para bancos que crescem continuamente com tráfego pago.

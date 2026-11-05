@@ -1,0 +1,28 @@
+{
+  "specId": "075-leads-central-lista-paginada-cruzamento-os",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/.baseline.json",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t1.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t2.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t3.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t4.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t5.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/evidence/t6.md"
+  ],
+  "shared": [
+    "specs/075-leads-central-lista-paginada-cruzamento-os/issues.json",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/issues.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/design.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/issues.json",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/issues.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/proposal.md",
+    "specs/075-leads-central-lista-paginada-cruzamento-os/spec-plan.md",
+    "specs/archive/COMMIT_AUDIT.md"
+  ]
+}

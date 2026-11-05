@@ -86,3 +86,22 @@
 3. **Telemetria Anti-Slop (Apple Stocks / Linear):** Substituir cards coloridos separados e emojis decorativos (`🟢`, `🔴`, `🟡`, `📣`, `🎯`) por um container único `.telemetry-shell` (`#111113`, divisores hairline `0.5px`, números em `#FFFFFF` `tabular-nums`, barra contínua de proporção do funil na base e **Stepper Horizontal de 3 Estágios** nos cards).
 4. **Blindagem de Registros Demo (`demo_`):** Sempre isolar dados demonstrativos por prefixo determinístico (`visit_id LIKE 'demo_%'`) e excluí-los de rotinas automáticas de expiração (`sweepExpiredSessions`) para preservar estados vivos (`ENTROU`, `REDIRECIONADO`) até limpeza explícita em 1 toque (`POST /leads/api/demo/clear`).
 **Não fazer:** Nunca usar emojis como substitutos de indicadores ópticos/vetoriais em dashboards executivos; nunca trocar abas via `display: none` seco quando houver barra de navegação mobile arrastável; nunca deixar registros de demonstração sem rota dedicada de expurgo cirúrgico.
+
+---
+
+## [2026-11-05] — [Feature: 075-leads-central-lista-paginada-cruzamento-os]
+**Contexto:** Implementação da visualização em Lista Paginada (Tabela Densa com paginação 10/20/50/100), seletor de visualização Lista vs Grade com persistência em `localStorage`, linhas de tabela clicáveis sem necessidade de botão explícito, filtro por intervalo de datas ("de X a Y" com presets Hoje, 7d, 30d, Tudo) e 4ª aba "Análise" com rankings visuais de campanhas e detalhes de OSs vinculadas no modal do lead.
+**Regra aprendida:**
+1. **Transição de Física de Gestos para 4 Abas:**
+   - Ao expandir o pager para 4 abas (`TAB_COUNT = 4`), a largura do container de trilho (`#pagerTrack`) deve ser `400%`, com cada seção ocupando `w-1/4` (25%).
+   - A grade inferior de navegação muda para `grid-cols-4`, e a pílula líquida deslizante (`#liquidPill`) passa a calcular a largura via `w-[calc((100%-8px)/4)]` com translação dinâmica `x = index * ((rect.width - 8) / 4)`.
+2. **Tabela Densa Mobile-First com Linhas Clicáveis:**
+   - Em tabelas densas, clicar diretamente na linha (`tr[data-visit-id]`) melhora a velocidade de auditoria sem poluir a interface com botões repetitivos "Ver Detalhes".
+   - Aplicar `:active` e hover com feedback visual tátil (`bg-neutral-800/60`), mantendo links internos (`a[href^="tel:"]` ou `a[href^="https://wa.me"]`) com `event.stopPropagation()` para não disparar abertura acidental da modal ao clicar para ligar/conversar.
+3. **Persistência de Preferência de View (Lista vs Grade):**
+   - Armazenar o modo de visualização preferido em `localStorage.getItem('tork_leads_view_mode')` (`'list'` ou `'grid'`), alternando classes `hidden` nos containers `#leadsTableView` e `#leadsGridView` e destacando o botão ativo no toggle segmentado.
+4. **Rankings de Campanhas com Barras de Faturamento Proporcionais:**
+   - Na aba de Análise, exibir barras de progresso horizontais proporcionais (`width: (receita_campanha / receita_maxima) * 100%`) em tom esmeralda/verde sutil para fornecer contraste imediato de quais campanhas estão gerando mais faturamento em OSs fechadas.
+**Não fazer:**
+- NUNCA colocar botões de ação redundantes ("Abrir", "Detalhes") ocupando colunas inteiras quando a linha inteira pode ser a área de toque.
+- NUNCA esquecer de parar a propagação do clique (`stopPropagation`) em links de discador e WhatsApp dentro de linhas clicáveis.
