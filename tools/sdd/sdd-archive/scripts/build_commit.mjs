@@ -45,7 +45,11 @@ export async function buildCommit(specId, options = {}) {
     try {
       const propText = readFileSync(propFile, 'utf-8');
       const m = propText.match(/^#\s+(.+)$/m);
-      if (m) specTitle = m[1].replace(/^(?:Proposta|Spec)\s*—?\s*/i, '').trim();
+      if (m) {
+        specTitle = m[1]
+          .replace(/^#?\s*(?:Proposta(?:\s+de\s+Engenharia)?|Spec)\s*(?:—|-|:)?\s*(?:Spec\s+\d+:\s*)?/i, '')
+          .trim();
+      }
     } catch {
       // ignore
     }
@@ -136,4 +140,40 @@ export async function buildCommit(specId, options = {}) {
     message: commitMessage,
     staged,
   };
+}
+
+// CLI execution
+if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'))) {
+  const specId = process.argv[2];
+  if (!specId) {
+    console.error('Usage: build_commit.mjs <specId> [--dry-run] [--include <path>] [--exclude <path>]');
+    process.exit(1);
+  }
+
+  const args = process.argv.slice(3);
+  const dryRun = args.includes('--dry-run');
+  const include = [];
+  const exclude = [];
+  let summary;
+  let evidence;
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--include' && args[i + 1]) {
+      include.push(args[++i]);
+    } else if (args[i] === '--exclude' && args[i + 1]) {
+      exclude.push(args[++i]);
+    } else if (args[i] === '--summary' && args[i + 1]) {
+      summary = args[++i];
+    } else if (args[i] === '--evidence' && args[i + 1]) {
+      evidence = args[++i];
+    }
+  }
+
+  try {
+    const res = await buildCommit(specId, { dryRun, include, exclude, summary, evidence });
+    console.log(JSON.stringify(res, null, 2));
+  } catch (err) {
+    console.error(err.message);
+    process.exit(1);
+  }
 }
