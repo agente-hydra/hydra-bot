@@ -1,0 +1,28 @@
+{
+  "specId": "072-conciliacao-patio-rede-discrepancias",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/072-conciliacao-patio-rede-discrepancias/.baseline.json",
+    "specs/072-conciliacao-patio-rede-discrepancias/evidence/t1.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/evidence/t2.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/evidence/t3.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/evidence/t4.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/evidence/t5.md"
+  ],
+  "shared": [
+    "specs/072-conciliacao-patio-rede-discrepancias/issues.json",
+    "specs/072-conciliacao-patio-rede-discrepancias/issues.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/072-conciliacao-patio-rede-discrepancias/design.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/issues.json",
+    "specs/072-conciliacao-patio-rede-discrepancias/issues.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/proposal.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/scouts/scout_specialist-crawler-rede.md",
+    "specs/072-conciliacao-patio-rede-discrepancias/spec-plan.md",
+    "specs/archive/COMMIT_AUDIT.md"
+  ]
+}

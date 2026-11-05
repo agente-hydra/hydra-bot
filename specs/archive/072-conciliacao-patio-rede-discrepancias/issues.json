@@ -1,0 +1,79 @@
+{
+  "specId": "072-conciliacao-patio-rede-discrepancias",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 13,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/13",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 8,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/8",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias / T1] Deduplicação Ponderada do Multiconjunto no Ledger de Pátio",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Pagamentos de 04/11 (Kennedy OS #4461 R$ 5.131,10 e OS #4460 R$ 2.159,70) não são duplicados no ledger de 05/11.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 9,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/9",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias / T2] Calibração do Estimador de Data Comercial (`estimateTransactionDateBR`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "OS #18537 (Planalto) não recebe falso pagamento de R$ 3.030,00 e OS #40465 (Piraporinha) exibe quitação de R$ 2.842,00.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 10,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/10",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias / T3] Supressão de Falso-Candidato Aberto na Conciliação (`reconciliation_patio_rede_engine.js`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Jabaquara OS #489 e Planalto OS #18537 não fornecem transações fantasmas para o conciliador da Rede.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 11,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/11",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias / T4] Tratamento de Venda com Juros da Rede & Formatação do Pátio",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Mauá OS #22660 e Rudge OS #8881 são exibidas no pátio com saldo zerado e conciliação perfeita contra as vendas de R$ 4.886,22 e R$ 1.206,46 da Rede.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 5,
+      "number": 12,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/12",
+      "title": "[Spec 072-conciliacao-patio-rede-discrepancias / T5] Suíte de Regressão e Validação Integral contra `CONCILIAÇÃO 0511.xlsx`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Teste roda com exit code 0; 100% dos saldos e pagamentos de pátio conferem com a auditoria manual.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}
