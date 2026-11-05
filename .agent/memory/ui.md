@@ -75,3 +75,14 @@
 3. **Proibição Estrita de Pipes Inline (`|`):** Nunca agrupar atributos (`Carro | OS | Valor | Status`) em uma única linha horizontal no WhatsApp. Isso cria "amebas indecifráveis" na tela estreita dos smartphones. Cada campo deve residir em sua própria linha ou bullet vertical (`- *Status:* Em Execução • *Pátio:* 6 dias`).
 4. **Pós-Processador Sanitizador Determinístico:** Modelos LLM podem ocasionalmente reintroduzir pipes inline mesmo sob system prompt rigoroso. A função `reformatPipedLinesToHermesCards` atua como guardrail determinístico convertendo automaticamente qualquer linha com pipes em cards verticais estruturados.
 **Não fazer:** Nunca agrupar campos com `|`; nunca remover separadores `----------------------------------------` no regex de markdown; nunca permitir múltiplos carros em uma mesma linha.
+
+---
+
+## [2026-11-05] — [Feature: 074-leads-hub-apple-swipe-anti-slop-demo]
+**Contexto:** Evolução do Hub `/leads` (`projects/hydra-rede/src/leads_system/public/index.html`) com navegação por gesto de arraste horizontal 1:1 nível Apple iOS, redesign anti-slop de KPIs (padrão Apple Stocks / Linear) e carga demonstrativa idempotente dos 6 estados do funil.
+**Regra aprendida:**
+1. **Swipe Horizontal 1:1 sem Conflito com Scroll Vertical:** Em webapps mobile-first, o pager horizontal GPU-composited (`translate3d`) deve aplicar **Direction Lock** nos primeiros `8px` de movimento (`|dx| > |dy| * 1.22`), liberando imediatamente o scroll vertical nativo da lista caso o eixo dominante seja Y, e aplicando resistência hiperbólica estilo `UIScrollView` (`appleRubberBand`, `c = 0.55`) nas abas extremas.
+2. **Continuidade de Velocidade na Mola (`springToTab`):** Ao soltar o dedo, o solver harmônico amortecido (`stiffness: 380, damping: 36, mass: 0.9`) deve herdar a velocidade instantânea do gesto (`vx` em `px/ms`) e sincronizar 1:1 no mesmo `requestAnimationFrame` a **Liquid Sliding Pill** da barra inferior.
+3. **Telemetria Anti-Slop (Apple Stocks / Linear):** Substituir cards coloridos separados e emojis decorativos (`🟢`, `🔴`, `🟡`, `📣`, `🎯`) por um container único `.telemetry-shell` (`#111113`, divisores hairline `0.5px`, números em `#FFFFFF` `tabular-nums`, barra contínua de proporção do funil na base e **Stepper Horizontal de 3 Estágios** nos cards).
+4. **Blindagem de Registros Demo (`demo_`):** Sempre isolar dados demonstrativos por prefixo determinístico (`visit_id LIKE 'demo_%'`) e excluí-los de rotinas automáticas de expiração (`sweepExpiredSessions`) para preservar estados vivos (`ENTROU`, `REDIRECIONADO`) até limpeza explícita em 1 toque (`POST /leads/api/demo/clear`).
+**Não fazer:** Nunca usar emojis como substitutos de indicadores ópticos/vetoriais em dashboards executivos; nunca trocar abas via `display: none` seco quando houver barra de navegação mobile arrastável; nunca deixar registros de demonstração sem rota dedicada de expurgo cirúrgico.

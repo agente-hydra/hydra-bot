@@ -1,0 +1,41 @@
+{
+  "specId": "074-leads-hub-apple-swipe-anti-slop-demo",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/.baseline.json",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/evidence/t1.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/evidence/t2.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/evidence/t3.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/evidence/t4.md"
+  ],
+  "shared": [
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/issues.json",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/issues.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/spec-plan.md"
+  ],
+  "baselineDirty": [
+    ".agent/specialists/registry.local.json",
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "projects/hydra-rede",
+    "specs/073-squad-redirect-leads-webhook-hub/.baseline.json",
+    "specs/073-squad-redirect-leads-webhook-hub/changeset.json",
+    "specs/073-squad-redirect-leads-webhook-hub/design.md",
+    "specs/073-squad-redirect-leads-webhook-hub/evidence/t1.md",
+    "specs/073-squad-redirect-leads-webhook-hub/evidence/t2.md",
+    "specs/073-squad-redirect-leads-webhook-hub/evidence/t3.md",
+    "specs/073-squad-redirect-leads-webhook-hub/evidence/t4.md",
+    "specs/073-squad-redirect-leads-webhook-hub/evidence/t5.md",
+    "specs/073-squad-redirect-leads-webhook-hub/issues.json",
+    "specs/073-squad-redirect-leads-webhook-hub/issues.md",
+    "specs/073-squad-redirect-leads-webhook-hub/proposal.md",
+    "specs/073-squad-redirect-leads-webhook-hub/scouts/scout_specialist-messaging-whatsapp.md",
+    "specs/073-squad-redirect-leads-webhook-hub/spec-plan.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/design.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/issues.json",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/issues.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/proposal.md",
+    "specs/074-leads-hub-apple-swipe-anti-slop-demo/spec-plan.md",
+    "specs/archive/COMMIT_AUDIT.md"
+  ]
+}
