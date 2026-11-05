@@ -16,5 +16,14 @@
     "activations": 1,
     "spawns": 1,
     "status": "alive"
+  },
+  "specialist-messaging-whatsapp": {
+    "backend": "alethe-session",
+    "handle": "session-specialist-messaging-whatsapp-1793898945000",
+    "lastUsed": "2026-11-05T20:15:45.000Z",
+    "memoryHash": "initial",
+    "activations": 1,
+    "spawns": 1,
+    "status": "alive"
   }
 }
