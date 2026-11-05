@@ -1,0 +1,20 @@
+{
+  "specialist-ops-infra": {
+    "backend": "alethe-session",
+    "handle": "session-specialist-ops-infra-1793879174811",
+    "lastUsed": "2026-11-05T11:46:14.811Z",
+    "memoryHash": "initial",
+    "activations": 1,
+    "spawns": 1,
+    "status": "alive"
+  },
+  "specialist-crawler-rede": {
+    "backend": "alethe-session",
+    "handle": "session-specialist-crawler-rede-1793879174815",
+    "lastUsed": "2026-11-05T11:46:14.815Z",
+    "memoryHash": "initial",
+    "activations": 1,
+    "spawns": 1,
+    "status": "alive"
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "specId": "071-rede-migracao-invisible-playwright",
+  "owned": [
+    ".agent/specialists/registry.local.json",
+    "projects/hydra-rede",
+    "specs/071-rede-migracao-invisible-playwright/.baseline.json",
+    "specs/071-rede-migracao-invisible-playwright/changeset.json",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t1.md",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t2.md",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t3.md",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t4.md",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t5.md",
+    "specs/071-rede-migracao-invisible-playwright/evidence/t6.md"
+  ],
+  "shared": [
+    "specs/071-rede-migracao-invisible-playwright/issues.json",
+    "specs/071-rede-migracao-invisible-playwright/issues.md",
+    "specs/071-rede-migracao-invisible-playwright/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/071-rede-migracao-invisible-playwright/design.md",
+    "specs/071-rede-migracao-invisible-playwright/issues.json",
+    "specs/071-rede-migracao-invisible-playwright/issues.md",
+    "specs/071-rede-migracao-invisible-playwright/proposal.md",
+    "specs/071-rede-migracao-invisible-playwright/scouts/scout_specialist-crawler-rede.md",
+    "specs/071-rede-migracao-invisible-playwright/spec-plan.md"
+  ]
+}

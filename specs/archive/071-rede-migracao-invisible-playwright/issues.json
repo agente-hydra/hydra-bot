@@ -1,0 +1,92 @@
+{
+  "specId": "071-rede-migracao-invisible-playwright",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 7,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/7",
+      "title": "[Spec 071-rede-migracao-invisible-playwright] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 1,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/1",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T1] Provisionamento do Ambiente Invisible Playwright 0.45.0",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Script valida instalação e `python -c \"import invisible_playwright; print(invisible_playwright.__version__)\"` retorna `0.45.0`.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 2,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/2",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T2] Worker Python Unificado & Guarda de Sessão",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Teste unitário do worker responde a ping JSON-RPC e valida perfil persistente.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 3,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/3",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T3] Cliente de Ponte IPC Node.js (`invisible_bridge_client.js`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Teste de integração Node ↔ Python executa handshake e recebe status de sessão.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 4,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/4",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T4] Migração de `scraper.js` e `rede_live_auth_hub.js`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`scraper.js` executa ciclo de exportação chamando o worker Invisible sem lançar Chromium paralelo.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 5,
+      "number": 5,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/5",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T5] Manifesto de Lote & Enlace com Auditoria Financeira",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Validador rejeita conciliação com menos de 10 lojas confirmadas e aprova lote completo.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 6,
+      "number": 6,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/6",
+      "title": "[Spec 071-rede-migracao-invisible-playwright / T6] Validação E2E com Suíte de Ensaios E1..E5",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Todos os 5 ensaios aprovados com exit code 0.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}
