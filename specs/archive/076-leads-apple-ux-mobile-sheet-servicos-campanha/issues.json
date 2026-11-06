@@ -1,0 +1,79 @@
+{
+  "specId": "076-leads-apple-ux-mobile-sheet-servicos-campanha",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 37,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 32,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha / T1] Taxonomia de Serviços, Resolução de LP (`resolveLandingPageInfo`), Inferência de `desired_service` e Extração de Itens das OSs (`os_crossref.js` + `leads_db.js`)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const c = require('./projects/hydra-rede/src/leads_system/os_crossref'); const db = require('./projects/hydra-rede/src/leads_system/leads_db'); const r = c.extractServicesFromRawPayload(JSON.stringify({itens:[{descricao:'TROCA DE OLEO DE CAMBIO AUTOMATICO',qtd:1,valor_total:448}]})); const lp = db.resolveLandingPageInfo({page_url:'https://mdh.squadusercontent.com/',referrer:'https://mecanicapopular.com.br/'}); if (!r.categories.includes('Câmbio Automático') || !lp.lpLabel.includes('mecanicapopular.com.br')) process.exit(1); console.log('T1_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 33,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha / T2] APIs de Serviço (`PATCH`), Exclusão de Testes (`DELETE` / `clearDemoLeads`) e Agregações `byService` / `serviceCampaignMatrix` / `byLandingPage`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const db = require('./projects/hydra-rede/src/leads_system/leads_db'); if (typeof db.updateLeadDesiredService !== 'function' || typeof db.deleteLeadSession !== 'function') process.exit(1); console.log('T2_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 34,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha / T3] Redesign Nível Apple iOS do Sheet de Detalhes do Lead (`#sheetCard`), Card de LP de Origem (`#sheetLpOrigin`) e Seletor de Serviço 1-Toque",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const fs = require('fs'); const h = fs.readFileSync('./projects/hydra-rede/src/leads_system/public/index.html','utf8'); for (const id of ['sheetQuickActions','sheetLpOrigin','sheetServicePicker','sheetTimeline','sheetTechDisclosure']) { if (!h.includes(id)) { console.error('Missing', id); process.exit(1); } } console.log('T3_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 35,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha / T4] Apresentação Mobile-First na Lista de Leads (LP + Serviço) e Matriz \"Serviços × Campanha\" na Aba Análise",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const fs = require('fs'); const h = fs.readFileSync('./projects/hydra-rede/src/leads_system/public/index.html','utf8'); for (const id of ['analyticsServicesTable','analyticsServiceCampaignTable']) { if (!h.includes(id)) { console.error('Missing', id); process.exit(1); } } console.log('T4_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 5,
+      "number": 36,
+      "url": null,
+      "title": "[Spec 076-leads-apple-ux-mobile-sheet-servicos-campanha / T5] Suíte E2E Expandida (`test_leads_system.js`), Deploy na VPS e Limpeza da Base de Produção",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/src/leads_system/test_leads_system.js`",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

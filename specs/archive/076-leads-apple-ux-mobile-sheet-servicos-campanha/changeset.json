@@ -1,0 +1,27 @@
+{
+  "specId": "076-leads-apple-ux-mobile-sheet-servicos-campanha",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/.baseline.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t1.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t2.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t3.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t4.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t5.md"
+  ],
+  "shared": [
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/design.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/proposal.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/spec-plan.md",
+    "specs/archive/COMMIT_AUDIT.md"
+  ]
+}
