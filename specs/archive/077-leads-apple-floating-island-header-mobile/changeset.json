@@ -1,0 +1,38 @@
+{
+  "specId": "077-leads-apple-floating-island-header-mobile",
+  "owned": [
+    "specs/077-leads-apple-floating-island-header-mobile/.baseline.json",
+    "specs/077-leads-apple-floating-island-header-mobile/evidence/t1.md",
+    "specs/077-leads-apple-floating-island-header-mobile/evidence/t2.md",
+    "specs/077-leads-apple-floating-island-header-mobile/evidence/t3.md"
+  ],
+  "shared": [
+    "projects/hydra-rede",
+    "specs/077-leads-apple-floating-island-header-mobile/issues.json",
+    "specs/077-leads-apple-floating-island-header-mobile/issues.md",
+    "specs/077-leads-apple-floating-island-header-mobile/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "projects/hydra-rede",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/.baseline.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/changeset.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/design.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t1.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t2.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t3.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t4.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t5.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.json",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/proposal.md",
+    "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/spec-plan.md",
+    "specs/077-leads-apple-floating-island-header-mobile/design.md",
+    "specs/077-leads-apple-floating-island-header-mobile/issues.json",
+    "specs/077-leads-apple-floating-island-header-mobile/issues.md",
+    "specs/077-leads-apple-floating-island-header-mobile/proposal.md",
+    "specs/077-leads-apple-floating-island-header-mobile/spec-plan.md",
+    "specs/archive/COMMIT_AUDIT.md"
+  ]
+}

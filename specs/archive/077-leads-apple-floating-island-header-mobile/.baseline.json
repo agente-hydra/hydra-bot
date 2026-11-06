@@ -1,0 +1,23 @@
+{
+  "projects/hydra-rede": "untracked",
+  "specs/archive/COMMIT_AUDIT.md": "bb915b02c8d658226295124cbcae10249be174c1",
+  "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md": "4ff1f2cf4baa41a34acd1dc948377151048da084",
+  "docs/portfolio/sample_production_logs.json": "cd8393829ce61e78d80e82e3bc30ba51ec5d4a6b",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/.baseline.json": "d6b60e4d0db8e251474b5f2d0bb1e149c5ebce2e",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/changeset.json": "a0a0cf87e9f91c0b0199b807b2caf10a32657a79",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/design.md": "3b1a34264e060362f853061c7e8a4d5eea1c3ca1",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t1.md": "45d92c5ac890b30cdc57412a1518dc652bcf47da",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t2.md": "9e50e68f4b62cf890458c42530ab63314bef51b8",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t3.md": "f2d0d739c0ff73a2b76bb0d361b14619b8258d7b",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t4.md": "10c7281398a5f1d99851a9f3bb8b475ea2115db4",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/evidence/t5.md": "4348cd4d81aa071d36514a245961788d8c52c3fe",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.json": "e5fd184d53021cc597b8c23456ca315c39877d8b",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/issues.md": "d4329065f88f53390ae624845d5a60c2cd935e1e",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/proposal.md": "f2c7139ab31015a7f9a346b4fb123d826b3c8bf0",
+  "specs/076-leads-apple-ux-mobile-sheet-servicos-campanha/spec-plan.md": "9203d9e265f50f49251557397765e9b47c46bc43",
+  "specs/077-leads-apple-floating-island-header-mobile/design.md": "8caccfb5fa98266fe6d33bb4a294b1056a4373bc",
+  "specs/077-leads-apple-floating-island-header-mobile/issues.json": "aa1dd1d8cad8a97283edc15bb3d30fff0e46eb84",
+  "specs/077-leads-apple-floating-island-header-mobile/issues.md": "6069f5a4a78f9453ab862bfaa95810cbf516416d",
+  "specs/077-leads-apple-floating-island-header-mobile/proposal.md": "8927a8baf7e2dfaa04db24d3cda60821dde57eab",
+  "specs/077-leads-apple-floating-island-header-mobile/spec-plan.md": "9a2cfab0d1dbe863e8da4299dcd5b72f2e3bb8ee"
+}

@@ -1,0 +1,53 @@
+{
+  "specId": "077-leads-apple-floating-island-header-mobile",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 41,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/41",
+      "title": "[Spec 077-leads-apple-floating-island-header-mobile] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 38,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/38",
+      "title": "[Spec 077-leads-apple-floating-island-header-mobile / T1] Markup e Estilização da Ilha Flutuante Apple (`#floatingIslandHeader`) e Padding dos Viewports",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const fs = require('fs'); const h = fs.readFileSync('./projects/hydra-rede/src/leads_system/public/index.html','utf8'); if (!h.includes('floatingIslandHeader') || !h.includes('pt-20')) process.exit(1); console.log('T1_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 39,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/39",
+      "title": "[Spec 077-leads-apple-floating-island-header-mobile / T2] Animações Apple Spring Physics (Entrada, Spin do Sync e Expansão do Dropdown)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node -e \"const fs = require('fs'); const h = fs.readFileSync('./projects/hydra-rede/src/leads_system/public/index.html','utf8'); if (!h.includes('islandIn') || !h.includes('sync-spin')) process.exit(1); console.log('T2_OK');\"`",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 40,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/40",
+      "title": "[Spec 077-leads-apple-floating-island-header-mobile / T3] Validação E2E em `test_leads_system.js`, Deploy na VPS e Verificação em Produção",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/src/leads_system/test_leads_system.js`",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

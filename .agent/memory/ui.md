@@ -105,3 +105,22 @@
 **Não fazer:**
 - NUNCA colocar botões de ação redundantes ("Abrir", "Detalhes") ocupando colunas inteiras quando a linha inteira pode ser a área de toque.
 - NUNCA esquecer de parar a propagação do clique (`stopPropagation`) em links de discador e WhatsApp dentro de linhas clicáveis.
+
+---
+
+## [2026-11-05] — [Feature: 076-leads-apple-ux-mobile-sheet-servicos-campanha & 077-leads-apple-floating-island-header-mobile]
+**Contexto:** Redesign do Contact Sheet estilo Apple iOS 18 com Quick Actions e Timeline da jornada, identificação da Landing Page e Rota/Slug específica (`resolveLandingPageInfo`), seletor de serviço desejado de 1 toque, matriz cruzada "Serviços × Campanha" com extração de itens de OS, e transformação do topo em Ilha Flutuante Apple (`#floatingIslandHeader`) com física de mola e zero espremimento mobile.
+**Regra aprendida:**
+1. **Dynamic Floating Island Header (Padrão iOS 18):**
+   - Headers fixos retangulares de largura total (`w-full`) espremem botões em celulares e colidem com a Dynamic Island/Notch.
+   - O padrão ilha flutuante (`fixed top-[calc(env(safe-area-inset-top,0px)+0.75rem)] left-3 right-3 sm:max-w-4xl sm:mx-auto`) em geometria de pílula (`rounded-full`), fundo vítreo escuro (`bg-[#121215]/85 backdrop-blur-2xl`), borda especular e sombra profunda proporciona ergonomia e respiro total.
+   - Os viewports de conteúdo subjacentes precisam ter padding superior de `pt-20 pb-28` para que o conteúdo role elegantemente por trás da ilha translúcida sem corte de cabeçalhos.
+2. **Resolução de Rota vs Domínio de Landing Pages (Iframe Referrer-Policy):**
+   - Quando o formulário ou botão roda dentro de um iframe cross-origin (ex: container `*.squadusercontent.com` embutido em `mecanicapopular.com.br`), o navegador oculta a rota por padrão (`strict-origin-when-cross-origin`), enviando apenas a raiz (`/`).
+   - Para identificar de qual LP específica o lead veio quando o cliente tem múltiplas LPs sob o mesmo domínio (ex: `/cambio-automatico` vs `/suspensao`), o script deve enviar explicitamente `window.location.pathname`, `document.title` ou a URL completa do pai.
+   - A UI do CRM deve separar visualmente o Domínio (`mecanicapopular.com.br`) da Rota/Slug (`/cambio-automatico`), destacando o serviço antes mesmo do atendente abrir o WhatsApp.
+3. **Contact Sheet Apple iOS 18 com Quick Action Bar:**
+   - O Bottom Sheet de detalhes atinge o padrão Apple quando estruturado em: Monograma circular com iniciais + Quick Action Bar com botões circulares táteis (*Ligar*, *WhatsApp*, *Copiar*, *Excluir*) + Timeline sequencial da jornada do lead (*Entrou* &rarr; *Redirect* &rarr; *Mensagem* &rarr; *OS*) + `<details>` disclosure colapsado por padrão para dados técnicos/JSONs brutos.
+**Não fazer:**
+- Nunca exibir apenas o domínio raiz quando a empresa opera múltiplas LPs no mesmo domínio; sempre expor a rota e o título da página.
+- Nunca usar cabeçalhos de tela cheia sem safe-area em mobile; sempre adotar containers flutuantes destacados com amortecimento de mola.
