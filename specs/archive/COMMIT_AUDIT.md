@@ -1,14 +1,15 @@
 # Auditoria de Higiene de Commits em Specs
 
-- **Data da Análise:** 2026-11-04T23:19:57.389Z
-- **Specs Analisadas:** 101
+- **Data da Análise:** 2026-11-06T01:31:40.966Z
+- **Specs Analisadas:** 109
 - **Specs com Escopo Divergente:** 86
-- **Commits que Tocaram Múltiplas Specs Simultaneamente:** 12
+- **Commits que Tocaram Múltiplas Specs Simultaneamente:** 13
 
 ## Commits Contaminados Multi-Spec Detectados
 
 | SHA | Assunto | Specs Afetadas |
 | :-- | :-- | :-- |
+| `df362e3` | feat(070-sdd-persistent-specialists-pool): SDD v2 especialistas persistentes issues e higiene de commits | 2 specs (070-sdd-persistent-specialists-pool, COMMIT_AUDIT.md...) |
 | `38c4a4f` | feat(067): diagnostico apibrasil e estimativa imediata de tempario | 15 specs (047-hydra-rede-esteira-madrugada-0500-anti-stale, 048-hydra-rede-session-persistence-keepalive, 049-hydra-patio-reconciliation-ghost-expurge-sync...) |
 | `9d675c7` | feat(052-053): rei do modulo and central 5m sla triage and store lead routing | 2 specs (052-reidomodulo-sla-triage-local-llm, 053-central-sla-lead-recovery-routing...) |
 | `859a741` | feat(046): fix interceptacao de modal changebrand e eliminacao de falso positivo dom_rede | 12 specs (039-hydra-rede-heartbeat-auth-bridge-resilience, 040-hydra-resiliencia-alertas-anti-impressao-antiflood, 041-sdd-alethe-orquestracao-dinamica...) |
@@ -98,6 +99,14 @@
 | `067-diagnostico-apibrasil-e-estimativa-imediata` | `38c4a4f` | `067` | ✅ NÃO | feat(067): diagnostico apibrasil e estimativa imed |
 | `068-tempario-iluminacao-typo-resilience` | `715fe51` | `068-tempario-iluminacao-typo-resilience` | ✅ NÃO | feat(068-tempario-iluminacao-typo-resilience): res |
 | `069-fix-dispatcher-runtime-reference-and-scope` | `7c0a3b7` | `069-fix-dispatcher-runtime-reference-and-scope` | ✅ NÃO | feat(069-fix-dispatcher-runtime-reference-and-scop |
+| `070-sdd-persistent-specialists-pool` | `df362e3` | `070-sdd-persistent-specialists-pool` | ✅ NÃO | feat(070-sdd-persistent-specialists-pool): SDD v2  |
+| `071-rede-migracao-invisible-playwright` | `7ce2429` | `071-rede-migracao-invisible-playwright` | ✅ NÃO | feat(071-rede-migracao-invisible-playwright): Migr |
+| `072-conciliacao-patio-rede-discrepancias` | `0373131` | `072-conciliacao-patio-rede-discrepancias` | ✅ NÃO | feat(072-conciliacao-patio-rede-discrepancias): re |
+| `073-squad-redirect-leads-webhook-hub` | `44d2c45` | `073-squad-redirect-leads-webhook-hub` | ✅ NÃO | feat(073-squad-redirect-leads-webhook-hub): webhoo |
+| `074-leads-hub-apple-swipe-anti-slop-demo` | `a930e71` | `074-leads-hub-apple-swipe-anti-slop-demo` | ✅ NÃO | feat(074-leads-hub-apple-swipe-anti-slop-demo): fi |
+| `075-leads-central-lista-paginada-cruzamento-os` | `af47462` | `075-leads-central-lista-paginada-cruzamento-os` | ✅ NÃO | feat(075-leads-central-lista-paginada-cruzamento-o |
+| `076-leads-apple-ux-mobile-sheet-servicos-campanha` | `ed7dde1` | `076-leads-apple-ux-mobile-sheet-servicos-campanha` | ✅ NÃO | feat(076-leads-apple-ux-mobile-sheet-servicos-camp |
+| `077-leads-apple-floating-island-header-mobile` | `6a936ce` | `077-leads-apple-floating-island-header-mobile` | ✅ NÃO | feat(077-leads-apple-floating-island-header-mobile |
 | `fix-os-hierarchy-and-anti-orphan-cards` | `4e607d5` | `hydra-bot` | ⚠️ SIM | feat(hydra-bot): sincronizacao integral, gramatica |
 | `fix-patio-stale-crawler-and-zero-balance` | `9fd044c` | `fix-patio-stale-crawler-and-zero-balance` | ✅ NÃO | feat(fix-patio-stale-crawler-and-zero-balance): de |
 | `hydra-agent-mcp-scope-fix` | `7ad2ff6` | `hydra-graph-agent-integration` | ⚠️ SIM | feat(hydra-graph-agent-integration): integracao do |
