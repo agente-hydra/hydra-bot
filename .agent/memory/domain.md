@@ -4,6 +4,17 @@
 
 <!-- Entradas adicionadas pelo /vibe-archive -->
 
+## [2026-11-09] — [Feature ID: 080-rede-tabela-repasse-10x-sem-juros]
+**Contexto:** Atualização da política comercial de repasse de juros ao cliente nos relatórios financeiros da Rede e conciliação com o ERP Pátio: vendas de 1x até 10x são isentas de juros (taxa 0,0%), passando a incidir repasse de juros estritamente a partir de 11x (11x = 13,5% até 18x = 18,0%).
+**Regra aprendida:**
+1. Isenção Comercial de 1x a 10x: Na esteira de processamento de cartões Rede (`excel_processor.js`), as faixas de 1x a 10x agora têm alíquota 0,000 e divisor 1.000. `vendaJuros` é R$ 0,00 e `valorOriginal` é igual ao `valorBruto`.
+2. Alíquotas Oficiais a Partir de 11x: Cobrança de juros repassados ocorre estritamente a partir de 11x: 11x (13,5%), 12x (14,0%), 13x (14,5%), 14x (15,0%), 15x (15,5%), 16x (16,0%), 17x (17,5%), 18x (18,0%).
+3. Conciliação Pátio x Rede Nível 1 vs Nível 6: Como o cliente não paga acréscimo de juros em até 10x na maquininha, o valor bruto da Rede coincide centavo por centavo com o valor faturado da OS no Pátio, permitindo reconciliação direta em Nível 1. Apenas vendas em 11x ou mais exigem o split reverso de Nível 6.
+**Risco identificado:** Desalinhamento entre demonstradores ou planilhas de contingência caso utilizassem matrizes hardcoded legadas com juros em 2x-10x. Mitigado por sincronização total em `generate_7col_demo.js` e `generate_juros_options_demo.js`.
+**Não fazer:**
+- Nunca deduzir ou calcular juros repassados em vendas parceladas de 1x a 10x.
+- Nunca disparar mensagens através de instâncias de gerentes de loja.
+
 ## [2026-11-04] — [Feature ID: 067-diagnostico-apibrasil-e-estimativa-imediata]
 **Contexto:** Resolução definitiva do vácuo de orçamento e bloqueio conversacional quando uma placa automotiva não é encontrada no ERP nem na base externa APIBrasil (devido a saldo zerado na conta do usuário ou placa sem histórico). Implementação do Tempário de Referência Imediato (Linha Passeio Padrão a R$ 270,00/h com as 4 opções de detalhamento técnico), diagnóstico transparente do status de cota/plano da APIBrasil Gateway V2, e preservação de refinamento posterior do veículo sem perda de contexto.
 **Regra aprendida:**

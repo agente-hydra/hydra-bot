@@ -1,0 +1,53 @@
+{
+  "specId": "080-rede-tabela-repasse-10x-sem-juros",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 54,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/54",
+      "title": "[Spec 080-rede-tabela-repasse-10x-sem-juros] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 51,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/51",
+      "title": "[Spec 080-rede-tabela-repasse-10x-sem-juros / T1] Atualização da Matriz de Repasse no Gerador de Relatórios Excel",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Aceite conforme spec-plan",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 52,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/52",
+      "title": "[Spec 080-rede-tabela-repasse-10x-sem-juros / T2] Atualização da Matriz e Rótulos no Motor de Conciliação Pátio x Rede",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Aceite conforme spec-plan",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 53,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/53",
+      "title": "[Spec 080-rede-tabela-repasse-10x-sem-juros / T3] Suíte de Testes da Spec 080, Validação na VPS e Build Gate Global",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Aceite conforme spec-plan",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

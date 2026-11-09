@@ -33,4 +33,11 @@
 - **Não fazer:** Nunca permitir execução de código JavaScript arbitrário ou comandos bash pelo AGY durante auto-reparo e nunca aceitar arquivos HTML/texto com extensão `.xlsx` para marcação de sucesso.
 - **Âncora:** `projects/hydra-rede/src/rede_fast_repair_catalog.js:1`
 
+## [2026-11-09] — [Feature: 080-rede-tabela-repasse-10x-sem-juros]
+- **Contexto:** Atualização da matriz de repasse de juros da Rede no gerador de Excel (`excel_processor.js`), demonstradores e motor de conciliação Pátio x Rede (`reconciliation_patio_rede_engine.js`), estabelecendo isenção comercial de juros de 1x até 10x (`taxa: 0.000, divisor: 1.000, label: '0,0%'`), com repasse de juros aplicado estritamente a partir de 11x (11x = 13,5% até 18x = 18,0%).
+- **Regra aprendida:** Transações parceladas em até 10x agora possuem `vendaJuros = 0.00` e `valorOriginal = valorBruto`. No motor de conciliação, transações de 1x a 10x realizam match direto no valor bruto integral (Nível 1) sem dedução indevida de juros repassados. Apenas transações >= 11x ativam a dedução reversa e split Nível 6.
+- **Risco identificado:** Conciliações antigas ou relatórios legados que deduziam juros em vendas de 2x a 10x gerando divergências com o valor cobrado na OS do Pátio.
+- **Não fazer:** Nunca aplicar taxa de juros repassada maior que 0% para parcelamentos de 1 a 10 vezes.
+- **Âncora:** `projects/hydra-rede/src/excel_processor.js:45`
+
 

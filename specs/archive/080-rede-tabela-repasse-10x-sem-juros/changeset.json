@@ -1,0 +1,23 @@
+{
+  "specId": "080-rede-tabela-repasse-10x-sem-juros",
+  "owned": [
+    ".agent/memory/domain.md",
+    ".agent/memory/specialists/specialist-crawler-rede.md",
+    "projects/hydra-rede",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/.baseline.json",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/evidence/t1.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/evidence/t2.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/evidence/t3.md"
+  ],
+  "shared": [],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/design.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/issues.json",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/issues.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/proposal.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/scouts/scout_specialist-crawler-rede.md",
+    "specs/080-rede-tabela-repasse-10x-sem-juros/spec-plan.md"
+  ]
+}
