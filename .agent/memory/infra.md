@@ -203,3 +203,17 @@
 - NUNCA agendar extrações de vendas da Rede em múltiplos horários da madrugada.
 - NUNCA permitir que workers do Google Sheets encerrem silenciosamente com sucesso quando o Apps Script devolver página de erro HTML.
 
+---
+
+## [2026-11-09] — [Feature ID: 079-rede-reparo-rapido-watchdog-invisible]
+**Contexto:** Arquitetura de auto-recuperação cirúrgica (Reparo Rápido) para a extração matinal da Rede integrada ao Watchdog das 06:00 AM e ao `ai_crawler_healing_hook.js`. Executa ações autorizadas na sessão viva do daemon Invisible Playwright (`127.0.0.1:49222`), suportando fechamento de tutoriais/popups (`DISMISS_TUTORIAL_AND_RETRY_CLICK`), inspeção e clique de controles (`INSPECT_AND_CLICK_CANDIDATE`), retomada de exportação na fila S3 (`POLL_QUEUE_OR_RESUME_EXPORT`), restauração de sessão autenticada (`RECOVER_SESSION_INVISIBLE`) e contingência homologada com promoção segura para o lote oficial (`RUN_HOMOLOGATED_CONTINGENCY`).
+**Regra aprendida:**
+1. **Governança por Catálogo Fechado & Zero Shell:** A IA de reparo é estritamente deliberativa e não executiva: avalia payloads expurgados de tokens/cookies e escolhe um `actionId` pré-homologado. Tentativas de comandos shell, scripts externos ou ações fora do catálogo são sumariamente bloqueadas.
+2. **Isolamento de Sessão & Teto de Ações:** O reparo opera com chave de deduplicação `${fluxo}:${periodo}:${ec}:${etapa}` e teto estrito de no máximo 2 ações por incidente (`MAX_ACTIONS_PER_INCIDENT = 2`). Falha na prova material após 2 tentativas resulta em escalonamento para o administrador humano (`ESCALATE_ADMIN_AUTH_REQUIRED`).
+3. **Verificação Material Inegociável (Gate Físico):** Uma loja só é dada como recuperada após inspeção física do arquivo XLSX baixado (`stat.size >= 1000`, cabeçalho ZIP `PK\x03\x04` e `mtime` recente).
+4. **Promoção Homologada & Selo BatchAuditGuard:** Em falhas de scraper ou geradores sintéticos, a rotina de contingência homologada roda em `downloads/staging`, e o promotor atômico (`homologated_contingency_promoter.js`) valida 10/10 lojas antes de promover para o lote de conciliação diurna.
+**Não fazer:**
+- NUNCA permitir que o motor de auto-healing execute comandos de terminal ou altere arquivos de código em produção.
+- NUNCA considerar um incidente resolvido sem a comprovação do arquivo XLSX real no disco.
+
+

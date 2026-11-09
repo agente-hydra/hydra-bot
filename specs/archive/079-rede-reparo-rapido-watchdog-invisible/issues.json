@@ -1,0 +1,53 @@
+{
+  "specId": "079-rede-reparo-rapido-watchdog-invisible",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 50,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/50",
+      "title": "[Spec 079-rede-reparo-rapido-watchdog-invisible] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 47,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/47",
+      "title": "[Spec 079-rede-reparo-rapido-watchdog-invisible / T1] Skill `rede-reparo-rapido`, Catálogo Fechado e Simulação com Logs de 09/11 (Rollout Fase 1)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=1` executa com exit code `0`, comprovando distinção exata dos 3 cenários de 09/11, sanitização de credenciais e rejeição de qualquer ação fora do catálogo fechado.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 48,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/48",
+      "title": "[Spec 079-rede-reparo-rapido-watchdog-invisible / T2] Executor na Mesma Sessão Invisible, Limite de 2 Ações e Testes Adversariais em 1 Loja (Rollout Fase 2)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=2` executa com exit code `0`, aprovando recuperação de popup/timeout, deduplicação concorrente, bloqueio de ação fora do catálogo e rejeição de arquivo antigo/sintético.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 49,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/49",
+      "title": "[Spec 079-rede-reparo-rapido-watchdog-invisible / T3] Homologação da Rotina de Contingência Real (10/10 ECs) e Integração no Watchdog / Healing Hook (Rollout Fase 3)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=3 && node projects/hydra-rede/scripts/verify_module_graph.js` executam com exit code `0` e 0 módulos ausentes.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

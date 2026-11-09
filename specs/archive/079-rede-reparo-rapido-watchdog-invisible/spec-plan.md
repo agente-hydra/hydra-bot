@@ -1,0 +1,22 @@
+# Plano de Implementação (Spec-Plan) — Spec 079: Reparo Rápido da Rede dentro do Watchdog
+
+## Tarefas Atômicas
+
+- [x] [SPECIALIST:specialist-crawler-rede] **T1 — Skill `rede-reparo-rapido`, Catálogo Fechado e Simulação com Logs de 09/11 (Rollout Fase 1)**
+  - Criar a skill versionada `.agents/skills/rede-reparo-rapido/SKILL.md` com instruções estritas de leitura de logs/DOM filtrados e escolha de `actionId` a partir de catálogo fechado, proibindo edição de código, shell arbitrário, escrita no repositório, cron ou disparo de WhatsApp.
+  - Implementar `projects/hydra-rede/src/rede_fast_repair_catalog.js` contendo `ALLOWED_REPAIR_ACTIONS` (`DISMISS_TUTORIAL_AND_RETRY_CLICK`, `INSPECT_AND_CLICK_CANDIDATE`, `POLL_QUEUE_OR_RESUME_EXPORT`, `RECOVER_SESSION_INVISIBLE`, `RUN_HOMOLOGATED_CONTINGENCY`, `ESCALATE_ADMIN_AUTH_REQUIRED`), sanitizador de payload (`sanitizeIncidentPayload` removendo cookies/tokens/PII/imagens), gerador de chave de deduplicação (`buildIncidentKey(fluxo, periodo, ec, etapa)`) e validador determinístico do retorno do AGY CLI (`validateAgyDecision`).
+  - Validar em modo simulação contra os logs reais de 09/11 (`joyride-backdrop` interceptando Piraporinha `47712201`, exportação travada na fila S3 e `SyntaxError` / arquivo sintético) garantindo que o classificador/AGY selecione a ação exata sem executar mutações.
+  - **Aceite:** `node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=1` executa com exit code `0`, comprovando distinção exata dos 3 cenários de 09/11, sanitização de credenciais e rejeição de qualquer ação fora do catálogo fechado.
+
+- [x] [SPECIALIST:specialist-crawler-rede] **T2 — Executor na Mesma Sessão Invisible, Limite de 2 Ações e Testes Adversariais em 1 Loja (Rollout Fase 2)**
+  - Estender `projects/hydra-rede/src/invisible/session_guard.py` e `projects/hydra-rede/src/invisible/rede_invisible_worker.py` com `INSPECT_VISIBLE_CONTROLS` e `EXECUTE_REPAIR_ACTION` operando sobre a mesma instância/página do perfil Firefox persistente (incluindo neutralização de `.joyride-backdrop` / `.filter-coachmark__overlay`, clique em candidato único com confirmação do EC no cabeçalho, consulta prévia à fila `/api/fl2/prd/v1/downloads/queue` e recuperação de sessão).
+  - Atualizar `projects/hydra-rede/src/invisible_bridge_client.js` para expor `inspectVisibleControls()` e `executeRepairAction()`.
+  - Implementar `projects/hydra-rede/src/rede_fast_repair_engine.js` com agrupamento por `incidentKey = fluxo:periodo:ec:etapa`, lock de dono único da sessão, limite estrito de até 2 ações por incidente (`MAX_ACTIONS_PER_INCIDENT = 2`) com checagem objetiva pós-ação e exigência de prova material (`.xlsx` binário novo, EC e período conferidos, manifesto válido) para marcar `RECUPERADO`.
+  - Testar isoladamente com uma loja reproduzindo popup e timeout, além dos casos adversariais: dois gatilhos simultâneos no mesmo incidente, retorno inválido/malicioso do AGY e tentativa de reaproveitar arquivo antigo ou sintético.
+  - **Aceite:** `node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=2` executa com exit code `0`, aprovando recuperação de popup/timeout, deduplicação concorrente, bloqueio de ação fora do catálogo e rejeição de arquivo antigo/sintético.
+
+- [x] [LEAD] **T3 — Homologação da Rotina de Contingência Real (10/10 ECs) e Integração no Watchdog / Healing Hook (Rollout Fase 3)**
+  - Versionar a rotina de contingência homologada no incidente de 09/11 em `projects/hydra-rede/src/invisible/homologated_contingency_collector.py` e `projects/hydra-rede/src/homologated_contingency_promoter.js`, coletando dados reais em staging isolado, validando 10/10 ECs reais, período correto, `validarLojaContraRede` e selo criptográfico `BatchAuditGuard` antes de promover para produção.
+  - Remover qualquer geração silenciosa de arquivo sintético em modo de produção em `rede_invisible_worker.py` e sincronizar a correção de sintaxe de `projects/hydra-rede/src/scraper.js`.
+  - Integrar o ponto único de decisão do Reparo Rápido em `projects/hydra-rede/src/ai_crawler_healing_hook.js`, `projects/hydra-rede/src/sanity_gate_patio_rede.js` e `projects/hydra-rede/src/run_morning_watchdog_0600.js` (sem criar novo cron), garantindo recompilação oficial, auditoria pré-despacho e retenção segura com alerta via instância `hydra` caso falte evidência perto das 08:00 AM.
+  - **Aceite:** `node projects/hydra-rede/tests/test_rede_fast_repair_suite.js --phase=3 && node projects/hydra-rede/scripts/verify_module_graph.js` executam com exit code `0` e 0 módulos ausentes.

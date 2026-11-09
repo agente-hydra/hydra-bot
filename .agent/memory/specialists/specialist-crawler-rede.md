@@ -26,3 +26,11 @@
 - **Não fazer:** Nunca agendar coletas de vendas da Rede em horários noturnos múltiplos e nunca deixar endpoints do Google Apps Script silenciarem erros HTML retornando exit code 0 como se fossem sucesso.
 - **Âncora:** `projects/hydra-rede/scripts/run-nightly-prep.sh:1`
 
+## [2026-11-09] — [Feature: 079-rede-reparo-rapido-watchdog-invisible]
+- **Contexto:** Implantação do motor de Reparo Rápido da Rede dentro do Watchdog com catálogo fechado estrito de 6 ações (`ALLOWED_REPAIR_ACTIONS`), executor na mesma sessão do Invisible Playwright sem reinício desnecessário de navegador, dedup por `${fluxo}:${periodo}:${ec}:${etapa}`, trava de no máximo 2 ações por incidente e promotor de contingência homologada staging->produção com selagem criptográfica `BatchAuditGuard`.
+- **Regra aprendida:** O AGY atua exclusivamente como avaliador de log sanitizado e seletor de ação de catálogo fechado, sem permissão de execução de shell, escrita de código, alteração de crontab ou envio de WhatsApp. A validação de prova física (`verifyPhysicalProof`) deve exigir cabeçalho ZIP (`PK\x03\x04`), tamanho mínimo de 1.000 bytes e data de modificação recente na mesma janela horária. O promotor de contingência homologada deve auditar 10/10 ECs oficiais antes de emitir o recibo de auditoria `batch_audit_receipt.json`.
+- **Risco identificado:** Ações de reparo concorrentes competindo pela mesma sessão Firefox do Invisible se o single-flight lock falhar.
+- **Não fazer:** Nunca permitir execução de código JavaScript arbitrário ou comandos bash pelo AGY durante auto-reparo e nunca aceitar arquivos HTML/texto com extensão `.xlsx` para marcação de sucesso.
+- **Âncora:** `projects/hydra-rede/src/rede_fast_repair_catalog.js:1`
+
+

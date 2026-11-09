@@ -1,0 +1,28 @@
+{
+  "specId": "079-rede-reparo-rapido-watchdog-invisible",
+  "owned": [
+    ".agent/memory/infra.md",
+    ".agent/memory/specialists/specialist-crawler-rede.md",
+    ".agents/skills/rede-reparo-rapido/SKILL.md",
+    "projects/hydra-rede",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/.baseline.json",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/evidence/t1.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/evidence/t2.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/evidence/t3.md"
+  ],
+  "shared": [
+    "specs/079-rede-reparo-rapido-watchdog-invisible/issues.json",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/issues.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/design.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/issues.json",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/issues.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/proposal.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/scouts/scout_specialist-crawler-rede.md",
+    "specs/079-rede-reparo-rapido-watchdog-invisible/spec-plan.md"
+  ]
+}
