@@ -1,7 +1,7 @@
 # Auditoria de Higiene de Commits em Specs
 
-- **Data da Análise:** 2026-11-09T13:17:41.168Z
-- **Specs Analisadas:** 111
+- **Data da Análise:** 2026-11-09T14:25:25.401Z
+- **Specs Analisadas:** 112
 - **Specs com Escopo Divergente:** 86
 - **Commits que Tocaram Múltiplas Specs Simultaneamente:** 13
 
@@ -109,6 +109,7 @@
 | `077-leads-apple-floating-island-header-mobile` | `6a936ce` | `077-leads-apple-floating-island-header-mobile` | ✅ NÃO | feat(077-leads-apple-floating-island-header-mobile |
 | `078-rede-matinal-cron-restoration-patio-sheets` | `e0205d9` | `078-rede-matinal-cron-restoration-patio-sheets` | ✅ NÃO | feat(078-rede-matinal-cron-restoration-patio-sheet |
 | `079-rede-reparo-rapido-watchdog-invisible` | `47fcb7b` | `079-rede-reparo-rapido-watchdog-invisible` | ✅ NÃO | feat(079-rede-reparo-rapido-watchdog-invisible): r |
+| `080-rede-tabela-repasse-10x-sem-juros` | `7f5ff27` | `080-rede-tabela-repasse-10x-sem-juros` | ✅ NÃO | feat(080-rede-tabela-repasse-10x-sem-juros): tabel |
 | `fix-os-hierarchy-and-anti-orphan-cards` | `4e607d5` | `hydra-bot` | ⚠️ SIM | feat(hydra-bot): sincronizacao integral, gramatica |
 | `fix-patio-stale-crawler-and-zero-balance` | `9fd044c` | `fix-patio-stale-crawler-and-zero-balance` | ✅ NÃO | feat(fix-patio-stale-crawler-and-zero-balance): de |
 | `hydra-agent-mcp-scope-fix` | `7ad2ff6` | `hydra-graph-agent-integration` | ⚠️ SIM | feat(hydra-graph-agent-integration): integracao do |
