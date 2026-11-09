@@ -40,4 +40,9 @@
 - **Não fazer:** Nunca aplicar taxa de juros repassada maior que 0% para parcelamentos de 1 a 10 vezes.
 - **Âncora:** `projects/hydra-rede/src/excel_processor.js:45`
 
-
+## [2026-11-09] — [Feature: 081-patio-horario-pagamentos-live-probe-fix]
+- **Contexto:** Correção de fuso UTC no SQLite, captura na aba tapPagamento e active recovery de troca de empresa no Oficina Inteligente.
+- **Regra aprendida:** Timestamps SQLite YYYY-MM-DD HH:MM:SS devem receber sufixo Z para evitar avanço espúrio de fuso em SP. Extração de pagamentos exige clique em tapPagamento e soma de ucOrdemDeServicoPagamento_grd. Troca de empresa no ERP exige timeout delimitado e reload em caso de ViewState dirty.
+- **Risco identificado:** Instâncias concorrentes de Playwright sob o mesmo usuário do ERP provocam desaceleração ou colisões de sessão.
+- **Não fazer:** Nunca inferir que OS está sem pagamento olhando apenas a tela de busca da grade sem abrir a aba financeira.
+- **Âncora:** `projects/hydra-rede/src/os_live_probe.js`

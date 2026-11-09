@@ -1,5 +1,6 @@
 import { chromium, type Page } from 'playwright';
 import xlsx from 'xlsx';
+import * as fs from 'fs';
 import { config as dotenvConfig } from 'dotenv';
 import type Database from 'better-sqlite3';
 import {
@@ -11,6 +12,7 @@ import {
 import { getDatabaseConnection } from './db_repository.ts';
 import { ensureCompany } from '../workers/oficina-agent/playwright/actions/core.ts';
 import { coletarRelatorioOperacaoLoja } from './relatorio_operacao_crawler.ts';
+import { coletarPatioAtivoLoja } from './patio_ativo_crawler.ts';
 
 dotenvConfig({ path: '/opt/bots/.env' });
 dotenvConfig();
@@ -308,6 +310,7 @@ export interface AtualizarFinancasOptions {
   crawlerMetasFn?: () => Promise<ResultadoMapaMetas>;
   coletorVendasFn?: (page: Page | any, slug: string, day: string) => Promise<{ revenue: number; volume: number }>;
   coletorCMVFn?: (page: Page | any, slug: string, db: DatabaseInstance) => Promise<any>;
+  coletorPatioFn?: (page: Page | any, slug: string, db: DatabaseInstance) => Promise<any>;
   page?: any;
 }
 
@@ -420,9 +423,17 @@ export async function atualizarFinancasHorarias(options: AtualizarFinancasOption
           console.error(`[Hourly Finance] Falha na coleta mock de CMV da loja ${loja.slug}: ${cmvErr?.message || cmvErr}`);
         }
       }
+
+      if (options.coletorPatioFn) {
+        try {
+          await options.coletorPatioFn(options.page, loja.slug, db);
+        } catch (patioErr: any) {
+          console.error(`[Hourly Finance] Falha na coleta mock de Pátio da loja ${loja.slug}: ${patioErr?.message || patioErr}`);
+        }
+      }
     }
   } else {
-    // Modo de produ??o com automa??o Playwright real
+    // Modo de produção com automação Playwright real
     const browser = await chromium.launch({
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
@@ -469,9 +480,33 @@ export async function atualizarFinancasHorarias(options: AtualizarFinancasOption
         } catch (cmvErr: any) {
           console.error(`[Hourly Finance] Falha na coleta de CMV/Gestão Periódica da loja ${loja.slug}: ${cmvErr?.message || cmvErr}`);
         }
+
+        // Extração horária leve de Pátio Ativo & OSs Abertas (Spec 045 / Spec 081)
+        try {
+          await coletarPatioAtivoLoja(page, loja.slug, db);
+        } catch (patioErr: any) {
+          console.error(`[Hourly Finance] Falha na coleta de Pátio Ativo da loja ${loja.slug}: ${patioErr?.message || patioErr}`);
+        }
       }
     } finally {
       await browser.close();
+    }
+
+    // Pós-Loop Consolidado: Recalcular Snapshot Diurno do Pátio Ledger (Spec 045 / Spec 057 / Spec 081)
+    try {
+      const { execSync } = await import('child_process');
+      const ledgerHook = '/home/operacional/hydra-rede/src/patio_ledger_engine.js';
+      if (fs.existsSync(ledgerHook)) {
+        console.log('[Hourly Finance] Sincronizando snapshot diurno no Pátio Ledger...');
+        const out = execSync(`node -e "const { recalcularSnapshotDiurno } = require('${ledgerHook}'); const r = recalcularSnapshotDiurno(); if (!r || r.status !== 'SUCCESS') { console.error('Snapshot diurno falhou:', r); process.exit(1); }"`, {
+          timeout: 20000,
+          encoding: 'utf-8'
+        });
+        console.log('[Hourly Finance] ' + (out ? out.trim() : 'Snapshot diurno OK'));
+      }
+    } catch (hookErr: any) {
+      console.warn(`[Hourly Finance] 🚨 Erro ao consolidar snapshot diurno no Pátio Ledger: ${hookErr?.message || hookErr}`);
+      falhas.push('patio_ledger_diurno');
     }
   }
 

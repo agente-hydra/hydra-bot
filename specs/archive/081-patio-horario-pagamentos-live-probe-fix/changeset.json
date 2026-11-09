@@ -1,0 +1,31 @@
+{
+  "specId": "081-patio-horario-pagamentos-live-probe-fix",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/.baseline.json",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/evidence/t1.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/evidence/t2.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/evidence/t3.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/evidence/t4.md",
+    "src/hydra-sync/hourly_finance_worker.ts",
+    "src/hydra-sync/patio_ativo_crawler.ts",
+    "src/workers/oficina-agent/playwright/actions/os_deep_inspector.ts"
+  ],
+  "shared": [
+    "specs/081-patio-horario-pagamentos-live-probe-fix/issues.json",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/issues.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/design.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/issues.json",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/issues.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/proposal.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/scouts/scout_specialist-crawler-rede.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/scouts/scout_specialist-messaging-whatsapp.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/scouts/scout_specialist-ops-infra.md",
+    "specs/081-patio-horario-pagamentos-live-probe-fix/spec-plan.md"
+  ]
+}

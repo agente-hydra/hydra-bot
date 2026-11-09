@@ -1,0 +1,66 @@
+{
+  "specId": "081-patio-horario-pagamentos-live-probe-fix",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 59,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/59",
+      "title": "[Spec 081-patio-horario-pagamentos-live-probe-fix] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 55,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/55",
+      "title": "[Spec 081-patio-horario-pagamentos-live-probe-fix / T1] Corrigir fuso UTC, seletor de status, aba Pagamentos e persistência dual em `os_live_probe.js`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node --check projects/hydra-rede/src/os_live_probe.js` retorna exit 0 e teste unitário/real confirma `necessitaRevalidacao = true` para timestamps SQLite UTC com > 5 min.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 56,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/56",
+      "title": "[Spec 081-patio-horario-pagamentos-live-probe-fix / T2] Versionar `patio_ativo_crawler.ts` com extração financeira de OSs abertas e sincronizar `hourly_finance_worker.ts`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`npx tsc --noEmit` (ou validação estática dos módulos TS alterados) executa sem erros de tipagem nos arquivos tocados.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 57,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/57",
+      "title": "[Spec 081-patio-horario-pagamentos-live-probe-fix / T3] Corrigir Circuit Breaker UTC em `whatsapp_patio_dispatcher.js` e injetar totais vivos no Balão 1 em `run_group_balloon_dispatch.js`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`node projects/hydra-rede/tests/test_patio_live_probe_and_balloon1.js` retorna exit 0 com 100% dos testes aprovados.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 58,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/58",
+      "title": "[Spec 081-patio-horario-pagamentos-live-probe-fix / T4] Deploy sincronizado na VPS, validação E2E integrada e higiene de repositório",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Todos os testes automatizados e checagens de sintaxe (`node --check` / `tsc`) aprovados com exit 0.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

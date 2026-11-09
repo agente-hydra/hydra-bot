@@ -67,6 +67,10 @@ export interface GarantiaOS {
 
 export interface DocumentoAberto {
   id: string;
+  os_id?: string;
+  loja_slug?: string;
+  statusCapturedAt?: string;
+  financeiro_updated_at?: string;
   tipo: 'OS' | 'OR';
   data_inicio: string;
   data_fim: string | null;
