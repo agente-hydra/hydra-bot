@@ -1,0 +1,29 @@
+{
+  "specId": "078-rede-matinal-cron-restoration-patio-sheets",
+  "owned": [
+    "projects/hydra-rede",
+    ".agent/memory/infra.md",
+    ".agent/memory/specialists/specialist-crawler-rede.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/.baseline.json",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/evidence/t1.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/evidence/t2.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/evidence/t3.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/evidence/t4.md"
+  ],
+  "shared": [
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/issues.json",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/issues.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/design.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/issues.json",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/issues.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/proposal.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/scouts/scout-crawler-rede.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/scouts/scout-messaging-whatsapp.md",
+    "specs/078-rede-matinal-cron-restoration-patio-sheets/spec-plan.md"
+  ]
+}

@@ -189,3 +189,17 @@
 **Não fazer:**
 - NUNCA enviar notificações de recuperação de leads para a Central quando o lead estiver interagindo com a loja física.
 - NUNCA gerar links de atendimento do Chatwoot com valor `undefined`.
+
+---
+
+## [2026-11-09] — [Feature ID: 078-rede-matinal-cron-restoration-patio-sheets]
+**Contexto:** Restauração do motor Invisible Playwright 0.45.0 na VPS, eliminação de extrações noturnas redundantes da Rede no crontab, recálculo diurno com frescor garantido do Pátio e proteção contra falhas HTML no Google Sheets.
+**Regra aprendida:**
+1. **Janela Única de Extração Rede (05:00 AM):** A adquirente Rede processa compensações durante a madrugada. Disparos à 01h, 03h ou 23h extraíam dados obsoletos e causavam desafios CAPTCHA desnecessários. O agendamento correto e único é `0 5 * * 1-5 run-nightly-prep.sh`.
+2. **Invisible Playwright Daemon na VPS:** O Python 3.13 venv (`.venv-invisible`) com `invisible_playwright` acoplado ao socket `:49222` deve inicializar o context assincronamente (`await self.invisible_mgr.__aenter__()`) e responder a RPCs sem bloquear requisições com chamadas de rede prolongadas.
+3. **Pátio com Frescor Diurno (<30m):** `recalcularSnapshotDiurno` no `patio_ledger_engine.js` consome os JSONs mais recentes de OS (`os_store_${slug}.json`) e consolida `oldestSourceCapturedAt` fresco para o despacho matinal das 08h.
+4. **Google Sheets Webhook & HTML Faults:** Respostas HTML de validação do Google Apps Script (ex: erro `D8`) devem ser interceptadas por `isHtmlError` no `google_sheets_client.js`, propagando a falha limpa para o worker sem retorno falso de código 0.
+**Não fazer:**
+- NUNCA agendar extrações de vendas da Rede em múltiplos horários da madrugada.
+- NUNCA permitir que workers do Google Sheets encerrem silenciosamente com sucesso quando o Apps Script devolver página de erro HTML.
+

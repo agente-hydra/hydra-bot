@@ -1,0 +1,26 @@
+# Plano de Execução Refinado — Spec 078: Restauração do Invisible Playwright Exclusivo (`origin/master`), Agendamento Único Matinal (05:00 AM), Frescor do Pátio e Validação Google Sheets
+
+## Tarefas
+
+- [x] [SPECIALIST:specialist-crawler-rede] **T1 — Restauração do Invisible Playwright Exclusivo (`origin/master` `57cabe4`) e Módulos da Esteira na VPS**
+  - Criar branch de backup `backup-vps-20261108-pre-spec078` em `/home/operacional/hydra-rede` na VPS.
+  - Fazer checkout forçado de `origin/master` (`57cabe4` / Spec 071 `9b78e61`) para toda a stack do **Invisible Playwright** e módulos atualizados em `origin/master` (`src/scraper.js`, `src/invisible_bridge_client.js`, `src/invisible/*`, `src/batch_audit_guard.js`, `src/reconnect_system/rede_live_auth_hub.js`, `src/reconciliation_patio_rede_engine.js`, `src/patio_ledger_engine.js`, `src/leads_system/*`, `deploy/setup_invisible_env.sh`, `deploy/invisible_manifest.json`), eliminando o `scraper.js` Chromium de `97c65b6`.
+  - Restaurar de `57cabe4` todos os scripts e módulos ausentes no disco da VPS (`scripts/run-nightly-prep.sh`, `scripts/run-unified-morning.sh`, `scripts/run-patio.sh`, `scripts/cleanup-crawler-zombies.sh`, `scripts/rotate-crawler-logs.sh`, `src/run_morning_watchdog_0600.js`, `src/exportar_contas_pagar_cli.js`, `src/ai_crawler_healing_hook.js`, `src/hydra_network_watchdog.js`, `src/sanity_gate_patio_rede.js`, `src/contas_pagar_retention.js`, `src/patio_hydra_bot_adapter.js`, `src/excel_patio_builder.js`, `src/crawler_patio_oi.js`, `src/patio_xls_parser.js`, `src/excel_conciliacao_builder.js`, `src/excel_conciliacao_updater.js`, `src/servico_prestado_antispam_gate.js`, `tests/test_harness_invisible_spec071.js`, `tests/test_t1_env_isolation.js`, `tests/test_t5_manifest_enlace.js`) e aplicar `chmod +x scripts/*.sh`.
+  - Provisionar/validar `.venv-invisible` na VPS (`bash deploy/setup_invisible_env.sh`) e rodar os testes do Invisible Playwright (`test_harness_invisible_spec071.js`, `test_t1_env_isolation.js`, `test_t5_manifest_enlace.js`).
+  - **Aceite:** `ssh operacional@100.126.50.101 "cd /home/operacional/hydra-rede && grep -q 'InvisibleBridgeClient' src/scraper.js && node tests/test_harness_invisible_spec071.js && node tests/test_t5_manifest_enlace.js"` retorna código 0.
+
+- [x] [LEAD] **T2 — Higienização do Crontab na VPS (Corte de Execução Noturna + Agendamento Único às 05:00 AM) e Oráculo `require.resolve()`**
+  - Atualizar o `crontab` de `operacional` na VPS removendo as entradas noturnas (`0 23 * * *` e `0 1,3,5,7 * * *` de `run-nightly-prep.sh`) e configurando **uma única execução pós-clearing às 05:00 AM** (`0 5 * * 1-5 /home/operacional/hydra-rede/scripts/run-nightly-prep.sh >> /home/operacional/hydra-data/logs/cron_morning_prep.log 2>&1`).
+  - Validar recursivamente todos os `require('./...')` via `require.resolve()` em todos os entrypoints agendados no crontab (`run_nightly_prep.js`, `run_morning_watchdog_0600.js`, `run_agy_auditor_worker.js`, `run_unified_morning_dispatch.js`, `run_patio_daily.js`, `run_conciliacao_daily.js`, `run_group_balloon_dispatch.js`, `run_cmv_kpi_gerentes.js`, `run_daily_roi_report.js`, `sync_sheets_os_worker.js`).
+  - **Aceite:** `ssh operacional@100.126.50.101 "crontab -l | grep 'run-nightly-prep.sh' | wc -l | grep -q '^1$' && crontab -l | grep -q '^0 5 \* \* 1-5 /home/operacional/hydra-rede/scripts/run-nightly-prep.sh'"` retorna código 0 e varredura `require.resolve` resulta em 0 módulos ausentes.
+
+- [x] [SPECIALIST:specialist-crawler-rede] **T3 — Correção do Frescor Diurno (15 min) e Reconciliação de Veículos Abertos em `patio_ledger_engine.js`**
+  - Atualizar `recalcularSnapshotDiurno()` em `src/patio_ledger_engine.js` para ler `/home/operacional/hydra-data/crawls/os_store_${slug}.json` de cada uma das 10 lojas.
+  - Resolver `sourceCapturedAt` como o maior timestamp entre `crawls_execucoes.fim_em`, `MAX(ordens_servico.updated_at)` e `os_store_${slug}.json -> ultima_atualizacao`, reconciliando também as OSs com `is_aberta === 1`.
+  - Executar `recalcularSnapshotDiurno()` na VPS e validar `patio_ledger_diurno.json`.
+  - **Aceite:** `ssh operacional@100.126.50.101 "node -e \"const r = require('/home/operacional/hydra-rede/src/patio_ledger_engine.js').recalcularSnapshotDiurno(); if (!r.oldestSourceCapturedAt.startsWith('2026-11-08') && !r.oldestSourceCapturedAt.startsWith('2026-11-09')) process.exit(1); console.log('FRESH_OK:', r.oldestSourceCapturedAt, 'Total carros:', r.patioRede.totalVeiculos);\""` retorna código 0.
+
+- [x] [SPECIALIST:specialist-messaging-whatsapp] **T4 — Extração de Diagnóstico HTML (Célula D8), Alinhamento CSV e Exit Code Real no `GoogleSheetsClient` & `sync_sheets_os_worker.js`**
+  - Atualizar `src/lib/google_sheets_client.js` para detectar respostas HTML do Google Apps Script antes do `JSON.parse`, extraindo a mensagem de erro de validação do Google Sheets (`célula D8`), e ajustar `parseCsv()` para preservar o índice 1-based real das linhas.
+  - Atualizar `src/sync_sheets_os_worker.js` para retornar `ok: false` (`exit 1`) quando houver falha no envio ao webhook, reportando o diagnóstico da célula bloqueada no log e no alerta ao Dev via instância `hydra`.
+  - **Aceite:** `ssh operacional@100.126.50.101 "cd /home/operacional/hydra-rede && node tests/test_sheets_os_sync.js"` retorna código 0.

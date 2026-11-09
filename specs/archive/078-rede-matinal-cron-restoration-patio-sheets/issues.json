@@ -1,0 +1,66 @@
+{
+  "specId": "078-rede-matinal-cron-restoration-patio-sheets",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 46,
+      "url": null,
+      "title": "[Spec 078-rede-matinal-cron-restoration-patio-sheets] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 42,
+      "url": null,
+      "title": "[Spec 078-rede-matinal-cron-restoration-patio-sheets / T1] Restauração do Invisible Playwright Exclusivo (`origin/master` `57cabe4`) e Módulos da Esteira na VPS",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`ssh operacional@100.126.50.101 \"cd /home/operacional/hydra-rede && grep -q 'InvisibleBridgeClient' src/scraper.js && node tests/test_harness_invisible_spec071.js && node tests/test_t5_manifest_enlace.js\"` retorna código 0.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 43,
+      "url": null,
+      "title": "[Spec 078-rede-matinal-cron-restoration-patio-sheets / T2] Higienização do Crontab na VPS (Corte de Execução Noturna + Agendamento Único às 05:00 AM) e Oráculo `require.resolve()`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`ssh operacional@100.126.50.101 \"crontab -l | grep 'run-nightly-prep.sh' | wc -l | grep -q '^1$' && crontab -l | grep -q '^0 5 \\* \\* 1-5 /home/operacional/hydra-rede/scripts/run-nightly-prep.sh'\"` retorna código 0 e varredura `require.resolve` resulta em 0 módulos ausentes.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 44,
+      "url": null,
+      "title": "[Spec 078-rede-matinal-cron-restoration-patio-sheets / T3] Correção do Frescor Diurno (15 min) e Reconciliação de Veículos Abertos em `patio_ledger_engine.js`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`ssh operacional@100.126.50.101 \"node -e \\\"const r = require('/home/operacional/hydra-rede/src/patio_ledger_engine.js').recalcularSnapshotDiurno(); if (!r.oldestSourceCapturedAt.startsWith('2026-11-08') && !r.oldestSourceCapturedAt.startsWith('2026-11-09')) process.exit(1); console.log('FRESH_OK:', r.oldestSourceCapturedAt, 'Total carros:', r.patioRede.totalVeiculos);\\\"\"` retorna código 0.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 45,
+      "url": null,
+      "title": "[Spec 078-rede-matinal-cron-restoration-patio-sheets / T4] Extração de Diagnóstico HTML (Célula D8), Alinhamento CSV e Exit Code Real no `GoogleSheetsClient` & `sync_sheets_os_worker.js`",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "`ssh operacional@100.126.50.101 \"cd /home/operacional/hydra-rede && node tests/test_sheets_os_sync.js\"` retorna código 0.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}
