@@ -1,0 +1,26 @@
+{
+  "specId": "082-rede-single-collector-v045-consolidation-docs",
+  "owned": [
+    "projects/hydra-rede",
+    "specs/082-rede-single-collector-v045-consolidation-docs/.baseline.json",
+    "specs/082-rede-single-collector-v045-consolidation-docs/evidence/t1.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/evidence/t2.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/evidence/t3.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/evidence/t4.md"
+  ],
+  "shared": [
+    "specs/082-rede-single-collector-v045-consolidation-docs/issues.json",
+    "specs/082-rede-single-collector-v045-consolidation-docs/issues.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/spec-plan.md"
+  ],
+  "baselineDirty": [
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/082-rede-single-collector-v045-consolidation-docs/design.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/issues.json",
+    "specs/082-rede-single-collector-v045-consolidation-docs/issues.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/proposal.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/scouts/scout_specialist-crawler-rede.md",
+    "specs/082-rede-single-collector-v045-consolidation-docs/spec-plan.md"
+  ]
+}

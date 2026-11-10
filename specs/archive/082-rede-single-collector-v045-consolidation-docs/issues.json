@@ -1,0 +1,66 @@
+{
+  "specId": "082-rede-single-collector-v045-consolidation-docs",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 64,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/64",
+      "title": "[Spec 082-rede-single-collector-v045-consolidation-docs] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 60,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/60",
+      "title": "[Spec 082-rede-single-collector-v045-consolidation-docs / T1] Unificação do Ambiente Python no Invisible Playwright 0.45.0 e Correção de Session Guard",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Execução de `node -e \"const { InvisibleBridgeClient } = require('./projects/hydra-rede/src/invisible_bridge_client'); const c = new InvisibleBridgeClient(); console.log('Resolved Python:', c.pythonPath);\"` valida a lógica de resolução sem erros.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 61,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/61",
+      "title": "[Spec 082-rede-single-collector-v045-consolidation-docs / T2] Integração da Coleta Real S3 no Worker Daemon Único da Rede",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Validação de sintaxe estática `node --check projects/hydra-rede/src/scraper.js` e compilação Python `python3 -m py_compile projects/hydra-rede/src/invisible/rede_invisible_worker.py` retornam exit code 0.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 62,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/62",
+      "title": "[Spec 082-rede-single-collector-v045-consolidation-docs / T3] Saneamento de Processos Concorrentes e Desativação de Legados na VPS",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Teste local de scripts e verificação de listas de processos confirmam saneamento.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 63,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/63",
+      "title": "[Spec 082-rede-single-collector-v045-consolidation-docs / T4] Criação da Documentação Arquitetural e Operacional Completa da Rede e Build Gate",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Arquivo `projects/hydra-rede/docs/ARQUITETURA_OPERACIONAL_REDE.md` criado, formatado e com todas as seções descritas.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}
