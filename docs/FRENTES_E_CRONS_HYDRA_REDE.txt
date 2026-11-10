@@ -1,0 +1,229 @@
+================================================================================
+       HYDRA & REDE — MAPA GERAL DE FRENTES, BOTS, CRONS E RELATÓRIOS
+================================================================================
+Servidor: VPS Operacional (100.126.50.101)
+Atualizado em: 10/11/2026
+Objetivo: Documentar todas as frentes ativas de extração, auditoria, balões
+executivos e disparadores de relatórios no WhatsApp, detalhando horários,
+destinatários, canais e a finalidade de cada rotina.
+================================================================================
+
+--------------------------------------------------------------------------------
+FRENTE 1: ADQUIRENTE REDE (CARTÕES DE CRÉDITO E DÉBITO DAS 10 LOJAS)
+--------------------------------------------------------------------------------
+Responsável pela coleta diária, auditoria contábil e envio dos relatórios oficiais
+de vendas em cartões de crédito/débito das 10 lojas do grupo.
+
+1.1. Extração Diária Matinal das 10 Lojas
+- Horário: 05:00 AM (Segunda a Sexta)
+- Comando: /home/operacional/hydra-rede/scripts/run-nightly-prep.sh
+- O que faz: Abre o portal Meu Rede via motor stealth Invisible Playwright 0.45.0,
+  percorre os 10 Estabelecimentos Comerciais (ECs), solicita a exportação para
+  a fila S3 da Rede, aguarda o status 'DONE' e baixa os 10 arquivos .xlsx oficiais
+  para a pasta /home/operacional/hydra-data/downloads/.
+
+1.2. Sonda Matinal de Prontidão e Auto-Healing (Golden Gate)
+- Horário: 06:00 AM (Segunda a Sexta)
+- Comando: /usr/bin/node /home/operacional/hydra-rede/src/run_morning_watchdog_0600.js
+- O que faz: Verifica se as 10 lojas foram baixadas com sucesso. Se alguma loja
+  ficou pendente ou falhou no portal, reabre a extração para recuperar o arquivo
+  antes da auditoria oficial.
+
+1.3. Auditoria Pré-Despacho e Consolidação
+- Horário: 07:00 AM (Segunda a Sexta)
+- Comando: /home/operacional/hydra-rede/scripts/run-agy-rede-auditor.sh
+- O que faz: Processa os arquivos .xlsx de todas as 10 lojas, aplica a matriz comercial
+  vigente (até 10x sem juros; incidência a partir de 11x), monta a planilha consolidada
+  'Juros Rede - DD-MM-AAAA.xlsx' e gera o selo criptográfico de aprovação em
+  /home/operacional/hydra-data/locks/rede_audit_passed_DD-MM-AAAA.json.
+
+1.4. Despacho Matinal dos Relatórios Oficiais no WhatsApp
+- Horário: 07:45 AM validação / 08:00 AM envio pontual (Segunda a Sexta)
+- Comando: /home/operacional/hydra-rede/scripts/run-unified-morning.sh --include-balloons
+- Instância Emissora: 'hydra' (Evolution API)
+- Destinatários e Arquivos Enviados:
+  a) Grupo do FINANCEIRO (+55 11 94066-7032):
+     Envia 5 relatórios completos:
+     1. Planilha canônica consolidada 'Juros Rede - DD-MM-AAAA.xlsx'
+     2. Relatório analítico consolidado de taxas e líquidos
+     3. Resumo executivo de vendas brutas por bandeira e modalidade
+     4. Fechamento de recebimentos por estabelecimento
+     5. Extrato de auditoria cruzada
+  b) Davi (Conciliação Individual):
+     Envia a Planilha de Conciliação Pátio x Rede, cruzando cada venda de cartão
+     com a Ordem de Serviço (OS) correspondente no sistema da loja para identificar
+     divergências ou vendas sem baixa.
+
+--------------------------------------------------------------------------------
+FRENTE 2: BALÕES EXECUTIVOS NO WHATSAPP (SÓCIOS E DIRETORIA)
+--------------------------------------------------------------------------------
+Mensagens ricas consolidadas disparadas automaticamente no Grupo Oficial dos Sócios
+(ID: 120363425738307789@g.us) via instância 'hydra'.
+
+2.1. Balão 2 Completo (Faturamento, CMV e Contas a Pagar)
+- Horário: 07:45 AM / 08:00 AM (Segunda a Sexta)
+- O que envia:
+  - Faturamento acumulado do mês de cada loja vs meta mensal.
+  - CMV (Custo de Mercadoria Vendida) acumulado por loja.
+  - Balanço financeiro matinal: total de contas a pagar no dia, saldo em banco
+    e necessidade de caixa.
+
+2.2. Balão 1 Matinal (Pátio Ativo e Carros Críticos sem Sinal)
+- Horário: 09:00 AM (Segunda a Sexta)
+- Comando: node src/run_group_balloon_dispatch.js --balloon=1 --immediate
+- O que envia:
+  - Total de carros presentes no pátio ativo das 10 lojas.
+  - Valor total acumulado das OSs abertas (em serviço / diagnóstico).
+  - Saldo pendente a receber dos clientes.
+  - Lista detalhada de 'Carros Críticos': veículos com mais de 50% ou 60% do serviço
+    já executado cuja OS ainda não possui sinal ou pagamento registrado, alertando
+    a diretoria para cobrança aos gerentes de loja.
+
+2.3. Balão 2 Simplificado (Acompanhamento da Tarde)
+- Horário: 14:00 PM (Segunda a Sexta)
+- Comando: node src/run_group_balloon_dispatch.js --balloon=2 --mode=simplified --immediate
+- O que envia:
+  - Atualização do faturamento diário faturado até as 14h.
+  - Percentual atingido da meta do mês em cada loja.
+  - Indicador de CMV parcial (sem a listagem de contas a pagar).
+
+2.4. Balão 1 Vespertino (Atualização de Pátio e Cobrança)
+- Horário: 15:00 PM (Segunda a Sexta)
+- Comando: node src/run_group_balloon_dispatch.js --balloon=1 --immediate
+- O que envia:
+  - Segunda checagem do dia sobre os carros no pátio.
+  - Confirma se os carros apontados pela manhã como 'sem sinal' receberam baixa
+    financeira após cobrança dos gerentes.
+
+2.5. Balão 3 (Fechamento do Dia e Carga Noturna do Pátio)
+- Horário: 19:00 PM (Segunda a Sexta, contingências às 19:15 e 19:50 com lock)
+- Comando: node src/run_group_balloon_dispatch.js --balloon=3 --immediate
+- O que envia:
+  - Faturamento final total do dia loja a loja.
+  - Meta do dia atingida (Sim/Não e percentual).
+  - Total de OSs concluídas e faturadas no dia.
+  - CMV consolidado do dia.
+  - Pátio final restante que dormirá nas lojas para o dia seguinte.
+
+--------------------------------------------------------------------------------
+FRENTE 3: CRAWLER HORÁRIO DO ERP OFICINA INTELIGENTE (HYDRA HOURLY FINANCE)
+--------------------------------------------------------------------------------
+Responsável por extrair em tempo quase-real as vendas e o pátio ativo do sistema
+da oficina, alimentando o banco SQLite local (hydra_ops.db).
+
+- Horários:
+  * 07:15 AM (Segunda a Sexta) — Coleta preparatória da manhã.
+  * A cada 1 hora das 08:45 às 22:45 (Todos os dias) — Coletas contínuas.
+- Comando: /home/operacional/hydra/scripts/run-hydra-hourly-finance.sh
+- O que faz:
+  - Faz login no ERP Oficina Inteligente / Oficina Integrada com credenciais operacionais.
+  - Navega pelas 10 lojas e extrai:
+    1. Faturamento diário e mensal de peças e serviços.
+    2. CMV de peças de cada OS faturada.
+    3. Grade de veículos presentes no pátio ativo com status (Em Diagnóstico,
+       Aguardando Peça, Em Execução, Lavagem, Pronto).
+    4. Valores pagos e pendentes em cada Ordem de Serviço aberta.
+  - Grava os dados em /home/operacional/hydra-rede/data/os_store_<slug>.json e no banco
+    SQLite, garantindo que os Balões 1, 2 e 3 tenham sempre números 100% atualizados.
+
+--------------------------------------------------------------------------------
+FRENTE 4: ALERTAS DE PERFORMANCE, CMV E PROPORÇÃO DE SERVIÇO
+--------------------------------------------------------------------------------
+Rotinas especializadas que analisam margem de lucro e desvio de metas.
+
+4.1. Alerta Individual de CMV para Gerentes de Loja
+- Horário: Das 14:00 às 17:00 (Quartas e Sextas)
+- Comando: node src/run_cmv_kpi_gerentes.js --mode=gerentes --immediate
+- O que faz: Compara o CMV de peças de cada loja com a meta estabelecida. Quando uma
+  loja está com custo de peças muito alto (margem achatada), envia mensagem de cobrança
+  e orientação diretamente para o canal autorizado do gerente.
+
+4.2. Alerta Horário de Serviço Prestado (< 45%) no Grupo dos Sócios
+- Horário: A cada 30 minutos das 10:30 às 20:30 (Segunda a Sexta)
+- Comando: node src/run_cmv_kpi_gerentes.js --mode=socios-hourly --immediate
+- O que faz: Analisa o mix de vendas das lojas (Mão de Obra vs Peças). Se a proporção
+  de serviço cair abaixo de 45% (sinal de que a oficina está apenas trocando peças
+  sem cobrar adequadamente a mão-de-obra), dispara alerta imediato no grupo da diretoria.
+  Possui trava inteligente 'Anti-Spam Gate' para não repetir o aviso no mesmo dia se
+  a loja já estiver sob acompanhamento.
+
+--------------------------------------------------------------------------------
+FRENTE 5: MARKETING, LEADS, GOOGLE ADS E ROI
+--------------------------------------------------------------------------------
+Monitoramento do investimento em anúncios e da taxa de conversão em vendas reais.
+
+5.1. Sincronização Diária de Leads x Ordens de Serviço
+- Horário: 07:00 AM (Todos os dias)
+- Comando: /home/operacional/hydra-rede/scripts/run_sheets_os_sync.sh
+- O que faz: Cruza os contatos de clientes que entraram pelas Landing Pages e campanhas
+  com os CPFs e placas cadastradas nas OSs do ERP Oficina Inteligente, marcando
+  exatamente quais clientes fecharam serviços na rede.
+
+5.2. Relatório Diário de ROI e Captação (Google Ads + WhatsApp Central)
+- Horário: 08:00 AM (Todos os dias)
+- Comando: /home/operacional/hydra-rede/scripts/run_daily_roi_report.sh
+- O que envia: Relatório executivo consolidando:
+  - Valor investido no Google Ads no dia anterior.
+  - Quantidade de leads recebidos e custo por lead (CPL).
+  - Taxa de conversão em agendamentos de oficina.
+  - Faturamento total gerado pelas OSs originadas dos anúncios (Retorno sobre Investimento).
+
+--------------------------------------------------------------------------------
+FRENTE 6: BOT DE REATIVAÇÃO DE CLIENTES (CRM WHATSAPP)
+--------------------------------------------------------------------------------
+Automação de relacionamento para reativar clientes da base que não visitam as lojas
+há mais de 6 meses.
+
+- Horários: 09:15, 11:15, 14:15 e 16:15 (Segunda a Sexta)
+- Comando: node /home/operacional/bot-reativacao/cadenciador_lotes.js --batch
+- Instância Emissora: 'atendimento' (exclusiva, proibição absoluta de instâncias de gerentes)
+- O que faz:
+  - Dispara 4 lotes diários de 5 contatos (máximo de 20 clientes/dia).
+  - Aplica atraso orgânico (jitter humano) entre 25s e 65s entre cada mensagem para
+    evitar detecção ou restrição do WhatsApp.
+  - Oferece checkup preventivo, revisão gratuita de freios e suspensão ou condições
+    especiais de retorno.
+
+--------------------------------------------------------------------------------
+FRENTE 7: SENTINEL OPS (MONITORAMENTO DE SAÚDE E INFRAESTRUTURA)
+--------------------------------------------------------------------------------
+Garante que todos os canais digitais e integrações estejam de pé.
+
+7.1. Monitor de Landing Pages (LPs)
+- Horário: A cada 5 minutos (* * * * *)
+- Comando: node /home/operacional/sentinel/lp_monitor.js
+- O que faz: Testa se todas as páginas de anúncio estão respondendo status 200 OK.
+  Se uma página cair, envia alerta imediato ao desenvolvedor para evitar desperdício
+  de verba do Google Ads.
+
+7.2. Monitor do Chatbee / WhatsApp API
+- Horário: A cada 15 minutos (a cada 15 min)
+- Comando: node /home/operacional/sentinel/chatbee_monitor.js
+- O que faz: Verifica se os webhooks e instâncias da Evolution API estão conectados
+  e operando sem fila acumulada.
+
+--------------------------------------------------------------------------------
+FRENTE 8: SERVIÇOS PM2 CONTÍNUOS (ALWAYS-ON DA VPS)
+--------------------------------------------------------------------------------
+Processos gerenciados pelo PM2 para atendimento em tempo real:
+
+1. 'hydra-bot': Processo central que escuta webhooks e gerencia rotinas gerais.
+2. 'hydra-leads-hub': Recebe leads gerados pelas LPs e distribui instantaneamente
+   para o WhatsApp do consultor/loja mais próximo da localização do cliente.
+3. 'rede-live-auth' (Porta 3899 / Display :99): Servidor do noVNC (porta 6080).
+   Permite que um operador humano faça login visual ou aprove 2FA no portal Meu Rede
+   quando necessário, compartilhando o mesmo perfil do Invisible Playwright 0.45.0.
+4. 'hydra-qr-hub' (Porta 3333): Painel de saúde e reconexão de QR Code do WhatsApp.
+5. 'hydra-reconnect-watchdog': Sentinela contínuo que monitora quedas de conexão
+   e aplica reinicializações graciosas sem intervenção humana.
+
+================================================================================
+REGRAS CRÍTICAS DE SEGURANÇA E OPERAÇÃO (LEMBRETE OBRIGATÓRIO)
+================================================================================
+1. Instâncias WhatsApp: Remetentes autorizados EXCLUSIVAMENTE 'hydra' e 'atendimento'.
+   PROIBIDO enviar qualquer mensagem usando números/aparelhos de gerentes de loja!
+2. Ambiente Rede: Coletas da Rede executam estritamente no Python 0.45.0 homologado
+   em /home/operacional/.venv-invisible/bin/python.
+3. Locks de Perfil: Apenas 1 instância do coletor da Rede pode acessar o perfil
+   Firefox por vez, garantido pelo daemon único TCP 127.0.0.1:49222.
+================================================================================

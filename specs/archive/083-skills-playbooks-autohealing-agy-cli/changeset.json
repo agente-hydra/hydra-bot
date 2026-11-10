@@ -1,0 +1,35 @@
+{
+  "specId": "083-skills-playbooks-autohealing-agy-cli",
+  "owned": [
+    ".agents/skills/hydra-frentes-autohealing/SKILL.md",
+    ".agents/skills/hydra-frentes-autohealing/skill_baloes_diretoria.md",
+    ".agents/skills/hydra-frentes-autohealing/skill_crm_reativacao.md",
+    ".agents/skills/hydra-frentes-autohealing/skill_marketing_roi.md",
+    ".agents/skills/hydra-frentes-autohealing/skill_performance_kpis.md",
+    ".agents/skills/hydra-frentes-autohealing/skill_rede_pipeline.md",
+    "docs/FRENTES_E_CRONS_HYDRA_REDE.txt",
+    "projects/hydra-rede",
+    "specs/083-skills-playbooks-autohealing-agy-cli/.baseline.json",
+    "specs/083-skills-playbooks-autohealing-agy-cli/evidence/t1.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/evidence/t2.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/evidence/t3.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/evidence/t4.md"
+  ],
+  "shared": [
+    "specs/083-skills-playbooks-autohealing-agy-cli/issues.json",
+    "specs/083-skills-playbooks-autohealing-agy-cli/issues.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/spec-plan.md"
+  ],
+  "baselineDirty": [
+    ".agent/memory/specialists/specialist-crawler-rede.md",
+    "docs/FRENTES_E_CRONS_HYDRA_REDE.txt",
+    "docs/portfolio/CASE_STUDY_HYDRA_REDEMEC.md",
+    "docs/portfolio/sample_production_logs.json",
+    "specs/083-skills-playbooks-autohealing-agy-cli/design.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/issues.json",
+    "specs/083-skills-playbooks-autohealing-agy-cli/issues.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/proposal.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/scouts/scout_specialist-crawler-rede.md",
+    "specs/083-skills-playbooks-autohealing-agy-cli/spec-plan.md"
+  ]
+}

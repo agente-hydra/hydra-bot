@@ -1,0 +1,66 @@
+{
+  "specId": "083-skills-playbooks-autohealing-agy-cli",
+  "mode": "github",
+  "issues": [
+    {
+      "task": "epic",
+      "number": 69,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/69",
+      "title": "[Spec 083-skills-playbooks-autohealing-agy-cli] Épico de Implementação",
+      "state": "closed",
+      "criteria": []
+    },
+    {
+      "task": 1,
+      "number": 65,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/65",
+      "title": "[Spec 083-skills-playbooks-autohealing-agy-cli / T1] Elaboração dos Playbooks Markdown das Frentes Financeira e Operacional (Rede e Balões)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Ambos os arquivos criados e validados contra sintaxe Markdown e caminhos absolutos existentes no repositório.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 2,
+      "number": 66,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/66",
+      "title": "[Spec 083-skills-playbooks-autohealing-agy-cli / T2] Elaboração dos Playbooks Markdown de Performance, Marketing e CRM (CMV, ROI e Reativação)",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Os 3 arquivos criados e validados com checagem de instâncias permitidas (`hydra` e `atendimento`).",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 3,
+      "number": 67,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/67",
+      "title": "[Spec 083-skills-playbooks-autohealing-agy-cli / T3] Criação do Script Gerador e Instalador Automatizado das Skills na VPS",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Script executável criado com permissão de execução e validação de parâmetros.",
+          "command": ""
+        }
+      ]
+    },
+    {
+      "task": 4,
+      "number": 68,
+      "url": "https://github.com/agente-hydra/hydra-bot/issues/68",
+      "title": "[Spec 083-skills-playbooks-autohealing-agy-cli / T4] Validação Integrada dos Playbooks, Testes de Integridade e Build Gate",
+      "state": "closed",
+      "criteria": [
+        {
+          "text": "Todas as 5 skills verificadas, presentes no repositório e sincronizadas na VPS.",
+          "command": ""
+        }
+      ]
+    }
+  ]
+}

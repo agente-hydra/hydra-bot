@@ -46,3 +46,17 @@
 - **Risco identificado:** Instâncias concorrentes de Playwright sob o mesmo usuário do ERP provocam desaceleração ou colisões de sessão.
 - **Não fazer:** Nunca inferir que OS está sem pagamento olhando apenas a tela de busca da grade sem abrir a aba financeira.
 - **Âncora:** `projects/hydra-rede/src/os_live_probe.js`
+
+## [2026-11-10] — [Feature: 082-rede-single-collector-v045-consolidation-docs]
+- **Contexto:** Unificação do coletor da Rede no ambiente isolado Invisible Playwright 0.45.0 (`/home/operacional/.venv-invisible/bin/python`), remoção de concorrências no PM2 (`rede-session-keeper`) e elaboração da documentação arquitetural e operacional completa.
+- **Regra aprendida:** O `InvisiblePlaywright` é síncrono e deve ser instanciado via context manager ou `asyncio.to_thread` no venv isolado, garantindo propriedade única do perfil persistente sem bloqueio de porta 49222.
+- **Risco identificado:** A coexistência de versões 0.43 e 0.45 travava o perfil `.rede_firefox_profile/firefox_data` por 180s. A remoção de `invisible_playwright` do Python do sistema e resolução prioritária do venv impedem esse conflito.
+- **Não fazer:** Nunca chamar `el.is_visible()` em `ElementHandle` (usar `bounding_box()` ou locators nativos) e nunca usar gerador sintético de relatórios em ambiente de produção.
+- **Âncora:** `projects/hydra-rede/src/invisible_bridge_client.js` e `projects/hydra-rede/src/invisible/rede_invisible_worker.py`
+
+## [2026-11-10] — [Feature: 083-skills-playbooks-autohealing-agy-cli]
+- **Contexto:** Criação e implantação das 5 skills auto-healing para AGY CLI na VPS (Rede 05h-08h, Pátio ERP & Balões WhatsApp, Margem CMV & Mão de Obra, Marketing & ROI, e CRM de Reativação), com testes reais via agy -p comprovando auto-healing, verificação de locks e blindagem de mensageria.
+- **Regra aprendida:** O AGY CLI atua como orquestrador resiliente acionado deterministicamente pelo cron, capaz de auto-corrigir discrepâncias de caminho (como symlinks de downloads/output), validar frescor de dados de ERP (< 60 min), auditar limites de envio no WhatsApp e aplicar travas de segurança sem disparar mensagens acidentais.
+- **Risco identificado:** Execução de agy -p em cron de alta frequência (a cada minuto) pode gerar latência e consumo de tokens; o cron deve acionar scripts com gates determinísticos ultra-rápidos e acionar o AGY nas janelas principais ou como watchdog de contingência.
+- **Não fazer:** Nunca permitir que o cron rode comandos cegos sem pré-auditoria de locks ou instâncias da Evolution API, e nunca usar números/instâncias de gerentes como remetentes de mensageria.
+- **Âncora:** `projects/hydra-rede/skills/ e .agents/skills/hydra-frentes-autohealing/`
